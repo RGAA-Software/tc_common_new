@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.26)
+
+message("=-=-=-=--= ${Boost_LIBRARIES}")
+
+find_package(GTest CONFIG REQUIRED)
+add_executable(test_common test.cpp)
+target_link_libraries(test_common PRIVATE tc_common ${Boost_LIBRARIES} GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
