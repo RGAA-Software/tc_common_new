@@ -1,0 +1,63 @@
+#include "data.h"
+
+namespace tc
+{
+
+    Data::Data(const char* src, int size) {
+        this->data_ = (char *) malloc(size);
+        memset(this->data_, 0, size);
+        if (src) {
+            memcpy(this->data_, src, size);
+        }
+        this->size_ = size;
+    }
+
+    std::shared_ptr<Data> Data::From(const std::string& data) {
+        return std::make_shared<Data>((char*)data.data(), (int)data.size());
+    }
+
+    Data::~Data() {
+        if (this->data_) {
+            free(this->data_);
+        }
+    }
+
+    const char *Data::CStr() {
+        return this->data_;
+    }
+
+    std::string Data::AsString() {
+        std::string val;
+        val.resize(size_);
+        memcpy(val.data(), this->data_, size_);
+        return val;
+    }
+
+    void Data::ConvertToStr(std::string& out) {
+        out.resize(size_);
+        memcpy((char*)out.data(), this->data_, size_);
+    }
+
+    int Data::Size() {
+        return this->size_;
+    }
+
+    std::shared_ptr<Data> Data::Make(const char *data_, int size) {
+        return std::make_shared<Data>(data_, size);
+    }
+
+    char* Data::DataAddr() {
+        return this->data_;
+    }
+
+    std::shared_ptr<Data> Data::Dup() {
+        return Data::Make(this->data_, this->size_);
+    }
+
+    void Data::Save(const std::string& path) {
+//        auto file = File::OpenForWriteB(path);
+//        file->Write(0, data_, size_);
+//        file->Close();
+    }
+
+}
