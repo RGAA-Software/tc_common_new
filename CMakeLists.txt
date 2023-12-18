@@ -13,6 +13,7 @@ set(SRCS
         thread.cpp
         task_runtime.cpp
         base64.cpp
+        file.cpp
 )
 
 add_library(tc_common ${SRCS})

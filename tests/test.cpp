@@ -11,6 +11,7 @@
 #include "../task_runtime.h"
 #include "../log.h"
 #include "../base64.h"
+#include "../file.h"
 
 using namespace tc;
 
@@ -94,4 +95,16 @@ TEST(Test_b64, enc_dec) {
     LOGI("b64 enc: {}", enc);
     auto dec = Base64::Base64Decode(enc);
     LOGI("b64 dec: {}", dec);
+}
+
+TEST(Test_file, create) {
+    auto file = File::OpenForWrite("jack_test.txt");
+    file->Write(0, "hello...");
+}
+
+TEST(Test_file, read) {
+    auto file = File::OpenForRead("jack_test.txt");
+    LOGI("file exists: {}", file->Exists());
+    auto data = file->ReadAllAsString();
+    LOGI("data : {}", data);
 }
