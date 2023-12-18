@@ -66,7 +66,9 @@ namespace tc
                 }
             }
             if (task) {
+                task->state_ = ThreadTaskState::kRunning;
                 task->Run();
+                task->state_ = ThreadTaskState::kReady;
                 task_exec_count_++;
             }
         }
@@ -91,6 +93,31 @@ namespace tc
         }
         tasks_.push_back(std::move(task));
         take_var_.notify_all();
+    }
+
+    bool Thread::RemoveTask(uint64_t task_id) {
+        std::lock_guard<std::mutex> guard(task_mtx_);
+        for (auto it = tasks_.begin(); it != tasks_.end(); it++) {
+            if ((*it)->task_id_ == task_id) {
+                tasks_.erase(it);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool Thread::TaskExists(uint64_t task_id) {
+        std::lock_guard<std::mutex> guard(task_mtx_);
+        for (auto it = tasks_.begin(); it != tasks_.end(); it++) {
+            if ((*it)->task_id_ == task_id) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    std::list<ThreadTaskPtr> Thread::GetTasks() {
+        return tasks_;
     }
 
     bool Thread::IsExit() {

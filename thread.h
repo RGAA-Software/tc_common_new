@@ -13,17 +13,28 @@ namespace tc
 
     typedef std::function<void()> VoidFunc;
 
+    enum ThreadTaskState {
+        kIdle,
+        kRunning,
+        kReady,
+    };
+
     class ThreadTask {
     public:
-      ThreadTask() = default;
-      virtual ~ThreadTask() = default;
-      virtual void Run() = 0;
-    private:
-
+        ThreadTask() = default;
+        virtual ~ThreadTask() = default;
+        virtual void Run() = 0;
+    public:
+        uint64_t task_id_ = 0;
+        ThreadTaskState state_ = ThreadTaskState::kIdle;
     };
 
     class SimpleThreadTask : public ThreadTask {
     public:
+
+        static std::shared_ptr<SimpleThreadTask> Make(VoidFunc&& ef) {
+            return std::make_shared<SimpleThreadTask>(std::move(ef), []() {});
+        }
 
         static std::shared_ptr<SimpleThreadTask> Make(VoidFunc&& ef, VoidFunc&& cbk) {
             return std::make_shared<SimpleThreadTask>(std::move(ef), std::move(cbk));
@@ -95,10 +106,12 @@ namespace tc
 
         void Post(const ThreadTaskPtr& task);
         void Post(ThreadTaskPtr&& task);
+        bool RemoveTask(uint64_t task_id);
+        bool TaskExists(uint64_t task_id);
         bool HasTask();
         int TaskSize();
         int MaxTaskSize();
-
+        std::list<ThreadTaskPtr> GetTasks();
         void Exit();
 
         bool IsExit();

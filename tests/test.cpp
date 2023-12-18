@@ -8,6 +8,8 @@
 #include "../data.h"
 #include "../md5.h"
 #include "../random.h"
+#include "../task_runtime.h"
+#include "../log.h"
 
 using namespace tc;
 
@@ -38,4 +40,48 @@ TEST(Test_Random, random) {
     for (int i = 0; i < 10; i++) {
         std::cout << "Random: " << Random::RandT(1, 10) << std::endl;
     }
+}
+
+TEST(Test_TR, tr_create) {
+    TaskRuntime runtime(4);
+}
+
+TEST(Test_TR, tr_post_many_task) {
+    TaskRuntime runtime(4);
+    for (int i = 0; i < 16; i++) {
+        auto duration = Random::RandT(100, 200);
+        auto task = SimpleThreadTask::Make([=](){
+            std::this_thread::sleep_for(std::chrono::milliseconds(duration));
+            LOGI("Task index: {} exec success, sleep : {}", i, duration);
+        });
+        runtime.Post(task);
+    }
+
+    std::cout << runtime.Dump() << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(3200));
+}
+
+TEST(Test_TR, tr_remove_task) {
+    TaskRuntime runtime(1);
+    uint64_t the_second_task_id = 0;
+    for (int i = 0; i < 6; i++) {
+        auto duration = Random::RandT(100, 200);
+        auto task = SimpleThreadTask::Make([=](){
+            std::this_thread::sleep_for(std::chrono::milliseconds(duration));
+        });
+        runtime.Post(task);
+
+        if (i == 1) {
+            the_second_task_id = task->task_id_;
+        }
+    }
+
+    std::cout << "--------Before Remove--------" << std::endl;
+    std::cout << runtime.Dump() << std::endl;
+
+    std::cout << "--------After Remove--------" << std::endl;
+    runtime.RemoveTask(the_second_task_id);
+    std::cout << runtime.Dump() << std::endl;
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(3200));
 }
