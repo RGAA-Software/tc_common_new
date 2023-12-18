@@ -10,13 +10,13 @@
 #include "../random.h"
 #include "../task_runtime.h"
 #include "../log.h"
+#include "../base64.h"
 
 using namespace tc;
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest();
     return RUN_ALL_TESTS();
-    return 0;
 }
 
 TEST(Test_GenUUID, gen_uuid) {
@@ -44,6 +44,7 @@ TEST(Test_Random, random) {
 
 TEST(Test_TR, tr_create) {
     TaskRuntime runtime(4);
+    runtime.Exit();
 }
 
 TEST(Test_TR, tr_post_many_task) {
@@ -59,6 +60,7 @@ TEST(Test_TR, tr_post_many_task) {
 
     std::cout << runtime.Dump() << std::endl;
     std::this_thread::sleep_for(std::chrono::milliseconds(3200));
+    runtime.Exit();
 }
 
 TEST(Test_TR, tr_remove_task) {
@@ -84,4 +86,12 @@ TEST(Test_TR, tr_remove_task) {
     std::cout << runtime.Dump() << std::endl;
 
     std::this_thread::sleep_for(std::chrono::milliseconds(3200));
+    runtime.Exit();
+}
+
+TEST(Test_b64, enc_dec) {
+    auto enc = Base64::Base64Encode("Jack Sparrow");
+    LOGI("b64 enc: {}", enc);
+    auto dec = Base64::Base64Decode(enc);
+    LOGI("b64 dec: {}", dec);
 }

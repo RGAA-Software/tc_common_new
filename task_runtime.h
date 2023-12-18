@@ -26,6 +26,8 @@ namespace tc
         uint64_t Post(ThreadTaskPtr&& task);
         // Remove Task if the target task is in Idle state
         bool RemoveTask(uint64_t task_id);
+        // Exit
+        void Exit();
 
         std::string Dump();
 

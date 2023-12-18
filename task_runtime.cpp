@@ -65,6 +65,12 @@ namespace tc
         return target_pair;
     }
 
+    void TaskRuntime::Exit() {
+        for (const auto& t : threads_) {
+            t.second->Exit();
+        }
+    }
+
     std::string TaskRuntime::Dump() {
         std::stringstream ss;
         ss << "TaskRuntime: \n";

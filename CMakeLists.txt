@@ -12,6 +12,7 @@ set(SRCS
         time_ext.cpp
         thread.cpp
         task_runtime.cpp
+        base64.cpp
 )
 
 add_library(tc_common ${SRCS})
