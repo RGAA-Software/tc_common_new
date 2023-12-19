@@ -7,6 +7,7 @@
 
 #include <cstdlib>
 #include <ctime>
+#include <random>
 
 namespace tc
 {
@@ -27,6 +28,14 @@ namespace tc
                 return _min;
             }
             return rand() / (double)RAND_MAX * (_max - _min) + _min;
+        }
+
+        // 0 ~ 1.0
+        static double GenRandomNum() {
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_real_distribution<double> dis(0.0, 1.0);
+            return dis(gen);
         }
 
     };
