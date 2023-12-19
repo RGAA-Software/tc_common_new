@@ -14,6 +14,7 @@ set(SRCS
         task_runtime.cpp
         base64.cpp
         file.cpp
+        image.cpp
 )
 
 add_library(tc_common ${SRCS})

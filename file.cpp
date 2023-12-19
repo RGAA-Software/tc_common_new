@@ -46,15 +46,6 @@ namespace tc
         return std::make_shared<File>(path.c_str(), "ab+");
     }
     
-    //static const wchar_t *GetWC(const char *c) {
-    //    const size_t cSize = strlen(c)+1;
-    //    wchar_t* wc = new wchar_t[cSize];
-    //    mbstowcs (wc, c, cSize);
-    //    return wc;
-    //}
-    
-    #include <Windows.h>
-    
     File::File(const std::string& path, const std::string& mode) {
         auto origin_path = path;
         StringExt::Replace(origin_path, "\\", "/");
