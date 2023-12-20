@@ -26,10 +26,9 @@ namespace tc
 
         static bool InitLog(const std::string& path, bool save_to_file = false) {
             if (save_to_file) {
-                std::string strFilePath = path;
                 try {
                     std::shared_ptr<spdlog::logger> logger;
-                    logger = spdlog::rotating_logger_mt(SPDLOG_NAME, strFilePath, 1024 * 1024 * 3, 5, false);
+                    logger = spdlog::rotating_logger_mt(SPDLOG_NAME, path, 1024 * 1024 * 10, 5, false);
                     spdlog::set_default_logger(logger);
                     logger->set_level(spdlog::level::debug);
                     logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e][thread %t][%s:%#,%!][%l] : %v");
