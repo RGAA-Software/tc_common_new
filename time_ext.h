@@ -28,6 +28,12 @@ namespace tc
             ss << std::put_time(std::localtime(&t), "%F %T");
             return ss.str();
         }
+
+        static uint64_t GetCurrentTimePointUS() {
+            auto now = std::chrono::high_resolution_clock::now();
+            auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+            return microseconds;
+        }
     };
 
 }
