@@ -15,6 +15,8 @@ set(SRCS
         base64.cpp
         file.cpp
         image.cpp
+        ipc_shm.cpp
+        ipc_msg_queue.cpp
 )
 
 add_library(tc_common ${SRCS})
