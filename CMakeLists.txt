@@ -21,5 +21,8 @@ set(SRCS
 
 add_library(tc_common ${SRCS})
 target_link_libraries(tc_common spdlog::spdlog_header_only leveldb::leveldb ${Boost_LIBRARIES})
+if (WIN32)
+    target_link_libraries(tc_common jemalloc)
+endif ()
 
 add_subdirectory(tests)
