@@ -147,7 +147,19 @@ namespace tc
         fseek(fp_, offset, SEEK_SET);
         return (int64_t)fwrite(data, 1, size, fp_);
     }
-    
+
+    int64_t File::Append(const DataPtr& data) {
+        return this->Append(data->CStr(), data->Size());
+    }
+
+    int64_t File::Append(const std::string& data) {
+        return this->Append(data.c_str(), data.size());
+    }
+
+    int64_t File::Append(const char* data, uint64_t size) {
+        return (int64_t)fwrite(data, 1, size, fp_);
+    }
+
     void File::Close() {
         if (fp_) {
             fflush(fp_);

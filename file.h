@@ -39,12 +39,16 @@ namespace tc
         int64_t Write(uint64_t offset, const DataPtr& data);
         int64_t Write(uint64_t offset, const std::string& data);
         int64_t Write(uint64_t offset, const char* data, uint64_t size);
-    
+        int64_t Append(const DataPtr& data);
+        int64_t Append(const std::string& data);
+        int64_t Append(const char* data, uint64_t size);
+
     private:
     
         std::string file_path_;
         FILE* fp_ = nullptr;
 
+        int64_t current_offset_ = 0;
     };
     
     typedef std::shared_ptr<File> FilePtr;
