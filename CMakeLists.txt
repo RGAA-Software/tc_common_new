@@ -17,6 +17,7 @@ set(SRCS
     image.cpp
     ipc_shm.cpp
     ipc_msg_queue.cpp
+    message_notifier.cpp
 )
 
 if(WIN32)
