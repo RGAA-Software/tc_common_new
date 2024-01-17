@@ -32,7 +32,6 @@ namespace tc
         MessageNotifier();
         ~MessageNotifier();
 
-        std::shared_ptr<dexode::EventBus> GetEventBus();
         std::shared_ptr<MessageListener> CreateListener();
 
         template<typename T>

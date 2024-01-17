@@ -15,10 +15,6 @@ namespace tc
 
     }
 
-    std::shared_ptr<dexode::EventBus> MessageNotifier::GetEventBus() {
-        return event_bus_;
-    }
-
     std::shared_ptr<MessageListener> MessageNotifier::CreateListener() {
         auto inner = std::make_shared<dexode::EventBus::Listener>(event_bus_);
         auto listener = std::make_shared<MessageListener>(inner);
