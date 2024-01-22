@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 find_package(leveldb REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 set(SRCS
     data.cpp
@@ -19,6 +20,8 @@ set(SRCS
     ipc_shm.cpp
     ipc_msg_queue.cpp
     message_notifier.cpp
+    http_client.cpp
+    http_client.cpp
 )
 
 if(WIN32)
@@ -31,6 +34,6 @@ endif()
 add_library(tc_common ${SRCS})
 target_link_libraries(tc_common spdlog::spdlog_header_only leveldb::leveldb ${Boost_LIBRARIES} fmt::fmt-header-only)
 if (WIN32)
-    target_link_libraries(tc_common jemalloc DirectXTex DXGI D3D11)
+    target_link_libraries(tc_common jemalloc DirectXTex DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto)
 endif ()
 add_subdirectory(tests)
