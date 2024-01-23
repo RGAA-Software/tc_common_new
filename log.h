@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <fmt/core.h>
 
 #ifdef WIN32
 #define SPDLOG_NAME         "spd.log"
@@ -14,14 +15,11 @@
 #if ANDROID
 #include <android/log.h>
 #define TAG "tc_native"
-//#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG,TAG ,__VA_ARGS__) // 定义LOGD类型
-//#define LOGI(...) __android_log_print(ANDROID_LOG_INFO,TAG ,__VA_ARGS__) // 定义LOGI类型
-//#define LOGW(...) __android_log_print(ANDROID_LOG_WARN,TAG ,__VA_ARGS__) // 定义LOGW类型
-//#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR,TAG ,__VA_ARGS__) // 定义LOGE类型
-//#define LOGF(...) __android_log_print(ANDROID_LOG_FATAL,TAG ,__VA_ARGS__) // 定义LOGF类型
-
-#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO,TAG ,__VA_ARGS__) // 定义LOGI类型
-
+#define ALOGD(...) __android_log_print(ANDROID_LOG_DEBUG,TAG ,__VA_ARGS__)
+#define ALOGI(...) __android_log_print(ANDROID_LOG_INFO,TAG ,__VA_ARGS__)
+#define ALOGW(...) __android_log_print(ANDROID_LOG_WARN,TAG ,__VA_ARGS__)
+#define ALOGE(...) __android_log_print(ANDROID_LOG_ERROR,TAG ,__VA_ARGS__)
+#define ALOGF(...) __android_log_print(ANDROID_LOG_FATAL,TAG ,__VA_ARGS__)
 #endif
 
 #include <iostream>
@@ -70,10 +68,23 @@ namespace tc
     #define LOGW(...) LOGW_(spdlog::default_logger_raw(), __VA_ARGS__)
     #define LOGE(...) LOGE_(spdlog::default_logger_raw(), __VA_ARGS__)
 #else
-    #define LOGI(...)
-    #define LOGD(...)
-    #define LOGW(...)
-    #define LOGE(...)
+#define LOGI(...) \
+    do { \
+        auto msg = fmt::format(__VA_ARGS__); \
+        ALOGI("%s", msg.c_str()); \
+    } while (0)
+
+#define LOGW(...) \
+    do { \
+        auto msg = fmt::format(__VA_ARGS__); \
+        ALOGW("%s", msg.c_str()); \
+    } while (0)
+
+#define LOGE(...) \
+    do { \
+        auto msg = fmt::format(__VA_ARGS__); \
+        ALOGE("%s", msg.c_str()); \
+    } while (0)
 #endif
 }
 
