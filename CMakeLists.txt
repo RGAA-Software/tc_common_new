@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.22)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -6,6 +6,9 @@ find_package(leveldb REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(OpenSSL REQUIRED)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../tc_3rdparty/)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../tc_3rdparty/eventbus/src)
 
 set(SRCS
     data.cpp

@@ -83,28 +83,6 @@ namespace tc
             boost::replace_all(origin, from, to);
         }
 
-        static inline std::wstring ToWString(const std::string& src) {
-            std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-            return converter.from_bytes(src);
-        }
-
-        static inline std::string ToUTF8(const std::wstring& src) {
-            std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-            return converter.to_bytes(src);
-        }
-
-        static std::string Wstring2utf8string(const std::wstring& str)
-        {
-            static std::wstring_convert<std::codecvt_utf8<wchar_t> > strCnv;
-            return strCnv.to_bytes(str);
-        }
-
-        static std::wstring Utf8string2wstring(const std::string& str)
-        {
-            static std::wstring_convert< std::codecvt_utf8<wchar_t> > strCnv;
-            return strCnv.from_bytes(str);
-        }
-
 #ifdef WIN32
         static std::string GetErrorStr(HRESULT hr) {
             wchar_t buffer[4096] = { 0 };

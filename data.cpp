@@ -1,6 +1,7 @@
 #include "data.h"
-
+#ifdef WIN32
 #include "jemalloc/jemalloc.h"
+#endif
 
 namespace tc
 {

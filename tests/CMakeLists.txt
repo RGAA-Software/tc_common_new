@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.22)
 #message("=-=-=-=--= ${Boost_LIBRARIES}")
 find_package(GTest CONFIG REQUIRED)
 add_executable(test_common test.cpp)

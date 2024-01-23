@@ -8,6 +8,7 @@
 #include <chrono>
 #include <string>
 #include <iomanip>
+#include <sstream>
 
 namespace tc
 {

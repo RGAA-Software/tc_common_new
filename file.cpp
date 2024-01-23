@@ -5,8 +5,11 @@
 #include <filesystem>
 #include <stdio.h>
 #include <stdlib.h>
-#include <io.h>
 #include <boost/filesystem.hpp>
+
+#ifdef WIN32
+#include <io.h>
+#endif
 
 #include "string_ext.h"
 #include "log.h"
@@ -50,7 +53,9 @@ namespace tc
         auto origin_path = path;
         StringExt::Replace(origin_path, "\\", "/");
         this->file_path_ = origin_path;
+#ifdef WIN32
         fopen_s(&fp_, this->file_path_.c_str(), mode.c_str());
+#endif
     }
     
     File::~File() {
@@ -170,7 +175,9 @@ namespace tc
     
     int File::GetFileDescriptor() {
         if (fp_) {
+#ifdef WIN32
             return _fileno(fp_);
+#endif
         }
         return -1;
     }
