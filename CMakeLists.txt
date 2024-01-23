@@ -35,7 +35,8 @@ if(WIN32)
 endif()
 
 add_library(tc_common ${SRCS})
-target_link_libraries(tc_common spdlog::spdlog_header_only leveldb::leveldb ${Boost_LIBRARIES} fmt::fmt-header-only)
+#fmt::fmt-header-only
+target_link_libraries(tc_common spdlog::spdlog_header_only leveldb::leveldb ${Boost_LIBRARIES})
 if (WIN32)
     target_link_libraries(tc_common jemalloc DirectXTex DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto)
 endif ()
