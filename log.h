@@ -70,20 +70,20 @@ namespace tc
 #else
 #define LOGI(...) \
     do { \
-        auto msg = fmt::format(__VA_ARGS__); \
-        ALOGI("%s", msg.c_str()); \
+        auto _msg_ = fmt::format(__VA_ARGS__); \
+        ALOGI("%s", _msg_.c_str()); \
     } while (0)
 
 #define LOGW(...) \
     do { \
-        auto msg = fmt::format(__VA_ARGS__); \
-        ALOGW("%s", msg.c_str()); \
+        auto _msg_ = fmt::format(__VA_ARGS__); \
+        ALOGW("%s", _msg_.c_str()); \
     } while (0)
 
 #define LOGE(...) \
     do { \
-        auto msg = fmt::format(__VA_ARGS__); \
-        ALOGE("%s", msg.c_str()); \
+        auto _msg_ = fmt::format(__VA_ARGS__); \
+        ALOGE("%s", _msg_.c_str()); \
     } while (0)
 #endif
 }

@@ -7,6 +7,8 @@
 namespace tc
 {
 
+
+
     MessageNotifier::MessageNotifier() {
         event_bus_ = std::make_shared<dexode::EventBus>();
     }

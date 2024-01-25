@@ -6,6 +6,8 @@
 #define TC_APPLICATION_MESSAGE_NOTIFIER_H
 
 #include <memory>
+#include <functional>
+
 #include "dexode/EventBus.hpp"
 
 namespace tc
