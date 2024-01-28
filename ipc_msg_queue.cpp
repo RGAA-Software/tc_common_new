@@ -3,6 +3,7 @@
 //
 
 #include "ipc_msg_queue.h"
+#if 0
 #include "log.h"
 
 namespace tc
@@ -64,3 +65,4 @@ namespace tc
     }
 
 }
+#endif

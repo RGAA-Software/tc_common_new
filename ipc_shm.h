@@ -4,7 +4,7 @@
 
 #ifndef TC_APPLICATION_IPC_SHM_H
 #define TC_APPLICATION_IPC_SHM_H
-
+#if 0
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
@@ -53,5 +53,7 @@ namespace tc
     };
 
 }
+
+#endif
 
 #endif //TC_APPLICATION_IPC_SHM_H

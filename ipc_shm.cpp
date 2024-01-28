@@ -6,6 +6,7 @@
 #include "log.h"
 #include "data.h"
 
+#if 0
 namespace tc
 {
 
@@ -48,3 +49,4 @@ namespace tc
     }
 
 }
+#endif

@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <fmt/core.h>
 
-#ifdef WIN32
+#if defined(WIN32) || defined(__APPLE__) || defined(__linux__)
 #define SPDLOG_NAME         "spd.log"
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include <spdlog/spdlog.h>
@@ -38,7 +38,7 @@ namespace tc
     public:
 
         static bool InitLog(const std::string& path, bool save_to_file = false) {
-#ifdef WIN32
+#if defined(WIN32) || defined(__APPLE__) || defined(__linux__)
             if (save_to_file) {
                 try {
                     std::shared_ptr<spdlog::logger> logger;
@@ -62,7 +62,7 @@ namespace tc
         }
     };
 
-#ifdef WIN32
+#if defined(WIN32) || defined(__APPLE__) || defined(__linux__)
     #define LOGI(...) LOGI_(spdlog::default_logger_raw(), __VA_ARGS__)
     #define LOGD(...) LOGD_(spdlog::default_logger_raw(), __VA_ARGS__)
     #define LOGW(...) LOGW_(spdlog::default_logger_raw(), __VA_ARGS__)

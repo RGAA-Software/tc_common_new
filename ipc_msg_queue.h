@@ -5,6 +5,8 @@
 #ifndef TC_APPLICATION_IPC_MSQ_QUEUE_H
 #define TC_APPLICATION_IPC_MSQ_QUEUE_H
 
+#if 0
+
 #include <boost/interprocess/ipc/message_queue.hpp>
 #include <iostream>
 #include <vector>
@@ -44,5 +46,7 @@ namespace tc
     };
 
 }
+
+#endif
 
 #endif //TC_APPLICATION_IPC_MSQ_QUEUE_H
