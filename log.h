@@ -5,7 +5,7 @@
 #include <stdarg.h>
 #include <fmt/core.h>
 
-#if defined(WIN32) || defined(__APPLE__) || defined(__linux__)
+#if defined(WIN32) || defined(__APPLE__) || (defined(__linux__) && !defined(ANDROID))
 #define SPDLOG_NAME         "spd.log"
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #include <spdlog/spdlog.h>
@@ -38,7 +38,7 @@ namespace tc
     public:
 
         static bool InitLog(const std::string& path, bool save_to_file = false) {
-#if defined(WIN32) || defined(__APPLE__) || defined(__linux__)
+#if defined(WIN32) || defined(__APPLE__) || (defined(__linux__) && !defined(ANDROID))
             if (save_to_file) {
                 try {
                     std::shared_ptr<spdlog::logger> logger;
@@ -62,29 +62,31 @@ namespace tc
         }
     };
 
-#if defined(WIN32) || defined(__APPLE__) || defined(__linux__)
+#if defined(ANDROID)
+    #define LOGI(...) \
+        do { \
+            auto _msg_ = fmt::format(__VA_ARGS__); \
+            ALOGI("%s", _msg_.c_str()); \
+        } while (0)
+
+    #define LOGW(...) \
+        do { \
+            auto _msg_ = fmt::format(__VA_ARGS__); \
+            ALOGW("%s", _msg_.c_str()); \
+        } while (0)
+
+    #define LOGE(...) \
+        do { \
+            auto _msg_ = fmt::format(__VA_ARGS__); \
+            ALOGE("%s", _msg_.c_str()); \
+        } while (0)
+#endif
+
+#if defined(WIN32) || defined(__APPLE__) || (defined(__linux__) && !defined(ANDROID))
     #define LOGI(...) LOGI_(spdlog::default_logger_raw(), __VA_ARGS__)
     #define LOGD(...) LOGD_(spdlog::default_logger_raw(), __VA_ARGS__)
     #define LOGW(...) LOGW_(spdlog::default_logger_raw(), __VA_ARGS__)
     #define LOGE(...) LOGE_(spdlog::default_logger_raw(), __VA_ARGS__)
-#else
-#define LOGI(...) \
-    do { \
-        auto _msg_ = fmt::format(__VA_ARGS__); \
-        ALOGI("%s", _msg_.c_str()); \
-    } while (0)
-
-#define LOGW(...) \
-    do { \
-        auto _msg_ = fmt::format(__VA_ARGS__); \
-        ALOGW("%s", _msg_.c_str()); \
-    } while (0)
-
-#define LOGE(...) \
-    do { \
-        auto _msg_ = fmt::format(__VA_ARGS__); \
-        ALOGE("%s", _msg_.c_str()); \
-    } while (0)
 #endif
 }
 
