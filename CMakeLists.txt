@@ -27,6 +27,7 @@ set(SRCS
     message_notifier.cpp
     http_client.cpp
     timer.cpp
+    file_ext.cpp
 )
 
 if(WIN32)
