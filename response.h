@@ -49,6 +49,8 @@ namespace tc
     public:
 
     };
+
+    using RespBoolBool = Response<bool, bool>;
 }
 
 #endif //TC_APPLICATION_RESPONSE_H

@@ -26,6 +26,7 @@ set(SRCS
     ipc_msg_queue.cpp
     message_notifier.cpp
     http_client.cpp
+    timer.cpp
 )
 
 if(WIN32)
