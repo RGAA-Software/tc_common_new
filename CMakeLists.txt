@@ -28,6 +28,8 @@ set(SRCS
     http_client.cpp
     timer.cpp
     file_ext.cpp
+    process_util.cpp
+    dump_helper.cpp
 )
 
 if(WIN32)
