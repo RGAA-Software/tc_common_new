@@ -82,6 +82,7 @@ namespace tc {
             printf("D3D11Texture2DReleaseMutex ReleaseSync failed.\n");
             return false;
         }
+        return true;
     }
 
 
