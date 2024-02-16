@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #endif
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #define MAX_PATH_LEN 256
 #ifdef _WIN32
@@ -122,7 +122,7 @@ static int GenerateDump(EXCEPTION_POINTERS* exceptionPointers, const std::string
     }
 	else {
         std::wstring wname = StringExt::ToWString(name);
-		PathAppend(szPath, wname.c_str());
+        PathAppend(szPath, wname.c_str());
     }
 	HANDLE hFile = ::CreateFile(szPath, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (INVALID_HANDLE_VALUE != hFile)
