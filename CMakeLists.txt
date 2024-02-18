@@ -12,6 +12,13 @@ include_directories(${CMAKE_SOURCE_DIR}/tc_3rdparty/eventbus/src)
 
 message("==--== " ${CMAKE_SOURCE_DIR}/tc_3rdparty/eventbus/src)
 
+# C:\source\vcpkg\installed\x64-windows-static\lib
+# C:\source\vcpkg\packages\jemalloc_x64-windows-static\lib\jemalloc_s.lib
+#link_directories(${VCPKG_ROOT}/packages/jemalloc_x64-windows-static/lib)
+link_directories(${VCPKG_ROOT}/installed/x64-windows-static/lib)
+message(" static lib folder =====> ${VCPKG_ROOT}/installed/x64-windows-static/lib" )
+message(" static lib folder =====> ${VCPKG_ROOT}/packages/jemalloc_x64-windows-static/lib" )
+
 add_definitions("-DUNICODE" "-D_UNICODE")
 add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
@@ -49,6 +56,7 @@ add_library(tc_common ${SRCS})
 target_link_libraries(tc_common Dexode::EventBus leveldb::leveldb ${Boost_LIBRARIES})
 if (WIN32)
     target_link_libraries(tc_common jemalloc DirectXTex DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto)
+#    target_link_libraries(tc_common ${VCPKG_ROOT}/packages/jemalloc_x64-windows-static/lib/jemalloc_s.lib)
 endif ()
 
 target_include_directories(tc_common PUBLIC ${CMAKE_SOURCE_DIR}/tc_3rdparty/eventbus/src)
