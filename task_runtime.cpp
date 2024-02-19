@@ -41,7 +41,7 @@ namespace tc
         task->task_id_ = SnowflakeId::generate().implode();
         auto t = FindMostIdleThread();
         t.second->Post(task);
-        LOGI("Post.2 task: {} in thread: {}", task->task_id_, t.first);
+        //LOGI("Post.2 task: {} in thread: {}", task->task_id_, t.first);
         return task->task_id_;
     }
 
