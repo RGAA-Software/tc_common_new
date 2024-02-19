@@ -1,6 +1,9 @@
 #include "data.h"
+
 #ifdef WIN32
+#ifdef ENABLE_JEMALLOC
 #include "jemalloc/jemalloc.h"
+#endif
 #endif
 
 namespace tc
@@ -8,7 +11,11 @@ namespace tc
 
     Data::Data(const char* src, int size) {
 #ifdef WIN32
+#ifdef ENABLE_JEMALLOC
         this->data_ = (char*)je_malloc(size);
+#else
+        this->data_ = (char *) malloc(size);
+#endif
 #else
         this->data_ = (char *) malloc(size);
 #endif
@@ -26,7 +33,9 @@ namespace tc
     Data::~Data() {
         if (this->data_) {
 #ifdef WIN32
+#ifdef ENABLE_JEMALLOC
             je_free(this->data_);
+#endif
 #else
             free(this->data_);
 #endif

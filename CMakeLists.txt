@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
+project(tc_common)
 
+option(OPTION_ENABLE_JEMALLOC "Enable feature for LibraryA" OFF)
+message("common cmake, OPTION_ENABLE_JEMALLOC: " ${OPTION_ENABLE_JEMALLOC})
 set(CMAKE_CXX_STANDARD 20)
 
 find_package(leveldb REQUIRED)
@@ -9,13 +12,8 @@ find_package(OpenSSL REQUIRED)
 
 include_directories(${CMAKE_SOURCE_DIR}/tc_3rdparty/)
 include_directories(${CMAKE_SOURCE_DIR}/tc_3rdparty/eventbus/src)
-
-message("==--== " ${CMAKE_SOURCE_DIR}/tc_3rdparty/eventbus/src)
-
-# C:\source\vcpkg\installed\x64-windows-static\lib
-# C:\source\vcpkg\packages\jemalloc_x64-windows-static\lib\jemalloc_s.lib
-#link_directories(${VCPKG_ROOT}/packages/jemalloc_x64-windows-static/lib)
 link_directories(${VCPKG_ROOT}/installed/x64-windows-static/lib)
+message("==--== " ${CMAKE_SOURCE_DIR}/tc_3rdparty/eventbus/src)
 message(" static lib folder =====> ${VCPKG_ROOT}/installed/x64-windows-static/lib" )
 message(" static lib folder =====> ${VCPKG_ROOT}/packages/jemalloc_x64-windows-static/lib" )
 
@@ -55,8 +53,11 @@ add_library(tc_common ${SRCS})
 #spdlog::spdlog_header_only
 target_link_libraries(tc_common Dexode::EventBus leveldb::leveldb ${Boost_LIBRARIES})
 if (WIN32)
-    target_link_libraries(tc_common jemalloc DirectXTex DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto)
-#    target_link_libraries(tc_common ${VCPKG_ROOT}/packages/jemalloc_x64-windows-static/lib/jemalloc_s.lib)
+    if(OPTION_ENABLE_JEMALLOC)
+        target_compile_definitions(tc_common PRIVATE ENABLE_JEMALLOC)
+        target_link_libraries(tc_common jemalloc)
+    endif()
+    target_link_libraries(tc_common DirectXTex DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto)
 endif ()
 
 target_include_directories(tc_common PUBLIC ${CMAKE_SOURCE_DIR}/tc_3rdparty/eventbus/src)
