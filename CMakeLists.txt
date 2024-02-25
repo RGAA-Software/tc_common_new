@@ -39,6 +39,7 @@ set(SRCS
     file_ext.cpp
     process_util.cpp
     dump_helper.cpp
+    concurrent_hashmap.cpp
 )
 
 if(WIN32)

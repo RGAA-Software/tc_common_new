@@ -40,4 +40,25 @@ namespace tc {
         return code == 0;
     }
 
+    std::vector<std::string> ProcessUtil::StartProcessAndOutput(const std::string& exe_path, const std::vector<std::string>& args) {
+//        std::string err;
+
+        bp::ipstream out_stream, err_stream; // 输出和错误的流
+        bp::child c(exe_path, bp::args(args), bp::std_out > out_stream, bp::std_err > err_stream);
+
+        std::vector<std::string> output;
+        std::string line;
+        while (out_stream && std::getline(out_stream, line) && !line.empty()) {
+            output.push_back(line);
+        }
+//
+//        // 读取错误输出
+//        while (err_stream && std::getline(err_stream, line) && !line.empty()) {
+//            err += line + "\n";
+//        }
+//        LOGE("error: {}", err);
+        c.wait();
+        return output;
+    }
+
 }

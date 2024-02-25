@@ -42,7 +42,7 @@ namespace tc
             if (save_to_file) {
                 try {
                     std::shared_ptr<spdlog::logger> logger;
-                    logger = spdlog::rotating_logger_mt(SPDLOG_NAME, path, 1024 * 1024 * 10, 5, false);
+                    logger = spdlog::rotating_logger_mt(SPDLOG_NAME, path, 1024 * 1024 * 50, 5, false);
                     spdlog::set_default_logger(logger);
                     logger->set_level(spdlog::level::debug);
                     logger->flush_on(spdlog::level::debug);
