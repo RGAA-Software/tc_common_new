@@ -61,4 +61,15 @@ namespace tc {
         return output;
     }
 
+    bool ProcessUtil::KillProcess(unsigned long pid) {
+        HANDLE processHandle = OpenProcess(PROCESS_TERMINATE, FALSE, pid);
+        if (processHandle == NULL) {
+            std::cerr << "OpenProcess failed: " << GetLastError() << std::endl;
+            return false;
+        }
+        BOOL result = TerminateProcess(processHandle, 1);
+        CloseHandle(processHandle);
+        return result != 0;
+    }
+
 }

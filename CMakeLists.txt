@@ -39,7 +39,10 @@ set(SRCS
     file_ext.cpp
     process_util.cpp
     dump_helper.cpp
-    concurrent_hashmap.cpp
+
+    ##
+#    concurrent_hashmap.h
+#    concurrent_vector.h
 )
 
 if(WIN32)
