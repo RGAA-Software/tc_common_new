@@ -4,6 +4,8 @@
 #include <cstdio>
 #include <cstdarg>
 #include "spdlog/fmt/bundled/core.h"
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/rotating_file_sink.h"
 
 #if defined(WIN32) || defined(__APPLE__) || (defined(__linux__) && !defined(ANDROID))
 #define SPDLOG_NAME         "spd.log"

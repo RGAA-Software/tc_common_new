@@ -3,11 +3,12 @@
 //
 
 #include "process_util.h"
-
+#ifdef WIN32
 #include "tc_common/log.h"
 
-namespace tc {
-#ifdef WIN32
+namespace tc
+{
+
     bool SetDpiAwarenessContext(DPI_AWARENESS_CONTEXT context) {
         typedef BOOL(__stdcall* SetProcessDpiAwarenessFunc)(DPI_AWARENESS_CONTEXT);
         bool res = false;
@@ -26,8 +27,6 @@ namespace tc {
         }
         return res;
     }
-#endif
-
 
     bool ProcessUtil::StartProcess(const std::string& exe_path, const std::vector<std::string>& args) {
         bp::ipstream pipe_stream;
@@ -73,3 +72,4 @@ namespace tc {
     }
 
 }
+#endif

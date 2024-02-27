@@ -63,6 +63,9 @@ if (WIN32)
     endif()
     target_link_libraries(tc_common DirectXTex DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto)
 endif ()
+if (ANDROID)
+    target_link_libraries(tc_common log)
+endif()
 
 target_include_directories(tc_common PUBLIC ${CMAKE_SOURCE_DIR}/tc_3rdparty/eventbus/src)
 
