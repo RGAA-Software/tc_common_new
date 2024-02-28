@@ -28,7 +28,7 @@ namespace tc
         return res;
     }
 
-    bool ProcessUtil::StartProcess(const std::string& exe_path, const std::vector<std::string>& args) {
+    bool ProcessUtil::StartProcessAndWait(const std::string& exe_path, const std::vector<std::string>& args) {
         bp::ipstream pipe_stream;
         bp::child c(exe_path, bp::args(args), bp::std_out > pipe_stream);
         c.wait();
@@ -37,6 +37,12 @@ namespace tc
             LOGE("Start process code : {}", code);
         }
         return code == 0;
+    }
+
+    uint32_t ProcessUtil::StartProcess(const std::string& exe_path, const std::vector<std::string>& args) {
+        bp::ipstream pipe_stream;
+        bp::child c(exe_path, bp::args(args), bp::std_out > pipe_stream);
+        return c.id();
     }
 
     std::vector<std::string> ProcessUtil::StartProcessAndOutput(const std::string& exe_path, const std::vector<std::string>& args) {

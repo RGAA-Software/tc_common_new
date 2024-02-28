@@ -18,7 +18,8 @@ namespace tc
     class ProcessUtil {
     public:
 
-        static bool StartProcess(const std::string& exe_path, const std::vector<std::string>& args);
+        static bool StartProcessAndWait(const std::string& exe_path, const std::vector<std::string>& args);
+        static uint32_t StartProcess(const std::string& exe_path, const std::vector<std::string>& args);
         static std::vector<std::string> StartProcessAndOutput(const std::string& exe_path, const std::vector<std::string>& args);
         static bool KillProcess(unsigned long pid);
     };
