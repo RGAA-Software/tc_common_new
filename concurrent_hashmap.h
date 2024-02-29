@@ -47,10 +47,10 @@ namespace tc
             }
         }
 
-        void ApplyAll(std::function<void(const V& v)>&& task) {
+        void ApplyAll(std::function<void(const K&k, const V& v)>&& task) {
             std::lock_guard<std::mutex> lock(mtx_);
-            for (const auto& v : inner_) {
-                task(v);
+            for (const auto& [k, v] : inner_) {
+                task(k, v);
             }
         }
 
