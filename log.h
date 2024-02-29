@@ -9,7 +9,9 @@
 
 #if defined(WIN32) || defined(__APPLE__) || (defined(__linux__) && !defined(ANDROID))
 #define SPDLOG_NAME         "spd.log"
+#ifndef SPDLOG_ACTIVE_LEVEL
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+#endif
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/rotating_file_sink.h"
 #endif
