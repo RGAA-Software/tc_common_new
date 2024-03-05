@@ -54,6 +54,18 @@ namespace tc
             }
         }
 
+        void VisitAll(std::function<void(K k, V& v)>&& task) {
+            std::lock_guard<std::mutex> lock(mtx_);
+            for (auto& [k, v] : inner_) {
+                task(k, v);
+            }
+        }
+
+        size_t Size() {
+            std::lock_guard<std::mutex> lock(mtx_);
+            return inner_.size();
+        }
+
     private:
         std::mutex mtx_;
         std::unordered_map<K,V> inner_;
