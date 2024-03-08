@@ -12,7 +12,8 @@ find_package(OpenSSL REQUIRED)
 
 include_directories(${CMAKE_SOURCE_DIR}/tc_3rdparty/)
 include_directories(${CMAKE_SOURCE_DIR}/tc_3rdparty/eventbus/src)
-link_directories(${VCPKG_ROOT}/installed/x64-windows-static/lib)
+set(VCPKG_STATIC_LIB_PATH ${VCPKG_ROOT}/installed/x64-windows-static/lib)
+link_directories(VCPKG_STATIC_LIB_PATH)
 message("==--== " ${CMAKE_SOURCE_DIR}/tc_3rdparty/eventbus/src)
 message(" static lib folder =====> ${VCPKG_ROOT}/installed/x64-windows-static/lib" )
 message(" static lib folder =====> ${VCPKG_ROOT}/packages/jemalloc_x64-windows-static/lib" )
@@ -55,7 +56,8 @@ endif()
 add_library(tc_common ${SRCS})
 #fmt::fmt-header-only
 #spdlog::spdlog_header_only
-target_link_libraries(tc_common Dexode::EventBus leveldb::leveldb ${Boost_LIBRARIES})
+#leveldb::leveldb
+target_link_libraries(tc_common Dexode::EventBus ${VCPKG_STATIC_LIB_PATH}/leveldb.lib ${Boost_LIBRARIES})
 if (WIN32)
     if(OPTION_ENABLE_JEMALLOC)
         target_compile_definitions(tc_common PRIVATE ENABLE_JEMALLOC)
