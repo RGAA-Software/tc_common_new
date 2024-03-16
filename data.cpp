@@ -67,6 +67,10 @@ namespace tc
         return std::make_shared<Data>(data_, size);
     }
 
+    char Data::At(uint64_t offset) {
+        return *(this->data_ + offset);
+    }
+
     char* Data::DataAddr() {
         return this->data_;
     }

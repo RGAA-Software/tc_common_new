@@ -18,6 +18,7 @@ namespace tc
         const char *CStr();
         char* DataAddr();
         int Size();
+        char At(uint64_t offset);
         std::string AsString();
         void ConvertToStr(std::string& out);
         std::shared_ptr<Data> Dup();
