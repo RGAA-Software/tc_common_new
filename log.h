@@ -3,17 +3,17 @@
 
 #include <cstdio>
 #include <cstdarg>
-#include "spdlog/fmt/bundled/core.h"
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/rotating_file_sink.h"
+#include "tc_3rdparty/spdlog/fmt/bundled/core.h"
+#include "tc_3rdparty/spdlog/spdlog.h"
+#include "tc_3rdparty/spdlog/sinks/rotating_file_sink.h"
 
 #if defined(WIN32) || defined(__APPLE__) || (defined(__linux__) && !defined(ANDROID))
 #define SPDLOG_NAME         "spd.log"
 #ifndef SPDLOG_ACTIVE_LEVEL
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
 #endif
-#include "spdlog/spdlog.h"
-#include "spdlog/sinks/rotating_file_sink.h"
+#include "tc_3rdparty/spdlog/spdlog.h"
+#include "tc_3rdparty/spdlog/sinks/rotating_file_sink.h"
 #endif
 
 #if ANDROID
