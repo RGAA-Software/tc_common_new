@@ -48,6 +48,11 @@ namespace tc
     std::vector<std::string> ProcessUtil::StartProcessAndOutput(const std::string& exe_path, const std::vector<std::string>& args) {
 //        std::string err;
 
+        if(!boost::filesystem::exists(exe_path)) {
+            LOGE("StartProcessAndOutput exe_path is {}, but not exists.", exe_path);
+            return {};
+        }
+
         bp::ipstream out_stream, err_stream; // 输出和错误的流
         bp::child c(exe_path, bp::args(args), bp::std_out > out_stream, bp::std_err > err_stream);
 
