@@ -9,42 +9,40 @@
 namespace tc
 {
 
-    std::shared_ptr<Image> Image::Make(const char* data, int width, int height, int channels, int monitor_index) {
-        return std::make_shared<Image>(data, width, height, channels, monitor_index);
+    std::shared_ptr<Image> Image::Make(const char* data, int width, int height, int channels) {
+        return std::make_shared<Image>(data, width, height, channels);
     }
 
-    std::shared_ptr<Image> Image::Make(const DataPtr& data, int width, int height, int channels, int monitor_index) {
-        return std::make_shared<Image>(data, width, height, channels, monitor_index);
+    std::shared_ptr<Image> Image::Make(const DataPtr& data, int width, int height, int channels) {
+        return std::make_shared<Image>(data, width, height, channels);
     }
 
-    std::shared_ptr<Image> Image::Make(const DataPtr& data, int width, int height, int monitor_index) {
-        return std::make_shared<Image>(data, width, height, data ? data->Size()/width/height : 0, monitor_index);
+    std::shared_ptr<Image> Image::Make(const DataPtr& data, int width, int height) {
+        return std::make_shared<Image>(data, width, height, data ? data->Size()/width/height : 0);
     }
 
 #ifdef WIN32
-    std::shared_ptr<Image> Image::MakeByCompressedImage(const DataPtr& data, int monitor_index) {
-        return std::make_shared<Image>(data, monitor_index);
+    std::shared_ptr<Image> Image::MakeByCompressedImage(const DataPtr& data) {
+        return std::make_shared<Image>(data);
     }
 #endif
 
-    Image::Image(const char* data, int width, int height, int channels,int monitor_index) {
+    Image::Image(const char* data, int width, int height, int channels) {
         this->data = Data::Make(data, width*height*channels);
         this->width = width;
         this->height = height;
         this->channels = channels;
-        this->monitor_index_ = monitor_index;
     }
 
-    Image::Image(const DataPtr& data, int width, int height, int channels,int monitor_index) {
+    Image::Image(const DataPtr& data, int width, int height, int channels) {
         this->data = data;
         this->width = width;
         this->height = height;
         this->channels = channels;
-        this->monitor_index_ = monitor_index;
     }
 
 #ifdef WIN32
-    Image::Image(const DataPtr& img_data, int monitor_index) {
+    Image::Image(const DataPtr& img_data) {
         std::vector<char> buffer;
         buffer.resize(img_data->Size());
         memcpy(buffer.data(), img_data->DataAddr(), img_data->Size());
@@ -54,7 +52,7 @@ namespace tc
         this->width = img.cols;
         this->height = img.rows;
         this->channels = img.channels();
-        this->monitor_index_ = monitor_index;
+
         this->data = Data::Make((char*)img.data, img.rows * img.cols * img.channels());
     }
 #endif
