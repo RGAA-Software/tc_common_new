@@ -4,7 +4,7 @@
 
 #include "process_util.h"
 #ifdef WIN32
-#include "tc_common/log.h"
+#include "tc_common_new/log.h"
 
 namespace tc
 {

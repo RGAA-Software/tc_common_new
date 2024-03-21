@@ -3,7 +3,7 @@
 #include <DirectXTex.h>
 #include <sstream>
 #include "d3d_render.h"
-#include "tc_common/string_ext.h"
+#include "tc_common_new/string_ext.h"
 
 namespace tc {
 

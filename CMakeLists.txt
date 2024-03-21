@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(tc_common)
+project(tc_common_new)
 
 option(OPTION_ENABLE_JEMALLOC "Enable feature for LibraryA" OFF)
 message("common cmake, OPTION_ENABLE_JEMALLOC: " ${OPTION_ENABLE_JEMALLOC})
@@ -65,23 +65,23 @@ if(WIN32)
     )
 endif()
 
-add_library(tc_common ${SRCS})
+add_library(tc_common_new ${SRCS})
 #fmt::fmt-header-only
 #spdlog::spdlog_header_only
 #leveldb::leveldb
-target_link_libraries(tc_common Dexode::EventBus ${Boost_LIBRARIES})
+target_link_libraries(tc_common_new Dexode::EventBus ${Boost_LIBRARIES})
 if (WIN32)
     if(OPTION_ENABLE_JEMALLOC)
-        target_compile_definitions(tc_common PRIVATE ENABLE_JEMALLOC)
-        target_link_libraries(tc_common jemalloc)
+        target_compile_definitions(tc_common_new PRIVATE ENABLE_JEMALLOC)
+        target_link_libraries(tc_common_new jemalloc)
     endif()
-    target_link_libraries(tc_common DirectXTex DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto)
-    target_link_libraries(tc_common ${VCPKG_STATIC_LIB_PATH}/leveldb.lib)
+    target_link_libraries(tc_common_new DirectXTex DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto)
+    target_link_libraries(tc_common_new ${VCPKG_STATIC_LIB_PATH}/leveldb.lib)
 endif ()
 if (ANDROID)
-    target_link_libraries(tc_common log ${VCPKG_STATIC_LIB_PATH}/libleveldb.a)
+    target_link_libraries(tc_common_new log ${VCPKG_STATIC_LIB_PATH}/libleveldb.a)
 endif()
 
-target_include_directories(tc_common PUBLIC ${CMAKE_SOURCE_DIR}/tc_3rdparty/eventbus/src)
+target_include_directories(tc_common_new PUBLIC ${CMAKE_SOURCE_DIR}/tc_3rdparty/eventbus/src)
 
 add_subdirectory(tests)
