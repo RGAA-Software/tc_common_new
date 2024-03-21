@@ -35,6 +35,8 @@ namespace tc
 #ifdef WIN32
 #ifdef ENABLE_JEMALLOC
             je_free(this->data_);
+#else
+            free(this->data_);
 #endif
 #else
             free(this->data_);
