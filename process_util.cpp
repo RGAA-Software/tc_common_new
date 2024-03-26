@@ -82,5 +82,49 @@ namespace tc
         return result != 0;
     }
 
+    bool ProcessUtil::StartProcessInWorkDir(const std::string &work_dir, const std::string &cmdline,
+                                            const std::vector<std::string> &args) {
+        STARTUPINFOA si;
+        ZeroMemory(&si, sizeof(si));
+        si.cb = sizeof(si);
+
+        PROCESS_INFORMATION pi;
+        ZeroMemory(&pi, sizeof(pi));
+        //LPSTR programPath = "E:\\source\\streamer\\out\\install\\x64-RelWithDebInfo\\bin\\DolitCloudApp.exe -o 3101 --run_in_system 1";
+        //LPSTR work_dir = "E:\\source\\streamer\\out\\install\\x64-RelWithDebInfo\\bin";
+        //LPSTR work_dir = "E:\\software\\bin";
+        //LPSTR programPath = "E:\\software\\bin\\DolitCloudApp.exe -o 3101";
+        // dolit_sys_test.exe
+        //BOOL ok = SetCurrentDirectory("E:\\software\\bin");
+
+        if (!CreateProcessA(
+                NULL,           // 模块名，NULL意味着使用命令行
+                (char*)cmdline.c_str(),    // 命令行
+                NULL,           // 进程安全属性
+                NULL,           // 线程安全属性
+                FALSE,          // 句柄继承选项
+                0,              // 创建标志
+                NULL,           // 使用父进程的环境块
+                (char*)work_dir.c_str(), // 设置子进程的工作目录
+                &si,            // 指向 STARTUPINFO 结构体
+                &pi             // 指向 PROCESS_INFORMATION 结构体
+        )) {
+            LOGE("CreateProcess failed: {}", GetLastError());
+            return false;
+        }
+
+        LOGI("==> CreateProcessSuccess...{} {}", pi.dwProcessId, pi.dwThreadId);
+
+        std::cout << "pid:" << pi.dwProcessId << " tid:" << pi.dwThreadId << std::endl;
+
+        // 等待子进程结束
+        WaitForSingleObject(pi.hProcess, INFINITE);
+        LOGI("==> process exit....");
+        // 关闭进程和线程句柄
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+        return true;
+    }
+
 }
 #endif
