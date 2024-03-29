@@ -52,7 +52,7 @@ set(SRCS
     file_ext.cpp
     process_util.cpp
     dump_helper.cpp
-
+    folder_util.cpp
     ##
 #    concurrent_hashmap.h
 #    concurrent_vector.h

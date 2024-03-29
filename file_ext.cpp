@@ -13,6 +13,9 @@ namespace tc
         StringExt::Replace(target_path, R"(\\)", "/");
         StringExt::Replace(target_path, R"(\)", "/");
         auto idx = target_path.rfind('/');
+        if (idx == std::string::npos) {
+            return path;
+        }
         return target_path.substr(idx + 1, target_path.size());
     }
 
