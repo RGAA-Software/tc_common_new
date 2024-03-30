@@ -83,7 +83,6 @@ namespace tc
             boost::replace_all(origin, from, to);
         }
 
-#ifdef WIN32
         static inline std::wstring ToWString(const std::string& src) {
             std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
             return converter.from_bytes(src);
@@ -105,7 +104,7 @@ namespace tc
             static std::wstring_convert< std::codecvt_utf8<wchar_t> > strCnv;
             return strCnv.from_bytes(str);
         }
-
+#ifdef WIN32
         static std::string GetErrorStr(HRESULT hr) {
             wchar_t buffer[4096] = { 0 };
             FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
