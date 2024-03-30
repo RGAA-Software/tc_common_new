@@ -7,6 +7,7 @@
 
 #include <string>
 #include <functional>
+#include <filesystem>
 
 namespace tc
 {
@@ -22,6 +23,7 @@ namespace tc
         static void VisitFiles(const std::string& path, std::function<void(VisitResult&&)>&&, const std::string& filter_suffix = "");
         static void VisitFolders(const std::string& path, std::function<void(VisitResult&&)>&&);
         static void VisitAll(const std::string& path, std::function<void(VisitResult&&)>&&, const std::string& filter_suffix = "");
+        static void VisitRecursiveFiles(const std::filesystem::path& path, int depth, int max_depth, const std::function<void(VisitResult&&)>&, const std::string& filter_suffix = "");
     };
 }
 
