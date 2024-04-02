@@ -36,7 +36,7 @@ namespace tc {
         static int i = 0;
         auto hr = DirectX::CaptureTexture(rhi->GetDevice(), rhi->GetContext(), pResource, image);
         std::stringstream oss;
-        oss << "debug-" << ++i << "-" << name << ".dds";
+        oss << "debug-" << ++i % 5 << "-" << name << ".dds";
 
         if (SUCCEEDED(hr)) {
             hr = DirectX::SaveToDDSFile(image.GetImages(),
@@ -44,24 +44,27 @@ namespace tc {
                                         image.GetMetadata(),
                                         DirectX::DDS_FLAGS_NONE,
                                         StringExt::ToWString(oss.str()).c_str());
+            if (FAILED(hr)) {
+                printf("Save DDSFile failed");
+            }
             return true;
         } else {
             printf("failed save image:%p", hr);
             return false;
         }
-
-        return true;
     }
 
     bool D3D11Texture2DLockMutex(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture2d) {
         HRESULT hRes;
         Microsoft::WRL::ComPtr<IDXGIKeyedMutex> key_mutex;
-        if (FAILED(hRes = texture2d.As<IDXGIKeyedMutex>(&key_mutex)))
+        hRes = texture2d.As<IDXGIKeyedMutex>(&key_mutex);
+        if (FAILED(hRes))
         {
             printf("D3D11Texture2DReleaseMutex IDXGIKeyedMutex. error\n");
             return false;
         }
-        if (FAILED(hRes = key_mutex->AcquireSync(0,INFINITE)))
+        hRes = key_mutex->AcquireSync(0,INFINITE);
+        if (FAILED(hRes))
         {
             printf("D3D11Texture2DReleaseMutex AcquireSync failed.\n");
             return false;
@@ -72,12 +75,14 @@ namespace tc {
     bool D3D11Texture2DReleaseMutex(Microsoft::WRL::ComPtr<ID3D11Texture2D> texture2d) {
         HRESULT hRes;
         Microsoft::WRL::ComPtr<IDXGIKeyedMutex> key_mutex;
-        if(FAILED(hRes = texture2d.As<IDXGIKeyedMutex>(&key_mutex)))
+        hRes = texture2d.As<IDXGIKeyedMutex>(&key_mutex);
+        if(FAILED(hRes))
         {
             printf("D3D11Texture2DReleaseMutex IDXGIKeyedMutex. error\n");
             return false;
         }
-        if(FAILED(hRes = key_mutex->ReleaseSync(0)))
+        hRes = key_mutex->ReleaseSync(0);
+        if(FAILED(hRes))
         {
             printf("D3D11Texture2DReleaseMutex ReleaseSync failed.\n");
             return false;
@@ -134,7 +139,8 @@ namespace tc {
             createDesc.SampleDesc.Count = 1;
             createDesc.Usage = D3D11_USAGE_DEFAULT;
             createDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-            if (FAILED(hRes = curDevice->CreateTexture2D(&createDesc, NULL, texture2d.GetAddressOf())))
+            hRes = curDevice->CreateTexture2D(&createDesc, NULL, texture2d.GetAddressOf());
+            if (FAILED(hRes))
             {
                 printf("desktop capture create texture failed with:%s",  StringExt::GetErrorStr(hRes).c_str());
                 return false;
