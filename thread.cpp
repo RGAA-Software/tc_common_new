@@ -18,8 +18,6 @@ namespace tc
         thread_ = std::make_shared<std::thread>(task);
         if (join) {
             thread_->join();
-        } else {
-            thread_->detach();
         }
     }
 
