@@ -86,7 +86,7 @@ namespace tc
                 // 获取目录项的路径
                 const auto& p = entry.path();
                 // 输出目录项路径
-                std::cout << std::string(depth * 2, ' ') << "|-- " << p.filename() << '\n';
+                //std::cout << std::string(depth * 2, ' ') << "|-- " << p.filename() << '\n';
                 if (fs::is_regular_file(p)) {
                     if (!filter_suffix.empty()) {
                         auto u8path = StringExt::ToUTF8(p.wstring());
