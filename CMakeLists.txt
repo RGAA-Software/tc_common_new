@@ -62,6 +62,8 @@ if(WIN32)
     list(APPEND SRCS
         win32/d3d_debug_helper.cpp
         win32/d3d_render.cc
+        win32/process_helper.cpp
+        win32/win_helper.cpp
     )
 endif()
 
