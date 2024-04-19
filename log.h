@@ -50,7 +50,8 @@ namespace tc
                     spdlog::set_default_logger(logger);
                     logger->set_level(spdlog::level::debug);
                     logger->flush_on(spdlog::level::debug);
-                    logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e][thread %t][%s:%#,%!][%l] : %v");
+                    //logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e][thread %t][%s:%#,%!][%l] : %v");
+                    logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e][thread %t][%s:%#][%l] : %v");
                 }
                 catch (const spdlog::spdlog_ex& ex) {
                     std::cout << "Log initialization failed: " << ex.what() << std::endl;
