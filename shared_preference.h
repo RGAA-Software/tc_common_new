@@ -26,9 +26,11 @@ namespace tc
 
         bool Put(const std::string& key, const std::string& value);
         std::string Get(const std::string& key);
+        std::string Get(const std::string& key, const std::string& def);
+        int GetInt(const std::string& key, int def = 0);
         bool Remove(const std::string& key);
 
-        void Visit(IVisitListener listener);
+        void Visit(IVisitListener&& listener);
 
     private:
 

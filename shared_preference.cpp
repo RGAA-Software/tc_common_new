@@ -31,13 +31,33 @@ namespace tc
         db_->Get(leveldb::ReadOptions(), key, &value);
         return value;
     }
-    
+
+    std::string SharedPreference::Get(const std::string& key, const std::string& def) {
+        std::string value;
+        auto status = db_->Get(leveldb::ReadOptions(), key, &value);
+        if (status.ok()) {
+            return value;
+        } else {
+            return def;
+        }
+    }
+
+    int SharedPreference::GetInt(const std::string& key, int def) {
+        std::string value;
+        auto status = db_->Get(leveldb::ReadOptions(), key, &value);
+        if (status.ok()) {
+            return std::atoi(value.c_str());
+        } else {
+            return def;
+        }
+    }
+
     bool SharedPreference::Remove(const std::string& key) {
         auto st = db_->Delete(leveldb::WriteOptions(), key);
         return st.ok();
     }
     
-    void SharedPreference::Visit(IVisitListener listener) {
+    void SharedPreference::Visit(IVisitListener&& listener) {
         if (!listener) {
             return;
         }
