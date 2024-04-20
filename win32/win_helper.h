@@ -8,6 +8,7 @@
 #include <string>
 #include <cstdint>
 
+#include "tc_common_new/log.h"
 #include <Windows.h>
 #include "tc_common_new/response.h"
 

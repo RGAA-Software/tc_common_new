@@ -3,18 +3,11 @@
 //
 
 #include "win_helper.h"
-#include "tc_common_new/log.h"
 
 #include <Windows.h>
-#include <shellapi.h>
-#include <DbgHelp.h>
 #include <Psapi.h>
 #include <Shlwapi.h>
-#include <ShlObj.h>
-#include <shlobj_core.h>
 #include <tchar.h>
-#include <tlhelp32.h>
-#include <wtsapi32.h>
 #include <winternl.h>
 
 #include <boost/algorithm/algorithm.hpp>
