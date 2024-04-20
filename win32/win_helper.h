@@ -1,5 +1,5 @@
 //
-// Created by hy on 2024/2/2.
+// Created by RGAA on 2024/2/2.
 //
 
 #ifndef TC_APPLICATION_WIN_HELPER_H
