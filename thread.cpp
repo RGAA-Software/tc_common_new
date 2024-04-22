@@ -1,6 +1,7 @@
 #include "thread.h"
 #include <iostream>
 #include <sstream>
+#include "log.h"
 
 namespace tc
 {
@@ -22,7 +23,7 @@ namespace tc
     }
 
     Thread::~Thread() {
-        Exit();
+
     }
 
     void Thread::Poll() {
@@ -37,20 +38,20 @@ namespace tc
         thread_ = std::make_shared<std::thread>([this]() {
             TaskLoop();
         });
-        thread_->detach();
     }
 
 
     void Thread::TaskLoop() {
         for (;;) {
+            if (exit_) {
+                LOGI("Ok, thread exit: {}", name_);
+                return;
+            }
             {
                 std::unique_lock<std::mutex> lk(task_mtx_);
                 take_var_.wait(lk, [this]() {
                     return !tasks_.empty() || exit_;
                 });
-            }
-            if (exit_) {
-                break;
             }
 
             ThreadTaskPtr task = nullptr;
@@ -76,6 +77,7 @@ namespace tc
 
 
     void Thread::Post(const ThreadTaskPtr &task) {
+        if (exit_) {return;}
         std::lock_guard<std::mutex> guard(task_mtx_);
         if (max_tasks_ > 0 && (int)tasks_.size() >= max_tasks_) {
             tasks_.pop_front();
@@ -85,6 +87,7 @@ namespace tc
     }
 
     void Thread::Post(ThreadTaskPtr &&task) {
+        if (exit_) {return;}
         std::lock_guard<std::mutex> guard(task_mtx_);
         if (max_tasks_ > 0 && (int)tasks_.size() >= max_tasks_) {
             tasks_.pop_front();
@@ -128,7 +131,7 @@ namespace tc
 
     void Thread::Exit() {
         exit_ = true;
-        take_var_.notify_all();
+        take_var_.notify_one();
         if (thread_ && thread_->joinable()) {
             thread_->join();
         }
