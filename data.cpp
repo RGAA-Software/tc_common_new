@@ -19,7 +19,6 @@ namespace tc
 #else
         this->data_ = (char *) malloc(size);
 #endif
-        //memset(this->data_, 0, size);
         if (src) {
             memcpy(this->data_, src, size);
         }
@@ -79,6 +78,23 @@ namespace tc
 
     std::shared_ptr<Data> Data::Dup() {
         return Data::Make(this->data_, this->size_);
+    }
+
+    bool Data::Append(char* data, int size) {
+        if (offset_ + size > size_) {
+            return false;
+        }
+        memcpy(data_ + offset_, data, size);
+        offset_ += size;
+        return true;
+    }
+
+    int Data::Offset() {
+        return offset_;
+    }
+
+    void Data::Reset() {
+        offset_ = 0;
     }
 
     void Data::Save(const std::string& path) {

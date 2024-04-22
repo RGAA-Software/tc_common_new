@@ -22,13 +22,16 @@ namespace tc
         std::string AsString();
         void ConvertToStr(std::string& out);
         std::shared_ptr<Data> Dup();
+        bool Append(char* data, int size);
+        int Offset();
+        void Reset();
         void Save(const std::string& path);
 
     private:
 
         char* data_{nullptr};
         int   size_ = 0;
-
+        int offset_ = 0;
 };
 
 
