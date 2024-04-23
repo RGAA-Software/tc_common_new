@@ -53,6 +53,7 @@ set(SRCS
     process_util.cpp
     dump_helper.cpp
     folder_util.cpp
+    num_formatter.cpp
     ##
 #    concurrent_hashmap.h
 #    concurrent_vector.h
