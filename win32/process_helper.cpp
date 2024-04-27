@@ -87,14 +87,14 @@ namespace tc
             DWORD len = sizeof(path) / sizeof(*path);
             std::string upath;
             if (!QueryFullProcessImageNameW(handle, 0, path, &len)) {
-                LOGW("QueryFullProcessImageNameW failed.");
+                //LOGW("QueryFullProcessImageNameW failed.");
                 continue;
             }
             upath = StringExt::ToUTF8(path);
             if (upath.empty()) {
                 continue;
             }
-            info.exe_name_ = upath;
+            info.exe_full_path_ = upath;
             info.is_x86_ = x86;
 //            if (upath.starts_with(R"(C:\Windows\System32\)") ||
 //                upath.find(R"(\Google\Chrome\Application\chrome.exe)") == std::string::npos ||

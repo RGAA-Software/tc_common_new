@@ -18,6 +18,8 @@ namespace tc
             return {code, msg, data};
         }
 
+        NetResp() {}
+
         NetResp(int code, const std::string& msg, const std::string& data) {
             this->code_ = code;
             this->msg_ = msg;
@@ -34,7 +36,7 @@ namespace tc
 
     private:
 
-        int code_;
+        int code_{0};
         std::string msg_;
         std::string data_;
     };

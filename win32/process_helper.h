@@ -16,7 +16,8 @@ namespace tc
 {
 
     struct ProcessInfo {
-        std::string exe_name_{};
+        // C:\xx\xxx\xxx.exe
+        std::string exe_full_path_{};
         bool is_x86_{};
         uint32_t pid_{};
         uint32_t ppid_{};
@@ -24,7 +25,7 @@ namespace tc
         HWND hwnd_{};
 
         [[nodiscard]] bool Valid() const {
-            return pid_ > 0 && !exe_name_.empty();
+            return pid_ > 0 && !exe_full_path_.empty();
         }
     };
 
