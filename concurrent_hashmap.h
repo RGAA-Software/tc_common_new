@@ -61,6 +61,15 @@ namespace tc
             }
         }
 
+        void VisitAllCond(std::function<bool(K k, V& v)>&& task) {
+            std::lock_guard<std::mutex> lock(mtx_);
+            for (auto& [k, v] : inner_) {
+                if (task(k, v)) {
+                    break;
+                }
+            }
+        }
+
         size_t Size() {
             std::lock_guard<std::mutex> lock(mtx_);
             return inner_.size();
