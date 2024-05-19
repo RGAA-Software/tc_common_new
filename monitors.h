@@ -5,6 +5,7 @@
 #ifndef GAMMARAY_MONITORS_H
 #define GAMMARAY_MONITORS_H
 
+#ifdef WIN32
 #include <dxgi.h>
 #include <vector>
 #include <cstdint>
@@ -52,3 +53,4 @@ namespace tc
 
 
 #endif //GAMMARAY_MONITORS_H
+#endif
