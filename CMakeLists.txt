@@ -55,9 +55,7 @@ set(SRCS
     folder_util.cpp
     num_formatter.cpp
     monitors.cpp
-    ##
-#    concurrent_hashmap.h
-#    concurrent_vector.h
+    fft_32.cpp
 )
 
 if(WIN32)
