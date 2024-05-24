@@ -6,7 +6,6 @@
 #define TC_APPLICATION_PROCESS_UTIL_H
 
 #ifdef WIN32
-#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <boost/process.hpp>
 namespace bp = boost::process;
@@ -17,14 +16,11 @@ namespace tc
 
     class ProcessUtil {
     public:
-
         static bool StartProcessAndWait(const std::string& exe_path, const std::vector<std::string>& args);
-        static uint32_t StartProcess(const std::string& exe_path, const std::vector<std::string>& args);
+        static uint32_t StartProcess(const std::string& exe_path, const std::vector<std::string>& args, bool detach, bool wait);
         static std::vector<std::string> StartProcessAndOutput(const std::string& exe_path, const std::vector<std::string>& args);
-        static bool KillProcess(unsigned long pid);
-
         static bool StartProcessInWorkDir(const std::string& work_dir, const std::string& cmdline, const std::vector<std::string>& args);
-
+        static bool KillProcess(unsigned long pid);
     };
 
 }

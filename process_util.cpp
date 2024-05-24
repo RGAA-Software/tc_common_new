@@ -39,34 +39,35 @@ namespace tc
         return code == 0;
     }
 
-    uint32_t ProcessUtil::StartProcess(const std::string& exe_path, const std::vector<std::string>& args) {
+    uint32_t ProcessUtil::StartProcess(const std::string& exe_path, const std::vector<std::string>& args, bool detach, bool wait) {
         bp::ipstream pipe_stream;
         bp::child c(exe_path, bp::args(args), bp::std_out > pipe_stream);
+        if (wait) {
+            c.wait();
+        } else if (detach) {
+            c.detach();
+        }
         return c.id();
     }
 
     std::vector<std::string> ProcessUtil::StartProcessAndOutput(const std::string& exe_path, const std::vector<std::string>& args) {
-//        std::string err;
-
         if(!boost::filesystem::exists(exe_path)) {
             LOGE("StartProcessAndOutput exe_path is {}, but not exists.", exe_path);
             return {};
         }
 
-        bp::ipstream out_stream, err_stream; // 输出和错误的流
+        bp::ipstream out_stream, err_stream;
         bp::child c(exe_path, bp::args(args), bp::std_out > out_stream, bp::std_err > err_stream);
 
         std::vector<std::string> output;
         std::string line;
         while (out_stream && std::getline(out_stream, line) && !line.empty()) {
             output.push_back(line);
+            LOGE("StartProcess info: {}", line);
         }
-//
-//        // 读取错误输出
-//        while (err_stream && std::getline(err_stream, line) && !line.empty()) {
-//            err += line + "\n";
-//        }
-//        LOGE("error: {}", err);
+        while (err_stream && std::getline(err_stream, line) && !line.empty()) {
+            LOGE("StartProcess error: {}", line);
+        }
         c.wait();
         return output;
     }
