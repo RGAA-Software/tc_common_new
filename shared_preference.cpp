@@ -25,7 +25,12 @@ namespace tc
         auto st = db_->Put(leveldb::WriteOptions(), key, value);
         return st.ok();
     }
-    
+
+    bool SharedPreference::PutInt(const std::string& key, int value) {
+        auto st = db_->Put(leveldb::WriteOptions(), key, std::to_string(value));
+        return st.ok();
+    }
+
     std::string SharedPreference::Get(const std::string& key) {
         std::string value;
         db_->Get(leveldb::ReadOptions(), key, &value);

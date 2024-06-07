@@ -25,6 +25,7 @@ namespace tc
         void Release();
 
         bool Put(const std::string& key, const std::string& value);
+        bool PutInt(const std::string& key, int value);
         std::string Get(const std::string& key);
         std::string Get(const std::string& key, const std::string& def);
         int GetInt(const std::string& key, int def = 0);
