@@ -9,7 +9,7 @@
 
 namespace tc
 {
-    std::string NumFormatter::FormatStorageSize(int bytes) {
+    std::string NumFormatter::FormatStorageSize(int64_t bytes) {
         const size_t GB = 1024 * 1024 * 1024;
         const size_t MB = 1024 * 1024;
         const size_t KB = 1024;
