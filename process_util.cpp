@@ -5,6 +5,7 @@
 #include "process_util.h"
 #ifdef WIN32
 #include "tc_common_new/log.h"
+#include "tc_common_new/string_ext.h"
 
 namespace tc
 {
@@ -40,8 +41,9 @@ namespace tc
     }
 
     uint32_t ProcessUtil::StartProcess(const std::string& exe_path, const std::vector<std::string>& args, bool detach, bool wait) {
+        auto exe_path_w = StringExt::ToWString(exe_path);
         bp::ipstream pipe_stream;
-        bp::child c(exe_path, bp::args(args), bp::std_out > pipe_stream);
+        bp::child c(exe_path_w, bp::args(args), bp::std_out > pipe_stream);
         if (wait) {
             c.wait();
         } else if (detach) {
