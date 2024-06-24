@@ -43,9 +43,9 @@ namespace tc
         return ret;
     }
 
-    std::vector<ProcessInfo> ProcessHelper::GetProcessList() {
-        std::vector<ProcessInfo> processes;
-        std::vector<ProcessInfo> retList;
+    std::vector<ProcessInfoPtr> ProcessHelper::GetProcessList() {
+        std::vector<ProcessInfoPtr> processes;
+        std::vector<ProcessInfoPtr> retList;
 
         PROCESSENTRY32W pe32;
         pe32.dwSize = sizeof(pe32);
@@ -58,9 +58,9 @@ namespace tc
         BOOL bResult = Process32FirstW(hProcessSnap, &pe32);
         while (bResult) {
             std::wstring curName = std::wstring(pe32.szExeFile);
-            ProcessInfo info{};
-            info.pid_ = pe32.th32ProcessID;
-            info.ppid_ = pe32.th32ParentProcessID;
+            auto info = std::make_shared<ProcessInfo>();
+            info->pid_ = pe32.th32ProcessID;
+            info->ppid_ = pe32.th32ParentProcessID;
             processes.push_back(info);
             bResult = Process32NextW(hProcessSnap, &pe32);
         }
@@ -69,7 +69,7 @@ namespace tc
         }
 
         for (auto &info: processes) {
-            uint32_t pid = info.pid_;
+            uint32_t pid = info->pid_;
             HANDLE handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,FALSE, pid);
             if (handle == nullptr) {
                 continue;
@@ -90,24 +90,23 @@ namespace tc
                 //LOGW("QueryFullProcessImageNameW failed.");
                 continue;
             }
+
+            std::wstring exe_path_w = path;
+            info->icon_ = ProcessHelper::QueryExeIcon(exe_path_w);
+            if (!info->icon_) {
+                info->icon_ = ProcessHelper::GetFileIcon(".exe");
+            }
+
             upath = StringExt::ToUTF8(path);
             if (upath.empty()) {
                 continue;
             }
-            info.exe_full_path_ = upath;
-            info.is_x86_ = x86;
-//            if (upath.starts_with(R"(C:\Windows\System32\)") ||
-//                upath.find(R"(\Google\Chrome\Application\chrome.exe)") == std::string::npos ||
-//                upath.find(R"(\Microsoft\Edge\Application\msedge.exe)") == std::string::npos ||
-//                upath.find(R"(Thunder Network\Xmp\Program\)") == std::string::npos ||
-//                upath.find(R"(Tencent\WeChat\XPlugin\)") == std::string::npos ||
-//                upath.find(R"(ynote-desktop\)") == std::string::npos ||
-//                upath.find(R"(NVIDIA Corporation\)") == std::string::npos ||
-//                upath.find(R"(\aDrive\aDrive.exe)") == std::string::npos ||
-//                upath.find(R"(Microsoft\Skype for Desktop\)") == std::string::npos
-//                ) {
-//                continue;
-//            }
+            info->exe_full_path_ = upath;
+            info->is_x86_ = x86;
+            if (upath.starts_with(R"(C:\Windows\System32\)")
+                /*other....*/) {
+                continue;
+            }
             retList.push_back(info);
         }
         return retList;
@@ -299,6 +298,50 @@ namespace tc
         }
 
         return true;
+    }
+
+
+    HICON ProcessHelper::QueryExeIcon(const std::wstring& exe_path) {
+        HICON hIcon = nullptr;
+        SHFILEINFO FileInfo;
+        DWORD_PTR dwRet = ::SHGetFileInfoW(exe_path.c_str(), 0, &FileInfo, sizeof(SHFILEINFO), SHGFI_ICON);
+        if (dwRet) {
+            hIcon = FileInfo.hIcon;
+        }
+        return hIcon;
+    }
+
+    HICON ProcessHelper::GetFolderIcon() {
+        std::string str = "folder";
+        LPCSTR name = str.c_str();
+        HICON icon = nullptr;
+        SHFILEINFOA info;
+        if (SHGetFileInfoA(name,
+                           FILE_ATTRIBUTE_DIRECTORY,
+                           &info,
+                           sizeof(info),
+                           SHGFI_SYSICONINDEX | SHGFI_ICON | SHGFI_USEFILEATTRIBUTES))
+        {
+            icon = info.hIcon;
+        }
+        return icon;
+    }
+
+    HICON ProcessHelper::GetFileIcon(const std::string& suffix) {
+        HICON icon = nullptr;
+        if (!suffix.empty()) {
+            LPCSTR name = suffix.c_str();
+            SHFILEINFOA info;
+            if (SHGetFileInfoA(name,
+                               FILE_ATTRIBUTE_NORMAL,
+                               &info,
+                               sizeof(info),
+                               SHGFI_SYSICONINDEX | SHGFI_ICON | SHGFI_USEFILEATTRIBUTES))
+            {
+                icon = info.hIcon;
+            }
+        }
+        return icon;
     }
 
 }

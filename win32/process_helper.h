@@ -15,23 +15,34 @@
 namespace tc
 {
 
-    struct ProcessInfo {
+    class ProcessInfo {
+    public:
         // C:\xx\xxx\xxx.exe
         std::string exe_full_path_{};
         bool is_x86_{};
         uint32_t pid_{};
         uint32_t ppid_{};
         uint32_t thread_id_{};
-        HWND hwnd_{};
+        HWND hwnd_ = nullptr;
+        HICON icon_ = nullptr;
+        std::string icon_name_;
 
         [[nodiscard]] bool Valid() const {
             return pid_ > 0 && !exe_full_path_.empty();
         }
+
+        ~ProcessInfo() {
+            if (icon_) {
+                DestroyIcon(icon_);
+                icon_ = nullptr;
+            }
+        }
     };
+    using ProcessInfoPtr = std::shared_ptr<ProcessInfo>;
 
     class WindowInfo {
     public:
-        std::pair<int, int> GetWindowSize() const {
+        [[nodiscard]] std::pair<int, int> GetWindowSize() const {
             if (!win_handle) {
                 return std::make_pair(0, 0);
             }
@@ -61,9 +72,8 @@ namespace tc
 
     class ProcessHelper {
     public:
-
         static RespBoolBool IsProcessX86Arch(uint32_t pid);
-        static std::vector<ProcessInfo> GetProcessList();
+        static std::vector<std::shared_ptr<ProcessInfo>> GetProcessList();
         static bool CloseProcess(DWORD pid);
         static Response<bool, uint32_t> GetParentPid(uint32_t pid);
         static bool isChildOf(uint32_t child, uint32_t parent);
@@ -71,6 +81,11 @@ namespace tc
         static uint32_t GetCurrentProcessId();
         static WindowInfos GetWindowInfoByPid(DWORD pid, int filter_window_size = 256);
         static bool GetWindowPositionByHwnd(HWND hwnd, RECT& rect);
+        static HICON QueryExeIcon(const std::wstring& exe_path);
+        static HICON GetFolderIcon();
+        //std::string strArray[13] = {".exe", ".zip", ".har", ".hwl", ".accdb",
+        //                            ".xlsx", ".pptx", ".docx", ".txt", ".h", ".cpp", ".pro"};
+        static HICON GetFileIcon(const std::string& suffix);
     };
 
 }
