@@ -2,41 +2,53 @@
 // Created by RGAA on 2024/1/8.
 //
 
-#ifndef PLC_CONTROLLER_FPS_STAT_H
-#define PLC_CONTROLLER_FPS_STAT_H
+#ifndef TC_COMMON_FPS_STAT_H
+#define TC_COMMON_FPS_STAT_H
 
-#include<cstdint>
+#include <cstdint>
 #include <queue>
 #include <chrono>
+#include "log.h"
 
 namespace tc
 {
 
     class FpsStat {
     public:
-        FpsStat() {}
-
-        ~FpsStat() {}
+        explicit FpsStat(size_t max_sample = 144) : max_samples_(max_sample) {
+            last_frame_time_ = std::chrono::steady_clock::now();
+        }
 
         void Tick() {
             auto now = std::chrono::steady_clock::now();
-            while (!tick_points_.empty() && tick_points_.front() < (now - std::chrono::seconds(1))) {
-                tick_points_.pop();
+            std::chrono::duration<double> elapsedSeconds = now - last_frame_time_;
+            last_frame_time_ = now;
+
+            double currentFrameTime = elapsedSeconds.count()
+
+            ;
+            frame_times_.push_back(currentFrameTime);
+            if (frame_times_.size() > max_samples_) {
+                frame_times_.erase(frame_times_.begin());
             }
-            tick_points_.push(now);
         }
 
-        int value() {
-            int count = tick_points_.size();
-            while (!tick_points_.empty()) {
-                tick_points_.pop();
+        [[nodiscard]] int value() const {
+            if (frame_times_.empty()) return 0.0;
+            double avg_frame_time = 0.0;
+            for (auto time : frame_times_) {
+                avg_frame_time += time;
             }
-            return count;
+            avg_frame_time /= (double)frame_times_.size();
+            auto fps = 1.0 / avg_frame_time;
+            return (int)fps;
         }
 
     private:
-        std::queue<std::chrono::steady_clock::time_point> tick_points_; // class FpsStat
+        std::chrono::time_point<std::chrono::steady_clock> last_frame_time_;
+        std::vector<double> frame_times_;
+        const size_t max_samples_;
     };
 }
 
-#endif //PLC_CONTROLLER_FPS_STAT_H
+#endif
