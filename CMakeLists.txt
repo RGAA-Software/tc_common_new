@@ -5,9 +5,6 @@ option(OPTION_ENABLE_JEMALLOC "Enable feature for LibraryA" OFF)
 message("common cmake, OPTION_ENABLE_JEMALLOC: " ${OPTION_ENABLE_JEMALLOC})
 set(CMAKE_CXX_STANDARD 20)
 
-find_package(leveldb REQUIRED)
-#find_package(spdlog CONFIG REQUIRED)
-#find_package(fmt CONFIG REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem thread random)
 if(Boost_FOUND)
@@ -68,9 +65,6 @@ if(WIN32)
 endif()
 
 add_library(tc_common_new ${SRCS})
-#fmt::fmt-header-only
-#spdlog::spdlog_header_only
-#leveldb::leveldb
 target_link_libraries(tc_common_new Dexode::EventBus ${Boost_LIBRARIES})
 if (WIN32)
     if(OPTION_ENABLE_JEMALLOC)
@@ -78,10 +72,11 @@ if (WIN32)
         target_link_libraries(tc_common_new jemalloc)
     endif()
     target_link_libraries(tc_common_new DirectXTex DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto)
-    target_link_libraries(tc_common_new ${VCPKG_STATIC_LIB_PATH}/leveldb.lib)
+    target_link_libraries(tc_common_new leveldb)
 endif ()
 if (ANDROID)
-    target_link_libraries(tc_common_new log ${VCPKG_STATIC_LIB_PATH}/libleveldb.a)
+    #target_link_libraries(tc_common_new log ${VCPKG_STATIC_LIB_PATH}/libleveldb.a)
+    target_link_libraries(tc_common_new leveldb)
 endif()
 
 target_include_directories(tc_common_new PUBLIC ${CMAKE_SOURCE_DIR}/tc_3rdparty/eventbus/src)
