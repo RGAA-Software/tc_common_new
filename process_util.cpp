@@ -6,6 +6,10 @@
 #ifdef WIN32
 #include "tc_common_new/log.h"
 #include "tc_common_new/string_ext.h"
+#include <QString>
+#include <QStringList>
+#include <QProcess>
+#include <QFile>
 
 namespace tc
 {
@@ -15,11 +19,8 @@ namespace tc
         bool res = false;
         HMODULE shCore = LoadLibraryA("User32.dll");
         if (shCore) {
-            SetProcessDpiAwarenessFunc setProcessDpiAwareness =
-                    (SetProcessDpiAwarenessFunc)GetProcAddress(shCore, "SetProcessDpiAwarenessContext");
-
-            if (setProcessDpiAwareness != nullptr)
-            {
+            auto setProcessDpiAwareness = (SetProcessDpiAwarenessFunc)GetProcAddress(shCore, "SetProcessDpiAwarenessContext");
+            if (setProcessDpiAwareness != nullptr) {
                 if (setProcessDpiAwareness(context)) {
                     res = true;
                 }
@@ -30,47 +31,65 @@ namespace tc
     }
 
     bool ProcessUtil::StartProcessAndWait(const std::string& exe_path, const std::vector<std::string>& args) {
-        bp::ipstream pipe_stream;
-        bp::child c(exe_path, bp::args(args), bp::std_out > pipe_stream);
-        c.wait();
-        int code = c.exit_code();
-        if (code != 0) {
-            LOGE("Start process code : {}", code);
+        QProcess process;
+        QStringList exe_args;
+        for (const auto& arg : args) {
+            exe_args << QString::fromStdString(arg);
         }
-        return code == 0;
+        process.start(QString::fromStdString(exe_path), exe_args);
+        process.waitForFinished();
+        if (process.exitCode() != 0) {
+            LOGE("Start process: {}, exit code: {}", exe_path, process.exitCode());
+            return false;
+        }
+        return true;
     }
 
     uint32_t ProcessUtil::StartProcess(const std::string& exe_path, const std::vector<std::string>& args, bool detach, bool wait) {
-        auto exe_path_w = StringExt::ToWString(exe_path);
-        bp::ipstream pipe_stream;
-        bp::child c(exe_path_w, bp::args(args), bp::std_out > pipe_stream);
-        if (wait) {
-            c.wait();
-        } else if (detach) {
-            c.detach();
+        QProcess process;
+        QStringList exe_args;
+        for (const auto& arg : args) {
+            exe_args << QString::fromStdString(arg);
         }
-        return c.id();
+        process.start(QString::fromStdString(exe_path), exe_args);
+        if (wait) {
+            process.waitForFinished();
+        }
+        return process.processId();
     }
 
     std::vector<std::string> ProcessUtil::StartProcessAndOutput(const std::string& exe_path, const std::vector<std::string>& args) {
-        if(!boost::filesystem::exists(exe_path)) {
+        if(!QFile::exists(exe_path.c_str())) {
             LOGE("StartProcessAndOutput exe_path is {}, but not exists.", exe_path);
             return {};
         }
-
-        bp::ipstream out_stream, err_stream;
-        bp::child c(exe_path, bp::args(args), bp::std_out > out_stream, bp::std_err > err_stream);
-
         std::vector<std::string> output;
-        std::string line;
-        while (out_stream && std::getline(out_stream, line) && !line.empty()) {
-            output.push_back(line);
-            LOGE("StartProcess info: {}", line);
+
+//        bp::ipstream out_stream, err_stream;
+//        bp::child c(exe_path, bp::args(args), bp::std_out > out_stream, bp::std_err > err_stream);
+//
+//        std::string line;
+//        while (out_stream && std::getline(out_stream, line) && !line.empty()) {
+//            output.push_back(line);
+//            LOGE("StartProcess info: {}", line);
+//        }
+//        while (err_stream && std::getline(err_stream, line) && !line.empty()) {
+//            LOGE("StartProcess error: {}", line);
+//        }
+//        c.wait();
+
+        QProcess process;
+        QObject::connect(&process, &QProcess::readyReadStandardOutput, [&]() {
+            QByteArray info = process.readAllStandardOutput();
+            output.push_back(info.toStdString());
+        });
+
+        QStringList exe_args;
+        for (const auto& arg : args) {
+            exe_args << QString::fromStdString(arg);
         }
-        while (err_stream && std::getline(err_stream, line) && !line.empty()) {
-            LOGE("StartProcess error: {}", line);
-        }
-        c.wait();
+        process.start(QString::fromStdString(exe_path), exe_args);
+        process.waitForFinished();
         return output;
     }
 

@@ -6,8 +6,10 @@
 #define TC_APPLICATION_PROCESS_UTIL_H
 
 #ifdef WIN32
-#include <boost/process.hpp>
-namespace bp = boost::process;
+#include <Windows.h>
+#include <cstdint>
+#include <string>
+#include <vector>
 
 namespace tc
 {

@@ -9,20 +9,16 @@
 #include <Shlwapi.h>
 #include <tchar.h>
 #include <winternl.h>
-
-#include <boost/algorithm/algorithm.hpp>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/process.hpp>
-#include <boost/filesystem.hpp>
-
+#include <filesystem>
+#include <QProcess>
+#include <QStringList>
+#include <QString>
 #include "tc_common_new/string_ext.h"
 
 #pragma comment(lib, "Wtsapi32.lib")
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "Iphlpapi.lib")
 #pragma comment(lib, "ntdll.lib")
-
-namespace bp = boost::process;
 
 constexpr auto kInjector32 = "";
 constexpr auto kInjector64 = "";
@@ -56,14 +52,14 @@ namespace tc
             for (int i = 0; i < needed / sizeof(HMODULE); ++i) {
                 char name[MAX_PATH] = {0};
                 if (GetModuleBaseNameA(hnd_process, h_modules[i], name, sizeof(name) / sizeof(WCHAR))) {
-                    _strlwr(name);
+                    //_strlwr(name);
                     if (x86) {
-                        if (boost::algorithm::iequals(x86_dll_name, name)) {
+                        if (QString::compare(QString::fromStdString(x86_dll_name), QString::fromStdString(name))) {
                             ret_val = true;
                             break;
                         }
                     } else {
-                        if (boost::algorithm::iequals(x64_dll_name, name)) {
+                        if (QString::compare(QString::fromStdString(x64_dll_name), QString::fromStdString(name))) {
                             ret_val = true;
                             break;
                         }
@@ -96,6 +92,18 @@ namespace tc
         std::string injector = is_x86.value_ ? kInjector32 : kInjector64;
         std::string cheat_anti = "0";
         std::string pid_str = std::to_string(pid);
+        // todo: Test it.
+        QStringList injector_args;
+        injector_args << target_dll.c_str() << cheat_anti.c_str() << QString::number(pid);
+        QProcess process;
+        process.start(injector.c_str(), injector_args);
+        process.waitForFinished();
+        if (process.exitCode() == 0) {
+
+        } else {
+
+        }
+#if 0
         try {
             bp::child child_process(injector, target_dll, cheat_anti, pid_str, bp::std_out > stdout);
             child_process.wait();
@@ -108,6 +116,7 @@ namespace tc
             LOGE("Create process for injecing failed: {}", e.what());
             return resp;
         }
+#endif
 
         return resp;
     }
@@ -188,7 +197,7 @@ namespace tc
             return ret;
         }
 
-        boost::filesystem::path file_path(upath);
+        std::filesystem::path file_path(upath);
         ret.ok_ = true;
         ret.value_ = file_path.filename().string();
         return ret;
@@ -198,7 +207,7 @@ namespace tc
         const int maxPath = 4096;
         char szFullPath[maxPath] = { 0 };
         ::GetModuleFileNameA(hModule, szFullPath, maxPath);
-        boost::filesystem::path file_path(szFullPath);
+        std::filesystem::path file_path(szFullPath);
         auto ret = Response<bool, std::string>::Make(false, "");
         if (file_path.filename().string().empty()) {
             return ret;
