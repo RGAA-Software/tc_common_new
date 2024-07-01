@@ -60,9 +60,8 @@ namespace tc
 
         static std::string ToLowerCpy(const std::string& data) {
             std::string target = data;
-            std::locale loc;
             std::transform(target.begin(), target.end(), target.begin(),
-                           [&loc](unsigned char c) { return std::tolower(c, loc); });
+                           [](unsigned char c) -> char { return std::tolower(c); });
             return target;
         }
 
