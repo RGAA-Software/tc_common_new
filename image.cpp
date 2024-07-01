@@ -2,8 +2,8 @@
 #include "log.h"
 
 #ifdef WIN32
-#include <opencv2/opencv.hpp>
-#include <opencv2/imgcodecs/legacy/constants_c.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
 #endif
 
 namespace tc
@@ -43,17 +43,26 @@ namespace tc
 
 #ifdef WIN32
     Image::Image(const DataPtr& img_data) {
+        // Use OpenCV
+#if 0
         std::vector<char> buffer;
         buffer.resize(img_data->Size());
         memcpy(buffer.data(), img_data->DataAddr(), img_data->Size());
-
         //CV_LOAD_IMAGE_COLOR , this flag no alpha ??
-        auto img = cv::imdecode(buffer, -1);
-        this->width = img.cols;
-        this->height = img.rows;
-        this->channels = img.channels();
-
-        this->data = Data::Make((char*)img.data, img.rows * img.cols * img.channels());
+        //auto img = cv::imdecode(buffer, -1);
+        //this->width = img.cols;
+        //this->height = img.rows;
+        //this->channels = img.channels();
+        //this->data = Data::Make((char*)img.data, img.rows * img.cols * img.channels());
+#else
+    // Use stb image
+        auto buffer = stbi_load_from_memory((stbi_uc*)img_data->DataAddr(), img_data->Size(), &this->width, &this->height, &this->channels, 0);
+        if (buffer == nullptr) {
+            LOGE("stbi load image failed !");
+            return;
+        }
+        this->data = Data::Make((char*)buffer, this->width * this->height * this->channels);
+#endif
     }
 #endif
 

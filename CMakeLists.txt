@@ -63,7 +63,7 @@ if(WIN32)
 endif()
 
 add_library(tc_common_new ${SRCS})
-target_link_libraries(tc_common_new Dexode::EventBus ${Boost_LIBRARIES})
+target_link_libraries(tc_common_new Dexode::EventBus)
 if (WIN32)
     add_subdirectory(tests)
     if(OPTION_ENABLE_JEMALLOC)
