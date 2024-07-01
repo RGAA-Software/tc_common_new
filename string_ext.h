@@ -14,9 +14,6 @@
 #include <codecvt>
 #include <cctype>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/algorithm/string/replace.hpp>
-
 #ifdef WIN32
 #include <Windows.h>
 #endif
@@ -62,7 +59,11 @@ namespace tc
         }
 
         static std::string ToLowerCpy(const std::string& data) {
-            return boost::algorithm::to_lower_copy(data);
+            std::string target = data;
+            std::locale loc;
+            std::transform(target.begin(), target.end(), target.begin(),
+                           [&loc](unsigned char c) { return std::tolower(c, loc); });
+            return target;
         }
 
         static bool StartWith(const std::string& input, const std::string& find) {
@@ -80,7 +81,11 @@ namespace tc
         }
 
         static void Replace(std::string& origin, const std::string& from, const std::string& to) {
-            boost::replace_all(origin, from, to);
+            size_t start_pos = 0;
+            while ((start_pos = origin.find(from, start_pos)) != std::string::npos) {
+                origin.replace(start_pos, from.length(), to);
+                start_pos += to.length();
+            }
         }
 
         static inline std::wstring ToWString(const std::string& src) {

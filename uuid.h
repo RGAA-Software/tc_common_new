@@ -6,9 +6,7 @@
 #define TC_APPLICATION_UUID_H
 
 #include <string>
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_io.hpp>
-#include <boost/uuid/uuid_generators.hpp>
+#include "tc_3rdparty/asio2/include/asio2/util/uuid.hpp"
 
 #ifdef WIN32
 #pragma comment(lib, "Bcrypt.lib")
@@ -17,9 +15,8 @@
 namespace tc
 {
     static std::string GetUUID() {
-        boost::uuids::uuid a_uuid = boost::uuids::random_generator()();
-        std::string tmp_uuid = boost::uuids::to_string(a_uuid);
-        return tmp_uuid;
+        asio2::uuid uuid;
+        return uuid.generate().short_uuid(32);
     }
 }
 

@@ -5,7 +5,6 @@
 #include <filesystem>
 #include <stdio.h>
 #include <stdlib.h>
-#include <boost/filesystem.hpp>
 
 #ifdef WIN32
 #include <io.h>

@@ -43,7 +43,6 @@ set(SRCS
     ipc_msg_queue.cpp
     message_notifier.cpp
     http_client.cpp
-    timer.cpp
     file_ext.cpp
     process_util.cpp
     dump_helper.cpp
