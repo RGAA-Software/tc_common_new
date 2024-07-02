@@ -54,12 +54,12 @@ namespace tc
                 if (GetModuleBaseNameA(hnd_process, h_modules[i], name, sizeof(name) / sizeof(WCHAR))) {
                     //_strlwr(name);
                     if (x86) {
-                        if (QString::compare(QString::fromStdString(x86_dll_name), QString::fromStdString(name))) {
+                        if (QString::compare(QString::fromStdString(x86_dll_name), QString::fromStdString(name), Qt::CaseInsensitive) == 0) {
                             ret_val = true;
                             break;
                         }
                     } else {
-                        if (QString::compare(QString::fromStdString(x64_dll_name), QString::fromStdString(name))) {
+                        if (QString::compare(QString::fromStdString(x64_dll_name), QString::fromStdString(name), Qt::CaseInsensitive) == 0) {
                             ret_val = true;
                             break;
                         }

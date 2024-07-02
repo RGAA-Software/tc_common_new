@@ -46,16 +46,21 @@ namespace tc
     }
 
     uint32_t ProcessUtil::StartProcess(const std::string& exe_path, const std::vector<std::string>& args, bool detach, bool wait) {
-        QProcess process;
         QStringList exe_args;
         for (const auto& arg : args) {
             exe_args << QString::fromStdString(arg);
         }
-        process.start(QString::fromStdString(exe_path), exe_args);
-        if (wait) {
-            process.waitForFinished();
+        qint64 pid;
+        if (detach) {
+            QProcess::startDetached(QString::fromStdString(exe_path), exe_args, "", &pid);
         }
-        return process.processId();
+        if (wait) {
+            QProcess process;
+            process.start(QString::fromStdString(exe_path), exe_args);
+            process.waitForFinished();
+            return 0;
+        }
+        return pid;
     }
 
     std::vector<std::string> ProcessUtil::StartProcessAndOutput(const std::string& exe_path, const std::vector<std::string>& args) {
