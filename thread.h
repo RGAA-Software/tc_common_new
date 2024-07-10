@@ -106,6 +106,7 @@ namespace tc
 
         void Post(const ThreadTaskPtr& task);
         void Post(ThreadTaskPtr&& task);
+        void Post(std::function<void()>&& task);
         bool RemoveTask(uint64_t task_id);
         bool TaskExists(uint64_t task_id);
         bool HasTask();

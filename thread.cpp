@@ -96,6 +96,10 @@ namespace tc
         take_var_.notify_all();
     }
 
+    void Thread::Post(std::function<void()>&& task) {
+        this->Post(SimpleThreadTask::Make(std::move(task)));
+    }
+
     bool Thread::RemoveTask(uint64_t task_id) {
         std::lock_guard<std::mutex> guard(task_mtx_);
         for (auto it = tasks_.begin(); it != tasks_.end(); it++) {

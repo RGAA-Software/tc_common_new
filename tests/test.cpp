@@ -108,3 +108,25 @@ TEST(Test_file, read) {
     auto data = file->ReadAllAsString();
     LOGI("data : {}", data);
 }
+
+TEST(Test_file, append) {
+    File::Delete("jack_test.txt");
+    auto file = File::OpenForAppendB("jack_test.txt");
+    file->Append("1111111111111111111");
+    file->Append("3333333333333333333");
+    file->Close();
+    LOGI("After write");
+
+    file = File::OpenForRead("jack_test.txt");
+    LOGI("Data: {}", file->ReadAll()->AsString());
+}
+
+TEST(Test_file, read_all) {
+    auto file = File::OpenForReadB("vc_redist.x64.exe");
+    auto file_cpy = File::OpenForWriteB("vc_redist.x64_cpy.exe");
+    file->ReadAll([=](int offset, DataPtr&& data) {
+        LOGI("offset: {}, data size: {}", offset, data->Size());
+        file_cpy->Write(offset, data);
+    });
+
+}
