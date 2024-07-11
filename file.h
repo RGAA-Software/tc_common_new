@@ -33,6 +33,7 @@ namespace tc
         bool Exists();
         bool IsOpen();
         void Close();
+        std::string FileName();
 
         DataPtr Read(uint64_t offset, uint64_t size, uint64_t& read_size);
         DataPtr ReadAll();

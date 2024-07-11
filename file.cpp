@@ -94,7 +94,15 @@ namespace tc
         return fp_ != nullptr;
 #endif
     }
-    
+
+    std::string File::FileName() {
+#ifdef WIN32
+        return file_info_.fileName().toStdString();
+#else
+        return "";
+#endif
+    }
+
     DataPtr File::Read(uint64_t offset, uint64_t size, uint64_t& read_size) {
         if (!IsOpen()) {
             return nullptr;
