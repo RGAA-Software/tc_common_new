@@ -140,7 +140,7 @@ namespace tc
         return Read(0, Size(), read_size);
     }
     
-    void File::ReadAll(std::function<void(uint64_t, DataPtr&&)>&& cbk, int buffer_size) {
+    void File::ReadAll(std::function<bool(uint64_t, DataPtr&&)>&& cbk, int buffer_size) {
         uint64_t offset = 0;
         uint64_t file_size = Size();
         uint32_t block_size = buffer_size;
@@ -148,7 +148,9 @@ namespace tc
             uint64_t read_size = 0;
             auto data = Read(offset, block_size, read_size);
             if (data && read_size != 0) {
-                cbk(offset, std::move(data));
+                if (cbk(offset, std::move(data))) {
+                    break;
+                }
                 offset += read_size;
             }
         }

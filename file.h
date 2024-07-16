@@ -37,7 +37,7 @@ namespace tc
 
         DataPtr Read(uint64_t offset, uint64_t size, uint64_t& read_size);
         DataPtr ReadAll();
-        void ReadAll(std::function<void(uint64_t offset, DataPtr&&)>&& cbk, int buffer_size = 4096);
+        void ReadAll(std::function<bool(uint64_t offset, DataPtr&&)>&& cbk, int buffer_size = 4096);
         std::string ReadAllAsString();
     
         int64_t Write(uint64_t offset, const DataPtr& data);
