@@ -230,6 +230,7 @@ namespace tc
 #ifdef WIN32
         if (file_) {
             file_->close();
+            file_ = nullptr;
         }
 #else
         if (fp_) {
