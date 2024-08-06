@@ -39,11 +39,13 @@ namespace tc
         //NLog::Write(Level::Info, Fmt("ssl : %d, host : %s, path : %s", ssl, this->host.c_str(), this->path.c_str()));
 
         if (ssl) {
+#if 0
             ssl_client = std::make_shared<httplib::SSLClient>(host);
             ssl_client->set_follow_location(true);
             ssl_client->set_keep_alive(true);
             ssl_client->enable_server_certificate_verification(false); 
             ssl_client->set_connection_timeout(std::chrono::seconds(15));
+#endif
         }
         else {
             client = std::make_shared<httplib::Client>(host);
@@ -62,7 +64,7 @@ namespace tc
 
     HttpResponse HttpClient::Request(const std::map<std::string, std::string>& query) {
         //NLog::Write(Level::Info, Fmt("Request: %s", path.c_str()));
-        auto res = ssl ? ssl_client->Get(path) : client->Get(path);
+        auto res =/* ssl ? ssl_client->Get(path) :*/ client->Get(path);
         if (res.error() != httplib::Error::Success) {
             LOGE("HttpError : {}, {}", (int)res.error(), httplib::to_string(res.error()).c_str());
             return HttpResponse {
@@ -83,7 +85,7 @@ namespace tc
 
     HttpResponse HttpClient::Post(const std::map<std::string, std::string>& query) {
         //NLog::Write(Level::Info, Fmt("Post: %s", path.c_str()));
-        auto res = ssl ? ssl_client->Post(path) : client->Post(path);
+        auto res = /*ssl ? ssl_client->Post(path) :*/ client->Post(path);
         if (res.error() != httplib::Error::Success) {
             LOGE("HttpError : {}, {}", (int)res.error(), httplib::to_string(res.error()).c_str());
             return HttpResponse {
@@ -102,7 +104,7 @@ namespace tc
         std::string body;
 
         bool success = false;
-        auto res = ssl ? 
+        auto res = /*ssl ?
         ssl_client->Get(path, 
             [&](const char *data, size_t data_length) {
                 body.append(data, data_length);
@@ -114,7 +116,7 @@ namespace tc
                 return true;
             }
         )
-        :
+        :*/
         client->Get(path, 
             [&](const char *data, size_t data_length) {
                 body.append(data, data_length);
@@ -151,7 +153,8 @@ namespace tc
     }
 
     int HttpClient::HeadFileSize() {
-        auto result = ssl ? ssl_client->Head(path) : client->Head(path);
+        //auto result = ssl ? ssl_client->Head(path) : client->Head(path);
+        auto result = client->Head(path);
         // for (auto& pair : result.res_->headers) {
         //    NLog::Write(Level::Info, Fmt("* k: %s, v: %s", pair.first.c_str(), pair.second.c_str()));
         // }

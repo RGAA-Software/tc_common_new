@@ -4,7 +4,7 @@
 #include <string>
 #include <memory>
 
-#define CPPHTTPLIB_OPENSSL_SUPPORT
+//#define CPPHTTPLIB_OPENSSL_SUPPORT
 #include "http/httplib.h"
 
 namespace tc
@@ -44,7 +44,9 @@ namespace tc
         bool ssl = false;
 
         std::shared_ptr<httplib::Client> client = nullptr;
+#if 0
         std::shared_ptr<httplib::SSLClient> ssl_client = nullptr;
+#endif
 
     };
 
