@@ -59,6 +59,7 @@ if(WIN32)
         win32/d3d_render.cc
         win32/process_helper.cpp
         win32/win_helper.cpp
+        win32/audio_device_helper.cpp
     )
 endif()
 
