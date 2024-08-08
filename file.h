@@ -26,6 +26,9 @@ namespace tc
         static std::shared_ptr<File> OpenForRWB(const std::string& path);
         static std::shared_ptr<File> OpenForAppendB(const std::string& path);
 
+        static bool IsFolder(const std::string& path);
+        static bool Exists(const std::string& path);
+
         File(const std::string& path, const std::string& mode);
         ~File();
         static bool Delete(const std::string& path);

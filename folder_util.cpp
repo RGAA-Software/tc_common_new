@@ -111,4 +111,20 @@ namespace tc
             }
         }
     }
+
+#ifdef WIN32
+    void FolderUtil::VisitAllByQt(const std::string& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
+        QDirIterator it(QString::fromStdString(path), QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot ,QDirIterator::Subdirectories);
+        while (it.hasNext()) {
+            it.next();
+            auto file_info = it.fileInfo();
+            if (file_info.isFile()) {
+                cbk(VisitResult{
+                    .name_ = file_info.fileName().toStdWString(),
+                    .path_ = file_info.absoluteFilePath().toStdWString(),
+                });
+            }
+        }
+    }
+#endif
 }

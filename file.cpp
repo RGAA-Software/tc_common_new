@@ -42,7 +42,20 @@ namespace tc
     std::shared_ptr<File> File::OpenForAppendB(const std::string& path) {
         return std::make_shared<File>(path.c_str(), "ab+");
     }
-    
+
+    bool File::IsFolder(const std::string& path) {
+        QFileInfo file_info(path.c_str());
+        return file_info.isDir();
+    }
+
+    bool File::Exists(const std::string& path) {
+#ifdef WIN32
+        return QFile::exists(path.c_str());
+#else
+        return std::filesystem::exists(path);
+#endif
+    }
+
     File::File(const std::string& path, const std::string& mode) {
         auto origin_path = path;
         StringExt::Replace(origin_path, "\\", "/");
