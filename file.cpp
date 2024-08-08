@@ -44,8 +44,12 @@ namespace tc
     }
 
     bool File::IsFolder(const std::string& path) {
+#ifdef WIN32
         QFileInfo file_info(path.c_str());
         return file_info.isDir();
+#else
+      return false;
+#endif
     }
 
     bool File::Exists(const std::string& path) {
