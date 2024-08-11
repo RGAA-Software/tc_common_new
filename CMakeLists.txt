@@ -31,26 +31,27 @@ if (ANDROID)
 endif ()
 
 set(SRCS
-    data.cpp
-    shared_preference.cpp
-    string_ext.cpp
-    time_ext.cpp
-    thread.cpp
-    task_runtime.cpp
-    base64.cpp
-    file.cpp
-    image.cpp
-    ipc_shm.cpp
-    ipc_msg_queue.cpp
-    message_notifier.cpp
-    http_client.cpp
-    file_ext.cpp
-    process_util.cpp
-    dump_helper.cpp
-    folder_util.cpp
-    num_formatter.cpp
-    monitors.cpp
-    fft_32.cpp
+        data.cpp
+        shared_preference.cpp
+        string_ext.cpp
+        time_ext.cpp
+        thread.cpp
+        task_runtime.cpp
+        base64.cpp
+        file.cpp
+        image.cpp
+        ipc_shm.cpp
+        ipc_msg_queue.cpp
+        message_notifier.cpp
+        http_client.cpp
+        file_ext.cpp
+        process_util.cpp
+        dump_helper.cpp
+        folder_util.cpp
+        num_formatter.cpp
+        monitors.cpp
+        fft_32.cpp
+        key_helper.cpp
 )
 
 if(WIN32)
