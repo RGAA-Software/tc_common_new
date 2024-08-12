@@ -43,5 +43,20 @@ namespace tc
         return IsKeyPressed(VK_NUMLOCK);
     }
 
+    int KeyHelper::GetKeyStateInner(int vk) {
+#ifdef WIN32
+        return GetKeyState(vk);
+#else
+        return -1;
+#endif
+    }
+
+    int KeyHelper::GetCapsLockState() {
+        return KeyHelper::GetKeyStateInner(VK_CAPITAL);
+    }
+
+    int KeyHelper::GetNumLockState() {
+        return GetKeyState(VK_NUMLOCK);
+    }
 
 }

@@ -17,6 +17,9 @@ namespace tc
         static bool IsWinPressed();
         static bool IsCapsLockPressed();
         static bool IsNumLockPressed();
+        static int GetKeyStateInner(int vk);
+        static int GetCapsLockState();
+        static int GetNumLockState();
     };
 
 }
