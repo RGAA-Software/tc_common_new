@@ -73,8 +73,11 @@ namespace tc
             }
         } else {
             if (!file_->open(QIODeviceBase::OpenModeFlag::ReadWrite)) {
-                LOGE("Open Read-Write failed: {}", path);
-                return;
+                LOGE("Open Read-Write failed, try readonly");
+                if (!file_->open(QIODeviceBase::OpenModeFlag::ReadOnly)) {
+                    LOGE("Open Read-Write failed: {}", path);
+                    return;
+                }
             }
         }
         file_info_ = QFileInfo(path.c_str());
