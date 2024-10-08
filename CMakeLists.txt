@@ -61,6 +61,7 @@ if(WIN32)
         win32/process_helper.cpp
         win32/win_helper.cpp
         win32/audio_device_helper.cpp
+        win32/firewall_helper.cpp
     )
 endif()
 
