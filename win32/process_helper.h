@@ -73,7 +73,7 @@ namespace tc
     class ProcessHelper {
     public:
         static RespBoolBool IsProcessX86Arch(uint32_t pid);
-        static std::vector<std::shared_ptr<ProcessInfo>> GetProcessList();
+        static std::vector<std::shared_ptr<ProcessInfo>> GetProcessList(bool icon = false);
         static bool CloseProcess(DWORD pid);
         static Response<bool, uint32_t> GetParentPid(uint32_t pid);
         static bool isChildOf(uint32_t child, uint32_t parent);

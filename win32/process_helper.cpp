@@ -43,7 +43,7 @@ namespace tc
         return ret;
     }
 
-    std::vector<ProcessInfoPtr> ProcessHelper::GetProcessList() {
+    std::vector<ProcessInfoPtr> ProcessHelper::GetProcessList(bool query_icon) {
         std::vector<ProcessInfoPtr> processes;
         std::vector<ProcessInfoPtr> retList;
 
@@ -91,10 +91,12 @@ namespace tc
                 continue;
             }
 
-            std::wstring exe_path_w = path;
-            info->icon_ = ProcessHelper::QueryExeIcon(exe_path_w);
-            if (!info->icon_) {
-                info->icon_ = ProcessHelper::GetFileIcon(".exe");
+            if (query_icon) {
+                std::wstring exe_path_w = path;
+                info->icon_ = ProcessHelper::QueryExeIcon(exe_path_w);
+                if (!info->icon_) {
+                    info->icon_ = ProcessHelper::GetFileIcon(".exe");
+                }
             }
 
             upath = StringExt::ToUTF8(path);
