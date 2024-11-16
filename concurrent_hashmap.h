@@ -75,6 +75,11 @@ namespace tc
             return inner_.size();
         }
 
+        void Clear() {
+            std::lock_guard<std::mutex> lock(mtx_);
+            inner_.clear();
+        }
+
     private:
         std::mutex mtx_;
         std::unordered_map<K,V> inner_;
