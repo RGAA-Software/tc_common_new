@@ -21,6 +21,12 @@ namespace tc
         return std::make_shared<Image>(data, width, height, data ? data->Size()/width/height : 0);
     }
 
+    std::shared_ptr<Image> Image::Make(const DataPtr& data, int width, int height, const RawImageType& rt) {
+        auto image = Image::Make(data, width, height);
+        image->raw_img_type_ = rt;
+        return image;
+    }
+
 #ifdef WIN32
     std::shared_ptr<Image> Image::MakeByCompressedImage(const DataPtr& data) {
         return std::make_shared<Image>(data);

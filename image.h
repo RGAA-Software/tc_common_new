@@ -8,11 +8,20 @@
 namespace tc
 {
 
+    enum class RawImageType {
+        kRGB,
+        kBGR,
+        kRGBA,
+        kBGRA,
+        kI420,
+    };
+
     class Image {
     public:
         static std::shared_ptr<Image> Make(const char* data, int width, int height, int channels);
         static std::shared_ptr<Image> Make(const DataPtr& data, int width, int height, int channels);
         static std::shared_ptr<Image> Make(const DataPtr&, int width, int height);
+        static std::shared_ptr<Image> Make(const DataPtr&, int width, int height, const RawImageType& rt);
 #ifdef WIN32
         // 图片是jpg png等有压缩格式的
         static std::shared_ptr<Image> MakeByCompressedImage(const DataPtr& data);
@@ -38,10 +47,8 @@ namespace tc
         int height;
         int channels;
         DataPtr data;
-
         std::string path;
-
-        std::shared_ptr<Image> Make(const DataPtr &data);
+        RawImageType raw_img_type_{};
     };
 
     typedef std::shared_ptr<Image> ImagePtr;
