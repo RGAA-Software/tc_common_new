@@ -52,6 +52,7 @@ set(SRCS
         monitors.cpp
         fft_32.cpp
         key_helper.cpp
+        url_helper.cpp
 )
 
 if(WIN32)
