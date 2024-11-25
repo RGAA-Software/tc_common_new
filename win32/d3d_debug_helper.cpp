@@ -4,39 +4,35 @@
 #include <sstream>
 #include "d3d_render.h"
 #include "tc_common_new/string_ext.h"
+#include "tc_common_new/log.h"
 
 namespace tc {
 
-    void PrintD3DTexture2DDesc(const std::string &name, D3D11_TEXTURE2D_DESC *desc) {
-        printf("%s:Width:%d Height:%d MipLevels:%d ArraySize:%d Format:%d SampleDesc.Count:%d SampleDesc.Quality:%d Usage:%d BindFlags:%d CPUAccessFlags:%d MiscFlags:%d",
-               name.c_str(),
-               desc->Width,
-               desc->Height,
-               desc->MipLevels,
-               desc->ArraySize,
-               desc->Format,
-               desc->SampleDesc.Count,
-               desc->SampleDesc.Quality,
-               desc->Usage,
-               desc->BindFlags,
-               desc->CPUAccessFlags,
-               desc->MiscFlags
-        );
+    void PrintD3DTexture2DDesc(const std::string& name, const D3D11_TEXTURE2D_DESC& desc) {
+        LOGI("{}-----------------ID3D11Texture2D Desc------------------", name);
+        LOGI("Width : {} , Height : {}, Format : {}", desc.Width, desc.Height, desc.Format);
+        LOGI("MipLevels : {}, ArraySize : {}", desc.MipLevels, desc.ArraySize);
+        LOGI("Usage : {}", desc.Usage);
+        LOGI("BindFlags : {}", desc.BindFlags);
+        LOGI("CPUAccessFlags : {}", desc.CPUAccessFlags);
+        LOGI("MiscFlags : {}", desc.MiscFlags);
+        LOGI("SampleDesc : {}, {}", desc.SampleDesc.Count, desc.SampleDesc.Quality);
+        LOGI("-----------------ID3D11Texture2D Desc------------------ END");
     }
 
     void PrintD3DTexture2DDesc(const std::string &name, ID3D11Texture2D *tex) {
         D3D11_TEXTURE2D_DESC desc;
         tex->GetDesc(&desc);
-        PrintD3DTexture2DDesc(name, &desc);
+        PrintD3DTexture2DDesc(name, desc);
     }
 
-    bool DebugOutDDS(ID3D11Texture2D *pResource, const std::string &name) {
+    bool DebugOutDDS(ID3D11Texture2D* pResource, const std::string &name) {
         auto rhi = tc::D3DRender::BuildD3DRenderFromTexture(pResource);
         DirectX::ScratchImage image;
         static int i = 0;
         auto hr = DirectX::CaptureTexture(rhi->GetDevice(), rhi->GetContext(), pResource, image);
         std::stringstream oss;
-        oss << "debug-" << ++i % 5 << "-" << name << ".dds";
+        oss << "debug-" << name << "-" << ++i % 5 <<".dds";
 
         if (SUCCEEDED(hr)) {
             hr = DirectX::SaveToDDSFile(image.GetImages(),
