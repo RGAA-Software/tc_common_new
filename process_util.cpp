@@ -64,10 +64,10 @@ namespace tc
     }
 
     std::vector<std::string> ProcessUtil::StartProcessAndOutput(const std::string& exe_path, const std::vector<std::string>& args) {
-        if(!QFile::exists(exe_path.c_str())) {
-            LOGE("StartProcessAndOutput exe_path is {}, but not exists.", exe_path);
-            return {};
-        }
+//        if(!QFile::exists(exe_path.c_str())) {
+//            LOGE("StartProcessAndOutput exe_path is {}, but not exists.", exe_path);
+//            return {};
+//        }
         std::vector<std::string> output;
 
 //        bp::ipstream out_stream, err_stream;
