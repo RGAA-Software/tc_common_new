@@ -10,6 +10,7 @@
 #include <QStringList>
 #include <QProcess>
 #include <QFile>
+#include <UserEnv.h>
 
 namespace tc
 {
@@ -150,6 +151,92 @@ namespace tc
         // 关闭进程和线程句柄
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
+        return true;
+    }
+
+    bool ProcessUtil::StartProcessAsUser(const std::wstring& cmdline, const std::wstring& work_dir, bool wait) {
+        HANDLE hToken = NULL;
+        if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ALL_ACCESS, &hToken)) {
+            LOGE("StartProcessAsUser OpenProcessToken failed.");
+            return false;
+        }
+
+        HANDLE hTokenDup = NULL;
+        bool bRet = DuplicateTokenEx(hToken, TOKEN_ALL_ACCESS, NULL, SecurityIdentification, TokenPrimary, &hTokenDup);
+        if (!bRet || hTokenDup == NULL) {
+            LOGE("DuplicateTokenEx failed.");
+            CloseHandle(hToken);
+            return false;
+        }
+
+        DWORD dwSessionId = WTSGetActiveConsoleSessionId();
+
+        if (0xFFFFFFFF == dwSessionId) { //如果物理控制台会话正在附加或分离
+            return false;
+        }
+
+        //把服务hToken的SessionId替换成当前活动的Session(即替换到可与用户交互的winsta0下)
+        if (!SetTokenInformation(hTokenDup, TokenSessionId, &dwSessionId, sizeof(DWORD))) {
+            DWORD nErr = GetLastError();
+            CloseHandle(hTokenDup);
+            CloseHandle(hToken);
+            LOGE("SetTokenInformation failed.");
+            return false;
+        }
+
+        STARTUPINFOW si;
+        ZeroMemory(&si, sizeof(STARTUPINFOW));
+
+        si.cb = sizeof(STARTUPINFOW);
+        si.lpDesktop = (wchar_t*)L"WinSta0\\Default";
+        si.wShowWindow = SW_SHOW;
+        si.dwFlags = STARTF_USESHOWWINDOW /*|STARTF_USESTDHANDLES*/;
+
+        //创建进程环境块
+        LPVOID pEnv = NULL;
+        bRet = CreateEnvironmentBlock(&pEnv, hTokenDup, FALSE);
+        if (!bRet) {
+            CloseHandle(hTokenDup);
+            CloseHandle(hToken);
+            LOGE("GetEnvironmentBlock failed.");
+            return false;
+        }
+
+        if (pEnv == NULL) {
+            CloseHandle(hTokenDup);
+            CloseHandle(hToken);
+            LOGE("Not have env .");
+            return false;
+        }
+
+        //在活动的Session下创建进程
+        PROCESS_INFORMATION processInfo;
+        ZeroMemory(&processInfo, sizeof(PROCESS_INFORMATION));
+        DWORD dwCreationFlag = NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE | CREATE_UNICODE_ENVIRONMENT;
+
+        //LPSTR programPath = "E:\\source\\streamer\\out\\install\\x64-RelWithDebInfo\\bin\\DolitCloudApp.exe -o 3100";
+        //LPSTR work_dir = "E:\\source\\streamer\\out\\install\\x64-RelWithDebInfo\\bin";
+
+        LOGI("workdir: {}", StringExt::ToUTF8(work_dir));
+        LOGI("cmdline: {}", StringExt::ToUTF8(cmdline));
+
+        if (CreateProcessAsUserW(hTokenDup, NULL, (wchar_t*)cmdline.c_str(), NULL, NULL, FALSE, dwCreationFlag, pEnv, (wchar_t*)work_dir.c_str(), &si, &processInfo) == 0) {
+            DWORD nRet = GetLastError();
+            CloseHandle(hTokenDup);
+            CloseHandle(hToken);
+            LOGE("CreateProcess Failed failed. error code : {}", nRet);
+            return false;
+        }
+        if (wait) {
+            // Wait until child process exits.
+            auto wait_result = ::WaitForSingleObject(processInfo.hProcess, INFINITE);
+            LOGI("wait result: {:x}, last error: {:x}", wait_result, GetLastError());
+        }
+
+        DestroyEnvironmentBlock(pEnv);
+        CloseHandle(hTokenDup);
+        CloseHandle(hToken);
+
         return true;
     }
 

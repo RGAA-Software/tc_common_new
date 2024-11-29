@@ -22,6 +22,7 @@ namespace tc
         static std::vector<std::string> StartProcessAndOutput(const std::string& exe_path, const std::vector<std::string>& args);
         static bool StartProcessInWorkDir(const std::string& work_dir, const std::string& cmdline, const std::vector<std::string>& args);
         static bool KillProcess(unsigned long pid);
+        static bool StartProcessAsUser(const std::wstring& cmdline, const std::wstring& work_dir, bool wait);
     };
 
 }
