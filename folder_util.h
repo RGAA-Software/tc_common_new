@@ -33,6 +33,7 @@ namespace tc
         static void VisitRecursiveFiles(const std::filesystem::path& path, int depth, int max_depth, const std::function<void(VisitResult&&)>&, const std::string& filter_suffix = "");
 #ifdef WIN32
         static void VisitAllByQt(const std::string& path, std::function<void(VisitResult&&)>&&, const std::string& filter_suffix = "");
+        static std::wstring GetCurrentFolder();
 #endif
     };
 }
