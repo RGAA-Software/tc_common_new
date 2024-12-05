@@ -119,9 +119,9 @@ namespace tc
         if (hProcess) {
             bool ret = ::TerminateProcess(hProcess, 0);
             if (!ret) {
-                LOGE("kill process failed. %d ", GetLastError());
+                LOGE("kill process failed. {} ", GetLastError());
             } else {
-                LOGI("process %d closed.", pid);
+                LOGI("process {} closed.", pid);
             }
             CloseHandle(hProcess);
             return ret;
