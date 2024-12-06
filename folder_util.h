@@ -14,6 +14,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QDirIterator>
+#include <Shlwapi.h>
 #endif
 
 namespace tc
@@ -33,7 +34,8 @@ namespace tc
         static void VisitRecursiveFiles(const std::filesystem::path& path, int depth, int max_depth, const std::function<void(VisitResult&&)>&, const std::string& filter_suffix = "");
 #ifdef WIN32
         static void VisitAllByQt(const std::string& path, std::function<void(VisitResult&&)>&&, const std::string& filter_suffix = "");
-        static std::wstring GetCurrentFolder();
+        static std::wstring GetCurrentFilePath();
+        static std::wstring GetCurrentFolderPath();
 #endif
     };
 }

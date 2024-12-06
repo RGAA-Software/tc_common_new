@@ -127,10 +127,18 @@ namespace tc
         }
     }
 
-    std::wstring FolderUtil::GetCurrentFolder() {
+    std::wstring FolderUtil::GetCurrentFilePath() {
         wchar_t path[MAX_PATH] = {0};
         GetModuleFileNameW(NULL, path, MAX_PATH);
         return std::wstring(path);
+    }
+
+    std::wstring FolderUtil::GetCurrentFolderPath() {
+        const int maxPath = 4096;
+        wchar_t szFullPath[maxPath] = { 0 };
+        ::GetModuleFileNameW(NULL, szFullPath, maxPath);
+        ::PathRemoveFileSpecW(szFullPath);
+        return {szFullPath};
     }
 
 #endif
