@@ -10,7 +10,7 @@ namespace tc
 
     std::mutex FFT32::fft_mtx_;
 
-    void FFT32::DoFFT(std::vector<double> &fft, const DataPtr& one_channel_pcm_data, int bytes) {
+    void FFT32::DoFFT(std::vector<double> &fft, const DataPtr& one_channel_pcm_data, int bytes, bool pre_alloc_fft) {
         std::lock_guard<std::mutex> guard(fft_mtx_);
         int bytes_size = one_channel_pcm_data->Size();
         if (bytes_size > bytes) {
@@ -46,7 +46,11 @@ namespace tc
             auto im = out[i][1];
             double m = sqrt((re * re) + (im * im));
             auto val = 36 * log(m);
-            fft.push_back(val);
+            if (pre_alloc_fft) {
+                fft[i] = val;
+            } else {
+                fft.push_back(val);
+            }
         }
 
         if (din != nullptr) {
