@@ -74,7 +74,7 @@ if (WIN32)
         target_compile_definitions(tc_common_new PRIVATE ENABLE_JEMALLOC)
         target_link_libraries(tc_common_new jemalloc)
     endif()
-    target_link_libraries(tc_common_new DirectXTex DXGI D3D11 libssl64MT.lib libcrypto64MT.lib)#OpenSSL::SSL OpenSSL::Crypto
+    target_link_libraries(tc_common_new DirectXTex DXGI D3D11 libssl64MT.lib libcrypto64MT.lib Shlwapi.lib)#OpenSSL::SSL OpenSSL::Crypto
     target_link_libraries(tc_common_new Qt6::Core Qt6::Core5Compat)
 endif ()
 target_link_libraries(tc_common_new leveldb)
