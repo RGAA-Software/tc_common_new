@@ -7,7 +7,8 @@
 namespace tc
 {
 
-// 解码 URL 编码的特殊字符
+#ifdef WIN32
+    // 解码 URL 编码的特殊字符
     static std::string UrlDecode(const std::string& str) {
         std::string result;
         char ch;
@@ -52,5 +53,5 @@ namespace tc
 
         return params;
     }
-
+#endif
 }
