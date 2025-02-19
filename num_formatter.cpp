@@ -1,0 +1,45 @@
+//
+// Created by RGAA on 2024-04-23.
+//
+
+#include "num_formatter.h"
+
+#include <sstream>
+#include <iomanip>
+
+namespace tc
+{
+    std::string NumFormatter::FormatStorageSize(int64_t bytes) {
+        const size_t GB = 1024 * 1024 * 1024;
+        const size_t MB = 1024 * 1024;
+        const size_t KB = 1024;
+
+        std::stringstream stream;
+
+        if (bytes >= GB) {
+            stream << std::fixed << std::setprecision(2) << (bytes / static_cast<double>(GB)) << "GB";
+        } else if (bytes >= MB) {
+            stream << std::fixed << std::setprecision(2) << (bytes / static_cast<double>(MB)) << "MB";
+        } else if (bytes >= KB) {
+            stream << std::fixed << std::setprecision(2) << (bytes / static_cast<double>(KB)) << "KB";
+        } else {
+            stream << bytes << " Bytes";
+        }
+
+        return stream.str();
+    }
+
+    std::string NumFormatter::FormatTime(uint64_t timestamp) {
+        auto total_seconds = timestamp/1000;
+        int hours = total_seconds / 3600;
+        int minutes = (total_seconds % 3600) / 60;
+        int seconds = total_seconds % 60;
+
+        std::stringstream stream;
+        stream << std::setw(2) << std::setfill('0') << hours << ":"
+               << std::setw(2) << std::setfill('0') << minutes << ":"
+               << std::setw(2) << std::setfill('0') << seconds;
+        return stream.str();
+    }
+
+}
