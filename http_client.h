@@ -24,8 +24,7 @@ namespace tc
         static std::shared_ptr<HttpClient> MakeDownloadHttp(const std::string& url);
         static std::shared_ptr<HttpClient> MakeDownloadHttps(const std::string& url);
 
-        HttpClient(const std::string& addr, bool ssl);
-        HttpClient(const std::string& host, const std::string& path, bool ssl);
+        HttpClient(const std::string& host, const std::string& path, bool ssl, int timeout = 3);
         ~HttpClient();
 
         HttpResponse Request();

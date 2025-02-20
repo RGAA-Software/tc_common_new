@@ -31,12 +31,12 @@ namespace tc
         return std::make_shared<HttpClient>(host, path, true);
     }
 
-    HttpClient::HttpClient(const std::string& host, const std::string& path, bool ssl) {
+    HttpClient::HttpClient(const std::string& host, const std::string& path, bool ssl, int timeout) {
         this->host = host;
         this->path = path;
         this->ssl = ssl;
 
-        LOGI("Host: {}, path: {}, ssl: {}", host, path, ssl);
+        LOGI("Host: {}, path: {}, ssl: {}, timeout: {}s", host, path, ssl, timeout);
 
         if (ssl) {
 #if 0
@@ -44,12 +44,12 @@ namespace tc
             ssl_client->set_follow_location(true);
             ssl_client->set_keep_alive(true);
             ssl_client->enable_server_certificate_verification(false); 
-            ssl_client->set_connection_timeout(std::chrono::seconds(15));
+            ssl_client->set_connection_timeout(std::chrono::seconds(timeout));
 #endif
         }
         else {
             client = std::make_shared<httplib::Client>(host);
-            client->set_connection_timeout(std::chrono::seconds(15));
+            client->set_connection_timeout(std::chrono::seconds(timeout));
         }
     }
 
