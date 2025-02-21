@@ -119,6 +119,20 @@ namespace tc
             std::wstring res = buffer;
             return Wstring2utf8string(res);
         }
+
+        static std::string StandardizeWinPath(const std::string& path) {
+            std::string normalized = path;
+            StringExt::Replace(normalized, "\\", "/");
+            // D: => D:/
+            if (normalized.size() == 2 && normalized[1] == ':') {
+                normalized += "/";
+            }
+            // "D:/video/" => "D:/video"
+            if (normalized.size() >= 4 && normalized.back() == '/') {
+                normalized.pop_back();
+            }
+            return normalized;
+        }
 #endif
         static std::string FormatSize(uint64_t byte_size) {
             static const char* suffixes[] = { "B", "KB", "MB", "GB" };
