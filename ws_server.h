@@ -59,7 +59,7 @@ namespace tc
 
     public:
         std::string path_;
-        uint64_t socket_fd_{0};
+        int64_t socket_fd_{0};
         std::shared_ptr<asio2::http_session> inner_ = nullptr;
         WsDataPtr ws_data_ = nullptr;
         std::unordered_map<std::string, std::string> query_params_;
