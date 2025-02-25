@@ -7,6 +7,7 @@
 
 #include "tc_common_new/concurrent_hashmap.h"
 #include "log.h"
+#include "url_helper.h"
 #include <asio2/asio2.hpp>
 
 namespace tc
@@ -41,9 +42,19 @@ namespace tc
         }
 
         template<typename T>
-        T Get(const std::string& n) {
-            auto v = ws_data_->vars_[n];
-            return std::any_cast<T>(v);
+        std::optional<T> GetVar(const std::string& n) {
+            if (ws_data_->vars_.contains(n)) {
+                auto v = ws_data_->vars_[n];
+                return std::any_cast<T>(v);
+            }
+            return std::nullopt;
+        }
+
+        std::optional<std::string> GetQueryParam(const std::string& key) {
+            if (query_params_.contains(key)) {
+                return query_params_[key];
+            }
+            return std::nullopt;
         }
 
     public:
@@ -51,6 +62,7 @@ namespace tc
         uint64_t socket_fd_{0};
         std::shared_ptr<asio2::http_session> inner_ = nullptr;
         WsDataPtr ws_data_ = nullptr;
+        std::unordered_map<std::string, std::string> query_params_;
     };
 
     // WsServer
@@ -80,14 +92,21 @@ namespace tc
                     LOGI("App server {} open", path);
                     http_sess->ws_stream().binary(true);
                     http_sess->set_no_delay(true);
+                    auto query = http_sess->get_request().get_query();
                     auto socket_fd = fn_get_socket_fd(http_sess);
                     auto session = std::make_shared<Session>();
                     session->socket_fd_ = socket_fd;
                     session->path_ = path;
                     session->ws_data_ = ws_data_;
                     session->inner_ = http_sess;
+                    session->query_params_ = UrlHelper::ParseQueryString(std::string(query.data(), query.size()));
                     session->OnConnected();
                     sessions_.Insert(socket_fd, session);
+
+                    for (const auto& [k, v] : session->query_params_) {
+                        LOGI("socket: {}, query param, k: {}, v: {}", socket_fd, k, v);
+                    }
+
                 })
                 .on("close", [=, this](std::shared_ptr<asio2::http_session>& http_sess) {
                     auto socket_fd = fn_get_socket_fd(http_sess);
