@@ -53,6 +53,8 @@ set(SRCS
         fft_32.cpp
         key_helper.cpp
         url_helper.cpp
+        ws_server.cpp
+        message_looper.cpp
 )
 
 if(WIN32)

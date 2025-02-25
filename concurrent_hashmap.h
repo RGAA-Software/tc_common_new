@@ -9,6 +9,7 @@
 #include <mutex>
 #include <functional>
 #include <unordered_map>
+#include <optional>
 
 namespace tc
 {
@@ -22,12 +23,15 @@ namespace tc
             inner_[k] = v;
         }
 
-        void Remove(const K& k) {
+        std::optional<V> Remove(const K& k) {
             std::lock_guard<std::mutex> lock(mtx_);
             auto it = inner_.find(k);
             if (it != inner_.end()) {
+                auto v = inner_[k];
                 inner_.erase(it);
+                return v;
             }
+            return std::nullopt;
         }
 
         bool HasKey(const K& k) {
@@ -51,6 +55,15 @@ namespace tc
             std::lock_guard<std::mutex> lock(mtx_);
             for (const auto& [k, v] : inner_) {
                 task(k, v);
+            }
+        }
+
+        void ApplyAllCond(std::function<bool(const K& k, const V& v)>&& task) {
+            std::lock_guard<std::mutex> lock(mtx_);
+            for (auto& [k, v] : inner_) {
+                if (task(k, v)) {
+                    break;
+                }
             }
         }
 
