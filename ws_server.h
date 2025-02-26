@@ -73,7 +73,7 @@ namespace tc
         void Start(const std::string& ip, int port);
         virtual void Exit();
 
-    protected:
+    public:
         template<typename Session>
         void AddWebsocketRouter(const std::string& path) {
             auto fn_get_socket_fd = [](std::shared_ptr<asio2::http_session> &sess_ptr) -> uint64_t {
