@@ -55,6 +55,7 @@ set(SRCS
         url_helper.cpp
         ws_server.cpp
         message_looper.cpp
+        base_handler.cpp
 )
 
 if(WIN32)
