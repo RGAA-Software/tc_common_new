@@ -12,6 +12,9 @@ namespace tc
         if (code == 200) {
             return "ok";
         }
+        else if (code == kHandlerErrParams) {
+            return "error params";
+        }
         return "unknown code: " + std::to_string(code);
     }
 
@@ -64,6 +67,10 @@ namespace tc
 
     void BaseHandler::SendOkJson(http::web_response& resp, const std::string& data) {
         this->SendBackKnownJson(resp, 200, data);
+    }
+
+    void BaseHandler::SendErrorJson(http::web_response& resp, int code) {
+        this->SendBackKnownJson(resp, code, GetErrorMessage(code));
     }
 
     void BaseHandler::SendBackJson(http::web_response& resp, int code, const std::string& msg, const nlohmann::json& data) {
