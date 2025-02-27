@@ -15,6 +15,8 @@ using namespace nlohmann;
 namespace tc
 {
 
+    constexpr auto kHandlerErrParams = 600;
+
     class BaseHandler {
     public:
         virtual void RegisterPaths() {}
@@ -30,6 +32,7 @@ namespace tc
         void SendBackJson(http::web_response& resp, int code, const std::string& msg, const std::string& data);
         void SendBackKnownJson(http::web_response& resp, int code, const std::string& data);
         void SendOkJson(http::web_response& resp, const std::string& data);
+        void SendErrorJson(http::web_response& resp, int code);
         void SendBackJson(http::web_response& resp, int code, const std::string& msg, const nlohmann::json& data);
 
 

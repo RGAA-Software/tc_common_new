@@ -10,6 +10,7 @@
 #include <functional>
 #include <unordered_map>
 #include <optional>
+#include "log.h"
 
 namespace tc
 {
@@ -83,6 +84,40 @@ namespace tc
             }
         }
 
+        // 0-based
+        std::optional<std::vector<V>> QueryRange(int begin, int end) {
+            std::lock_guard<std::mutex> lock(mtx_);
+            std::vector<V> values;
+            // overflow
+            if (begin >= inner_.size()) {
+                //LOGI("Overflow, begin: {}, total: {}", begin, inner_.size());
+                return std::nullopt;
+            }
+
+            auto it_beg = inner_.begin();
+            std::advance(it_beg, begin);
+
+            decltype(it_beg) it_end;
+
+            if (begin < inner_.size() && end >= inner_.size()) {
+                // portion
+                it_end = inner_.end();
+                //LOGI("Portion, {} -> {}", begin, inner_.size());
+            }
+            else {
+                // whole
+                it_end = it_beg;
+                std::advance(it_end, end - begin);
+                //LOGI("Whole");
+            }
+            for (; it_beg != it_end; ++it_beg) {
+                auto pair = *it_beg;
+                values.push_back(pair.second);
+                //LOGI("--> {}", pair.first);
+            }
+            return values;
+        }
+
         size_t Size() {
             std::lock_guard<std::mutex> lock(mtx_);
             return inner_.size();
@@ -95,7 +130,7 @@ namespace tc
 
     private:
         std::mutex mtx_;
-        std::unordered_map<K,V> inner_;
+        std::map<K,V> inner_;
     };
 
 }
