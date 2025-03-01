@@ -45,6 +45,14 @@ namespace tc
             return inner_.at(k);
         }
 
+        std::optional<V> TryGet(const K& k) {
+            std::lock_guard<std::mutex> lock(mtx_);
+            if (inner_.find(k) != inner_.end()) {
+                return inner_.at(k);
+            }
+            return std::nullopt;
+        }
+
         void Apply(const K& k, std::function<void(const V& v)>&& task) {
             std::lock_guard<std::mutex> lock(mtx_);
             if (inner_.find(k) != inner_.end()) {
