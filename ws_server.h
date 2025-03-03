@@ -77,7 +77,7 @@ namespace tc
         std::weak_ptr<T> FindSessionBySocketFd(int64_t socket_fd) {
             auto opt_sess = sessions_.TryGet(socket_fd);
             if (!opt_sess.has_value()) {
-                return {};
+                return std::weak_ptr<T>();
             }
             auto sess = opt_sess.value();
             return std::dynamic_pointer_cast<T>(sess);
