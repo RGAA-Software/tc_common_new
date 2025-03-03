@@ -23,7 +23,7 @@ namespace tc
     // WsSession
     class WsSession {
     public:
-        virtual void OnConnected() {}
+        virtual bool OnConnected() { return false; }
         virtual void OnDisConnected() {}
         virtual void OnBinMessage(std::string_view data) {}
 
@@ -73,6 +73,16 @@ namespace tc
         void Start(const std::string& ip, int port);
         virtual void Exit();
 
+        template<typename T>
+        std::weak_ptr<T> FindSessionBySocketFd(int64_t socket_fd) {
+            auto opt_sess = sessions_.TryGet(socket_fd);
+            if (!opt_sess.has_value()) {
+                return {};
+            }
+            auto sess = opt_sess.value();
+            return std::dynamic_pointer_cast<T>(sess);
+        }
+
     public:
         template<typename Session>
         void AddWebsocketRouter(const std::string& path) {
@@ -89,7 +99,6 @@ namespace tc
                     }
                 })
                 .on("open", [=, this](std::shared_ptr<asio2::http_session>& http_sess) {
-                    LOGI("App server {} open", path);
                     http_sess->ws_stream().binary(true);
                     http_sess->set_no_delay(true);
                     auto query = http_sess->get_request().get_query();
@@ -100,9 +109,14 @@ namespace tc
                     session->ws_data_ = ws_data_;
                     session->inner_ = http_sess;
                     session->query_params_ = UrlHelper::ParseQueryString(std::string(query.data(), query.size()));
-                    session->OnConnected();
+                    if  (!session->OnConnected()) {
+                        http_sess->stop();
+                        LOGE("OnConnect failed, close socket connection.");
+                        return;
+                    }
                     sessions_.Insert(socket_fd, session);
 
+                    LOGI("App server {} open, query: {}", path, query);
                     for (const auto& [k, v] : session->query_params_) {
                         LOGI("socket: {}, query param, k: {}, v: {}", socket_fd, k, v);
                     }
