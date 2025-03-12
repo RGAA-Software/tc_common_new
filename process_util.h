@@ -23,6 +23,8 @@ namespace tc
         static bool StartProcessInWorkDir(const std::string& work_dir, const std::string& cmdline, const std::vector<std::string>& args);
         static bool KillProcess(unsigned long pid);
         static bool StartProcessAsUser(const std::wstring& cmdline, const std::wstring& work_dir, bool wait);
+        static uint32_t GetCurrentSessionId();
+        static uint32_t GetProcessSessionId(uint32_t pid);
     };
 
 }

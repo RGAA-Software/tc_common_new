@@ -240,5 +240,17 @@ namespace tc
         return true;
     }
 
+    uint32_t ProcessUtil::GetCurrentSessionId()
+    {
+        return GetProcessSessionId(GetCurrentProcessId());
+    }
+
+    uint32_t ProcessUtil::GetProcessSessionId(uint32_t pid)
+    {
+        DWORD sessionId = -1;
+        if (ProcessIdToSessionId(pid, &sessionId))
+            return sessionId;
+        return -1;
+    }
 }
 #endif
