@@ -6,12 +6,12 @@
 namespace tc
 {
 
-    std::shared_ptr<HttpClient> HttpClient::Make(const std::string& host, const std::string& path) {
-        return std::make_shared<HttpClient>(host, path, false);
+    std::shared_ptr<HttpClient> HttpClient::Make(const std::string& host, const std::string& path, int timeout) {
+        return std::make_shared<HttpClient>(host, path, false, timeout);
     }
 
-    std::shared_ptr<HttpClient> HttpClient::MakeSSL(const std::string& host, const std::string& path) {
-        return std::make_shared<HttpClient>(host, path, true);
+    std::shared_ptr<HttpClient> HttpClient::MakeSSL(const std::string& host, const std::string& path, int timeout) {
+        return std::make_shared<HttpClient>(host, path, true, timeout);
     }
 
     std::shared_ptr<HttpClient> HttpClient::MakeDownloadHttp(const std::string& url) {
