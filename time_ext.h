@@ -38,6 +38,16 @@ namespace tc
         }
     };
 
+    class TimeDuration {
+    public:
+        TimeDuration(const std::string& name);
+        ~TimeDuration();
+
+    private:
+        uint64_t begin_ts_ = 0;
+        std::string name_;
+    };
+
 }
 
 #endif //TC_APPLICATION_TIMEEXT_H
