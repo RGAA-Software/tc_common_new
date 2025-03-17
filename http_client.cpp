@@ -73,7 +73,7 @@ namespace tc
             }
             index++;
         }
-        LOGI("Request path: {}", query_path);
+        LOGI("Request path: {}{}", host, query_path);
         auto res =/* ssl ? ssl_client->Get(path) :*/ client->Get(query_path);
         if (res.error() != httplib::Error::Success) {
             LOGE("HttpError : {}, {}", (int)res.error(), httplib::to_string(res.error()).c_str());
