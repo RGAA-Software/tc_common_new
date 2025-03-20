@@ -25,6 +25,7 @@ namespace tc
         static bool StartProcessAsUser(const std::wstring& cmdline, const std::wstring& work_dir, bool wait);
         static uint32_t GetCurrentSessionId();
         static uint32_t GetProcessSessionId(uint32_t pid);
+        static int GetThreadCount();
     };
 
 }
