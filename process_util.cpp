@@ -10,7 +10,9 @@
 #include <QStringList>
 #include <QProcess>
 #include <QFile>
+#include <QApplication>
 #include <UserEnv.h>
+#include <TlHelp32.h>
 
 namespace tc
 {
@@ -252,5 +254,34 @@ namespace tc
             return sessionId;
         return -1;
     }
+
+    int ProcessUtil::GetThreadCount() {
+#ifdef Q_OS_WIN
+        DWORD threadCount = 0;
+        HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+        if (hSnapshot == INVALID_HANDLE_VALUE) {
+            LOGE("Failed to create snapshot!");
+            return 0;
+        }
+
+        THREADENTRY32 te32;
+        te32.dwSize = sizeof(THREADENTRY32);
+
+        if (Thread32First(hSnapshot, &te32)) {
+            do {
+                if (te32.th32OwnerProcessID == QCoreApplication::applicationPid()) {
+                    threadCount++;
+                }
+            } while (Thread32Next(hSnapshot, &te32));
+        }
+
+        CloseHandle(hSnapshot);
+        return threadCount;
+#else
+        QDir dir(QString("/proc/%1/task").arg(QCoreApplication::applicationPid()));
+        return dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot).size();
+#endif
+    }
+
 }
 #endif
