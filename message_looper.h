@@ -9,6 +9,7 @@
 #include <mutex>
 #include <functional>
 #include <condition_variable>
+#include <list>
 
 namespace tc
 {
