@@ -10,7 +10,7 @@
 namespace tc
 {
 
-    class FileExt {
+    class FileUtil {
     public:
 
         static std::string GetFileNameFromPath(const std::string& path);

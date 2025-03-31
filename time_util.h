@@ -9,11 +9,15 @@
 #include <string>
 #include <iomanip>
 #include <sstream>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <thread>
+#include <timeapi.h>
 
 namespace tc
 {
 
-    class TimeExt {
+    class TimeUtil {
     public:
 
         static uint64_t GetCurrentTimestamp() {
@@ -36,6 +40,36 @@ namespace tc
             auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
             return microseconds;
         }
+
+        // 1ms => [1ms, 2ms]
+        static void DelayBySleep(int ms) {
+            timeBeginPeriod(1);
+            std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+            timeEndPeriod(1);
+        }
+
+        // 1ms => 1ms but more cpu usage
+        static void DelayByCount(int milliseconds) {
+#ifdef _WIN32
+            LARGE_INTEGER frequency, start;
+            QueryPerformanceFrequency(&frequency);
+            QueryPerformanceCounter(&start);
+            const long long target = start.QuadPart + (frequency.QuadPart * milliseconds) / 1000;
+
+            LARGE_INTEGER current;
+            do {
+                QueryPerformanceCounter(&current);
+            } while (current.QuadPart < target);
+#else
+            struct timespec req = {
+                static_cast<time_t>(milliseconds / 1000),          // 秒
+                static_cast<long>((milliseconds % 1000) * 1000000) // 纳秒
+            };
+            struct timespec rem;
+            clock_nanosleep(CLOCK_MONOTONIC, 0, &req, &rem);
+#endif
+        }
+
     };
 
     class TimeDuration {

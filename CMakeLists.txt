@@ -34,7 +34,7 @@ set(SRCS
         data.cpp
         shared_preference.cpp
         string_ext.cpp
-        time_ext.cpp
+        time_util.cpp
         thread.cpp
         task_runtime.cpp
         base64.cpp
@@ -44,7 +44,7 @@ set(SRCS
         ipc_msg_queue.cpp
         message_notifier.cpp
         http_client.cpp
-        file_ext.cpp
+        file_util.cpp
         process_util.cpp
         dump_helper.cpp
         folder_util.cpp
