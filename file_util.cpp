@@ -2,7 +2,7 @@
 // Created by RGAA on 2024-02-06.
 //
 
-#include "file_ext.h"
+#include "file_util.h"
 #include "string_ext.h"
 
 #ifdef WIN32
@@ -12,7 +12,7 @@
 namespace tc
 {
 
-    std::string FileExt::GetFileNameFromPath(const std::string& path) {
+    std::string FileUtil::GetFileNameFromPath(const std::string& path) {
         std::string target_path = path;
         StringExt::Replace(target_path, R"(\\)", "/");
         StringExt::Replace(target_path, R"(\)", "/");
@@ -23,18 +23,18 @@ namespace tc
         return target_path.substr(idx + 1, target_path.size());
     }
 
-    std::string FileExt::GetFileNameFromPathNoSuffix(const std::string& path) {
+    std::string FileUtil::GetFileNameFromPathNoSuffix(const std::string& path) {
         auto filename = GetFileNameFromPath(path);
         auto idx = filename.rfind('.');
         return filename.substr(0, idx);
     }
 
-    std::string FileExt::GetFileSuffix(const std::string& path) {
+    std::string FileUtil::GetFileSuffix(const std::string& path) {
         auto idx = path.rfind('.');
         return path.substr(idx+1, path.size());
     }
 
-    std::string FileExt::GetFileFolder(const std::string& path) {
+    std::string FileUtil::GetFileFolder(const std::string& path) {
         std::string target_path = path;
         StringExt::Replace(target_path, R"(\\)", "/");
         StringExt::Replace(target_path, R"(\)", "/");
@@ -42,7 +42,7 @@ namespace tc
         return target_path.substr(0, idx);
     }
 
-    std::string FileExt::GetFolderNameFormAbsFolderPath(const std::string& path) {
+    std::string FileUtil::GetFolderNameFormAbsFolderPath(const std::string& path) {
         std::string target_path = path;
         StringExt::Replace(target_path, R"(\\)", "/");
         StringExt::Replace(target_path, R"(\)", "/");
@@ -53,7 +53,7 @@ namespace tc
         return target_path.substr(idx + 1, target_path.size());
     }
 
-    bool FileExt::CopyFileExt(const std::string& from, const std::string& to, bool force_replace) {
+    bool FileUtil::CopyFileExt(const std::string& from, const std::string& to, bool force_replace) {
 #ifdef WIN32
         if (QFile::exists(to.c_str())) {
             if (force_replace) {

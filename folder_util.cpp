@@ -5,7 +5,7 @@
 #include "folder_util.h"
 #include <filesystem>
 #include <iostream>
-#include "file_ext.h"
+#include "file_util.h"
 #include "string_ext.h"
 
 namespace fs = std::filesystem;
@@ -21,7 +21,7 @@ namespace tc
                 if (entry.is_regular_file()) {
                     if (!filter_suffix.empty()) {
                         auto u8path = StringExt::ToUTF8(path.wstring());
-                        auto suffix = FileExt::GetFileSuffix(u8path);
+                        auto suffix = FileUtil::GetFileSuffix(u8path);
                         StringExt::ToLower(suffix);
                         if (filter_suffix != suffix) {
                             continue;
@@ -60,7 +60,7 @@ namespace tc
                 auto path = entry.path();
                 if (!filter_suffix.empty()) {
                     auto u8path = StringExt::ToUTF8(path.wstring());
-                    auto suffix = FileExt::GetFileSuffix(u8path);
+                    auto suffix = FileUtil::GetFileSuffix(u8path);
                     StringExt::ToLower(suffix);
                     if (filter_suffix != suffix) {
                         continue;
@@ -90,7 +90,7 @@ namespace tc
                 if (fs::is_regular_file(p)) {
                     if (!filter_suffix.empty()) {
                         auto u8path = StringExt::ToUTF8(p.wstring());
-                        auto suffix = StringExt::ToLowerCpy(FileExt::GetFileSuffix(u8path));
+                        auto suffix = StringExt::ToLowerCpy(FileUtil::GetFileSuffix(u8path));
                         if (suffix == filter_suffix) {
                             cbk(VisitResult {
                                 .name_ = p.filename().wstring(),
