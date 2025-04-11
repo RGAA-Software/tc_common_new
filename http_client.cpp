@@ -36,7 +36,7 @@ namespace tc
         this->path = path;
         this->ssl = ssl;
 
-        LOGI("Host: {}, path: {}, ssl: {}, timeout: {}s", host, path, ssl, timeout);
+        //LOGI("Host: {}, path: {}, ssl: {}, timeout: {}s", host, path, ssl, timeout);
 
         if (ssl) {
 #if 0
@@ -73,7 +73,7 @@ namespace tc
             }
             index++;
         }
-        LOGI("Request path: {}{}", host, query_path);
+        //LOGI("Request path: {}{}", host, query_path);
         auto res =/* ssl ? ssl_client->Get(path) :*/ client->Get(query_path);
         if (res.error() != httplib::Error::Success) {
             LOGE("HttpError : {}, {}", (int)res.error(), httplib::to_string(res.error()).c_str());
