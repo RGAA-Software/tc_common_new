@@ -9,10 +9,12 @@
 #include <string>
 #include <iomanip>
 #include <sstream>
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include <thread>
 #include <timeapi.h>
+#endif
+#include <thread>
 
 namespace tc
 {
@@ -43,9 +45,13 @@ namespace tc
 
         // 1ms => [1ms, 2ms]
         static void DelayBySleep(int ms) {
+#ifdef _WIN32
             timeBeginPeriod(1);
+#endif
             std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+#ifdef _WIN32
             timeEndPeriod(1);
+#endif
         }
 
         // 1ms => 1ms but more cpu usage
