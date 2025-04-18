@@ -25,7 +25,8 @@ namespace tc
         uint32_t this_buffer_end_ = 0;
         // parent buffer
         uint32_t parent_buffer_length_ = 0;
-
+        // index
+        uint32_t pkt_index_ = 0;
         //
         //uint8_t* buffer_;
     };
