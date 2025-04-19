@@ -76,7 +76,8 @@ namespace tc
         //LOGI("Request path: {}{}", host, query_path);
         auto res =/* ssl ? ssl_client->Get(path) :*/ client->Get(query_path);
         if (res.error() != httplib::Error::Success) {
-            LOGE("HttpError : {}, {}", (int)res.error(), httplib::to_string(res.error()).c_str());
+            LOGE("HttpError : {}, {}, host: {}, query path: {}",
+                 (int)res.error(), httplib::to_string(res.error()).c_str(), host, query_path);
             return HttpResponse {
                 .status = -1,
                 .body = "",
@@ -106,7 +107,8 @@ namespace tc
         }
         auto res = /*ssl ? ssl_client->Post(path) :*/ client->Post(query_path);
         if (res.error() != httplib::Error::Success) {
-            LOGE("HttpError : {}, {}", (int)res.error(), httplib::to_string(res.error()).c_str());
+            LOGE("HttpError : {}, {}, host: {}, query path: {}",
+                 (int)res.error(), httplib::to_string(res.error()).c_str(), host, query_path);
             return HttpResponse {
                 .status = -1,
                 .body = "",
