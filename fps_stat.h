@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <queue>
 #include <chrono>
+#include <mutex>
 #include "log.h"
 
 namespace tc
@@ -20,20 +21,20 @@ namespace tc
         }
 
         void Tick() {
+            std::lock_guard<std::mutex> lk(mtx_);
             auto now = std::chrono::steady_clock::now();
             std::chrono::duration<double> elapsedSeconds = now - last_frame_time_;
             last_frame_time_ = now;
 
-            double currentFrameTime = elapsedSeconds.count()
-
-            ;
+            double currentFrameTime = elapsedSeconds.count();
             frame_times_.push_back(currentFrameTime);
             if (frame_times_.size() > max_samples_) {
                 frame_times_.erase(frame_times_.begin());
             }
         }
 
-        [[nodiscard]] int value() const {
+        [[nodiscard]] int value() {
+            std::lock_guard<std::mutex> lk(mtx_);
             if (frame_times_.empty()) return 0.0;
             double avg_frame_time = 0.0;
             for (auto time : frame_times_) {
@@ -48,6 +49,7 @@ namespace tc
         std::chrono::time_point<std::chrono::steady_clock> last_frame_time_;
         std::vector<double> frame_times_;
         const size_t max_samples_;
+        std::mutex mtx_;
     };
 }
 
