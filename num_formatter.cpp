@@ -37,11 +37,11 @@ namespace tc
         std::stringstream stream;
 
         if (bytes >= GB) {
-            stream << std::fixed << (bytes / (GB)) << "GB/S";
+            stream << std::fixed << std::setprecision(1) << (bytes / static_cast<double>(GB)) << "GB/S";
         } else if (bytes >= MB) {
-            stream << std::fixed << (bytes / (MB)) << "MB/S";
+            stream << std::fixed << std::setprecision(1) << (bytes / static_cast<double>(MB)) << "MB/S";
         } else if (bytes >= KB) {
-            stream << std::fixed << (bytes / (KB)) << "KB/S";
+            stream << std::fixed << std::setprecision(1) << (bytes / static_cast<double>(KB)) << "KB/S";
         } else {
             stream << bytes << "B/S";
         }
