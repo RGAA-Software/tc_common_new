@@ -23,7 +23,27 @@ namespace tc
         } else if (bytes >= KB) {
             stream << std::fixed << std::setprecision(2) << (bytes / static_cast<double>(KB)) << "KB";
         } else {
-            stream << bytes << " Bytes";
+            stream << bytes << "B";
+        }
+
+        return stream.str();
+    }
+
+    std::string NumFormatter::FormatSpeed(int64_t bytes) {
+        const size_t GB = 1024 * 1024 * 1024;
+        const size_t MB = 1024 * 1024;
+        const size_t KB = 1024;
+
+        std::stringstream stream;
+
+        if (bytes >= GB) {
+            stream << std::fixed << (bytes / (GB)) << "GB/S";
+        } else if (bytes >= MB) {
+            stream << std::fixed << (bytes / (MB)) << "MB/S";
+        } else if (bytes >= KB) {
+            stream << std::fixed << (bytes / (KB)) << "KB/S";
+        } else {
+            stream << bytes << "B/S";
         }
 
         return stream.str();
