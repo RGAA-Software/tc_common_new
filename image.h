@@ -1,10 +1,7 @@
 #ifndef IMAGE_H
 #define IMAGE_H
-
-#include "data.h"
-
 #include <string>
-
+#include "data.h"
 namespace tc
 {
 
@@ -14,6 +11,7 @@ namespace tc
         kRGBA,
         kBGRA,
         kI420,
+        kI444,
     };
 
     class Image {
@@ -32,6 +30,7 @@ namespace tc
         Image(const char* data, int width, int height, int channels);
         Image(const DataPtr& img_data, int width, int height, int channels);
         Image(const DataPtr& img_data);
+        std::shared_ptr<Image> Duplicate(const std::shared_ptr<Image> image);
 
         int GetWidth();
         int GetHeight();
