@@ -146,6 +146,8 @@ namespace tc
             stream << std::fixed << std::setprecision(2) << byte_size << " " << suffixes[suffixIndex];
             return stream.str();
         }
+
+        static std::string Trim(const std::string& str);
     };
 
 }

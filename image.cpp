@@ -110,4 +110,11 @@ namespace tc
         return path;
     }
 
+    std::shared_ptr<Image> Image::Duplicate(const std::shared_ptr<Image> image) {
+        if (!image) {
+            return nullptr;
+        }
+        auto new_image = Image::Make(image->data, image->width, image->height);
+        return new_image;
+    }
 }
