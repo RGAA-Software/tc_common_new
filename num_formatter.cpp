@@ -62,4 +62,8 @@ namespace tc
         return stream.str();
     }
 
+    float NumFormatter::Round2DecimalPlaces(float num) {
+        return std::nearbyint(num * 100) / 100;
+    }
+
 }
