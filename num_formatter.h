@@ -16,6 +16,7 @@ namespace tc
         static std::string FormatStorageSize(int64_t bytes);
         static std::string FormatSpeed(int64_t bytes);
         static std::string FormatTime(uint64_t timestamp);
+        static float Round2DecimalPlaces(float num);
 
     };
 
