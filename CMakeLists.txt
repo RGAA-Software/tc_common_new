@@ -57,6 +57,7 @@ set(SRCS
         message_looper.cpp
         base_handler.cpp
         http_base_op.cpp
+        qwidget_helper.cpp
 )
 
 if(WIN32)
