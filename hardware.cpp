@@ -10,6 +10,8 @@
 #include <comdef.h>
 #include "tc_common_new/log.h"
 #include "tc_common_new/string_ext.h"
+#include "tc_common_new/num_formatter.h"
+#include "tc_common_new/shared_preference.h"
 #include <QList>
 #include <QtNetwork/QNetworkInterface>
 
@@ -18,7 +20,29 @@
 namespace tc
 {
 
-    int Hardware::Detect(bool cpu, bool disk, bool driver) {
+    const std::string kKeyCpuName = "key_cpu_name";
+    const std::string kKeyCpuCores = "key_cpu_cores";
+    const std::string kKeyCpuId = "key_cpu_id";
+    const std::string kKeyCpuMaxClock = "key_cpu_max_clock";
+
+    int Hardware::Detect(bool read_cpu_info, bool disk, bool driver) {
+
+        auto sp = SharedPreference::Instance();
+        auto cpu_name = sp->Get(kKeyCpuName);
+        if (cpu_name.empty()) {
+            read_cpu_info = true;
+        }
+
+        wchar_t computerName[MAX_COMPUTERNAME_LENGTH + 1];
+        DWORD size = MAX_COMPUTERNAME_LENGTH + 1;
+        if (GetComputerNameW(computerName, &size)) {
+            desktop_name_ = StringExt::ToUTF8(computerName);
+        }
+
+        MEMORYSTATUS ms;
+        ::GlobalMemoryStatus(&ms);
+        memory_size_ = ms.dwTotalPhys;
+
         CoUninitialize();
         HRESULT hres = CoInitializeEx(0, COINIT_MULTITHREADED);
         if (FAILED(hres)) {
@@ -101,7 +125,7 @@ namespace tc
         drivers_.clear();
 
         // CPU
-        if (cpu) {
+        if (read_cpu_info) {
             hres = pSvc->ExecQuery(
                     bstr_t("WQL"),
                     bstr_t("SELECT * FROM Win32_Processor"),
@@ -125,13 +149,62 @@ namespace tc
                 }
 
                 VARIANT vtProp;
-                hr = pclsObj->Get(L"ProcessorId", 0, &vtProp, 0, 0);  // "ProcessorId" 是属性名，不同的信息需要查询不同的属性名
-                if (SUCCEEDED(hr)) {
-                    hw_cpu_.id_ = StringExt::ToUTF8(vtProp.bstrVal);
+                // name
+                {
+                    hr = pclsObj->Get(L"Name", 0, &vtProp, 0, 0);
+                    if (SUCCEEDED(hr)) {
+                        hw_cpu_.name_ = StringExt::ToUTF8(vtProp.bstrVal);
+                        LOGI("CPU NAME: {}", hw_cpu_.name_);
+
+                        sp->Put(kKeyCpuName, hw_cpu_.name_);
+                    }
+                    VariantClear(&vtProp);
                 }
-                VariantClear(&vtProp);
+
+                // NumberOfLogicalProcessors
+                {
+                    hr = pclsObj->Get(L"NumberOfCores", 0, &vtProp, 0, 0);
+                    if (SUCCEEDED(hr)) {
+                        hw_cpu_.num_cores_ = vtProp.uintVal;
+                        LOGI("CPU Cores: {}", hw_cpu_.num_cores_);
+
+                        sp->Put(kKeyCpuCores, std::to_string(hw_cpu_.num_cores_));
+                    }
+                    VariantClear(&vtProp);
+                }
+
+                // MaxClockSpeed
+                {
+                    hr = pclsObj->Get(L"MaxClockSpeed", 0, &vtProp, 0, 0);
+                    if (SUCCEEDED(hr)) {
+                        hw_cpu_.max_clock_speed_ = vtProp.uintVal;
+                        LOGI("CPU clocks: {}", hw_cpu_.max_clock_speed_);
+
+                        sp->Put(kKeyCpuMaxClock, std::to_string(hw_cpu_.max_clock_speed_));
+                    }
+                    VariantClear(&vtProp);
+                }
+
+                // process id
+                {
+                    hr = pclsObj->Get(L"ProcessorId", 0, &vtProp, 0, 0);  // "ProcessorId" 是属性名，不同的信息需要查询不同的属性名
+                    if (SUCCEEDED(hr)) {
+                        hw_cpu_.id_ = StringExt::ToUTF8(vtProp.bstrVal);
+
+                        sp->Put(kKeyCpuId, hw_cpu_.id_);
+                    }
+                    VariantClear(&vtProp);
+                }
+
+
                 pclsObj->Release();
             }
+        }
+        else {
+            hw_cpu_.name_ = sp->Get(kKeyCpuName);
+            hw_cpu_.num_cores_ = std::atoll(sp->Get(kKeyCpuName).c_str());
+            hw_cpu_.max_clock_speed_ = std::atoll(sp->Get(kKeyCpuMaxClock).c_str());
+            hw_cpu_.id_ = sp->Get(kKeyCpuId);
         }
 
         if (disk) {
@@ -257,6 +330,91 @@ namespace tc
             }
         }
 
+        // 显卡
+        // 执行 WMI 查询（获取显卡信息）
+        hres = pSvc->ExecQuery(
+                _bstr_t("WQL"),
+                _bstr_t("SELECT * FROM Win32_VideoController"),
+                WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
+                NULL,
+                &pEnumerator
+        );
+        if (FAILED(hres)) {
+            std::cerr << "Failed to execute WMI query: 0x" << std::hex << hres << std::endl;
+            pSvc->Release();
+            pLoc->Release();
+            CoUninitialize();
+            return 1;
+        }
+
+        int gpuCount = 0;
+        while (pEnumerator) {
+            hres = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
+            if (uReturn == 0) break;
+
+            gpuCount++;
+            LOGI("GPU: {}", gpuCount);
+
+            HwGPU hw_gpu;
+
+            VARIANT vtProp;
+
+            // 显卡名称
+            if (SUCCEEDED(pclsObj->Get(L"Name", 0, &vtProp, 0, 0))) {
+                hw_gpu.name_ = StringExt::ToUTF8(vtProp.bstrVal);
+                LOGI("GPU NAME: {}", hw_gpu.name_);
+                VariantClear(&vtProp);
+            }
+
+            // 显存大小
+            if (SUCCEEDED(pclsObj->Get(L"AdapterRAM", 0, &vtProp, 0, 0))) {
+                hw_gpu.size_ = vtProp.ullVal;
+                hw_gpu.size_str_ = NumFormatter::FormatStorageSize(vtProp.ullVal);
+                LOGI("AdapterRAM: {}Bytes, {}", hw_gpu.size_, hw_gpu.size_str_);
+                VariantClear(&vtProp);
+            }
+
+            // 当前分辨率
+            if (SUCCEEDED(pclsObj->Get(L"CurrentHorizontalResolution", 0, &vtProp, 0, 0)) &&
+                SUCCEEDED(pclsObj->Get(L"CurrentVerticalResolution", 0, &vtProp, 0, 0))) {
+                VARIANT vtPropH, vtPropV;
+                pclsObj->Get(L"CurrentHorizontalResolution", 0, &vtPropH, 0, 0);
+                pclsObj->Get(L"CurrentVerticalResolution", 0, &vtPropV, 0, 0);
+                LOGI("Res: {}x{}", vtPropH.intVal, vtPropV.intVal);
+                hw_gpu.res_w_ = vtPropH.intVal;
+                hw_gpu.res_h_ = vtPropV.intVal;
+                VariantClear(&vtPropH);
+                VariantClear(&vtPropV);
+            }
+
+            // 驱动版本
+            if (SUCCEEDED(pclsObj->Get(L"DriverVersion", 0, &vtProp, 0, 0))) {
+                hw_gpu.driver_version_ = StringExt::ToUTF8(vtProp.bstrVal);
+                LOGI("Driver version: {}", hw_gpu.driver_version_);
+                VariantClear(&vtProp);
+            }
+
+            // 显卡PNP设备ID
+            if (SUCCEEDED(pclsObj->Get(L"PNPDeviceID", 0, &vtProp, 0, 0))) {
+                hw_gpu.pnp_device_id_ = StringExt::ToUTF8(vtProp.bstrVal);
+                LOGI("PNPDeviceID: {}", hw_gpu.pnp_device_id_);
+                VariantClear(&vtProp);
+            }
+            std::wcout << L"----------------------------------------\n";
+
+            if (hw_gpu.name_.find("Virtual") != std::string::npos || hw_gpu.size_ < 1024 * 1024 * 128) {
+                LOGE("THIS is a virtual GPU.");
+                continue;
+            }
+
+            gpus_.push_back(hw_gpu);
+
+            pclsObj->Release();
+        }
+
+        if (gpuCount == 0) {
+            LOGI("NO GPU DETECTED");
+        }
         // 清理资源
         pSvc->Release();
         pLoc->Release();
@@ -269,7 +427,13 @@ namespace tc
     }
 
     void Hardware::Dump() {
+        LOGI("==> Desktop name: {}", desktop_name_);
         LOGI("==> CPU id: {}", hw_cpu_.id_);
+        LOGI("==> CPU name: {}", hw_cpu_.name_);
+        LOGI("==> CPU core: {}", hw_cpu_.num_cores_);
+        LOGI("==> Memory size: {}", memory_size_);
+        LOGI("==> Memory size: {}", NumFormatter::FormatStorageSize(memory_size_));
+
         LOGI("==> Total disks: {}", hw_disks_.size());
         for (auto &disk: hw_disks_) {
             LOGI("  name: {}", disk.name_);
@@ -278,6 +442,13 @@ namespace tc
             LOGI("  serial number: {}", disk.serial_number_);
             LOGI("  interface type: {}", disk.interface_type_);
             LOGI("-------------------------------------");
+        }
+
+        LOGI("==> Total gpus: {}", gpus_.size());
+        for (const auto& gpu : gpus_) {
+            LOGI("  name: {}", gpu.name_);
+            LOGI("  name: {}", gpu.size_str_);
+            LOGI("  name: {}", gpu.pnp_device_id_);
         }
         //LOGI("Mac address: {}", mac_address_);
     }
