@@ -58,6 +58,7 @@ set(SRCS
         base_handler.cpp
         http_base_op.cpp
         qwidget_helper.cpp
+        math_helper.cpp
 )
 
 if(WIN32)
