@@ -6,12 +6,12 @@
 namespace tc
 {
 
-    std::shared_ptr<HttpClient> HttpClient::Make(const std::string& host, const std::string& path, int timeout) {
-        return std::make_shared<HttpClient>(host, path, false, timeout);
+    std::shared_ptr<HttpClient> HttpClient::Make(const std::string& host, const std::string& path, int timeout_ms) {
+        return std::make_shared<HttpClient>(host, path, false, timeout_ms);
     }
 
-    std::shared_ptr<HttpClient> HttpClient::MakeSSL(const std::string& host, const std::string& path, int timeout) {
-        return std::make_shared<HttpClient>(host, path, true, timeout);
+    std::shared_ptr<HttpClient> HttpClient::MakeSSL(const std::string& host, const std::string& path, int timeout_ms) {
+        return std::make_shared<HttpClient>(host, path, true, timeout_ms);
     }
 
     std::shared_ptr<HttpClient> HttpClient::MakeDownloadHttp(const std::string& url) {
@@ -31,7 +31,7 @@ namespace tc
         return std::make_shared<HttpClient>(host, path, true);
     }
 
-    HttpClient::HttpClient(const std::string& host, const std::string& path, bool ssl, int timeout) {
+    HttpClient::HttpClient(const std::string& host, const std::string& path, bool ssl, int timeout_ms) {
         this->host = host;
         this->path = path;
         this->ssl = ssl;
@@ -49,7 +49,7 @@ namespace tc
         }
         else {
             client = std::make_shared<httplib::Client>(host);
-            client->set_connection_timeout(std::chrono::seconds(timeout));
+            client->set_connection_timeout(std::chrono::milliseconds(timeout_ms));
         }
     }
 

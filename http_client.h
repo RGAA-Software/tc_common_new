@@ -19,12 +19,12 @@ namespace tc
     class HttpClient {
     public:
 
-        static std::shared_ptr<HttpClient> Make(const std::string& host, const std::string& path, int timeout = 3);
-        static std::shared_ptr<HttpClient> MakeSSL(const std::string& host, const std::string& path, int timeout = 3);
+        static std::shared_ptr<HttpClient> Make(const std::string& host, const std::string& path, int timeout_ms = 3000);
+        static std::shared_ptr<HttpClient> MakeSSL(const std::string& host, const std::string& path, int timeout_ms = 3000);
         static std::shared_ptr<HttpClient> MakeDownloadHttp(const std::string& url);
         static std::shared_ptr<HttpClient> MakeDownloadHttps(const std::string& url);
 
-        HttpClient(const std::string& host, const std::string& path, bool ssl, int timeout = 3);
+        HttpClient(const std::string& host, const std::string& path, bool ssl, int timeout_ms = 3000);
         ~HttpClient();
 
         HttpResponse Request();
