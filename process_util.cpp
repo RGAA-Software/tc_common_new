@@ -120,12 +120,6 @@ namespace tc
 
         PROCESS_INFORMATION pi;
         ZeroMemory(&pi, sizeof(pi));
-        //LPSTR programPath = "E:\\source\\streamer\\out\\install\\x64-RelWithDebInfo\\bin\\DolitCloudApp.exe -o 3101 --run_in_system 1";
-        //LPSTR work_dir = "E:\\source\\streamer\\out\\install\\x64-RelWithDebInfo\\bin";
-        //LPSTR work_dir = "E:\\software\\bin";
-        //LPSTR programPath = "E:\\software\\bin\\DolitCloudApp.exe -o 3101";
-        // dolit_sys_test.exe
-        //BOOL ok = SetCurrentDirectory("E:\\software\\bin");
 
         if (!CreateProcessA(
                 NULL,           // 模块名，NULL意味着使用命令行
@@ -215,9 +209,6 @@ namespace tc
         PROCESS_INFORMATION processInfo;
         ZeroMemory(&processInfo, sizeof(PROCESS_INFORMATION));
         DWORD dwCreationFlag = NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE | CREATE_UNICODE_ENVIRONMENT;
-
-        //LPSTR programPath = "E:\\source\\streamer\\out\\install\\x64-RelWithDebInfo\\bin\\DolitCloudApp.exe -o 3100";
-        //LPSTR work_dir = "E:\\source\\streamer\\out\\install\\x64-RelWithDebInfo\\bin";
 
         LOGI("workdir: {}", StringExt::ToUTF8(work_dir));
         LOGI("cmdline: {}", StringExt::ToUTF8(cmdline));
