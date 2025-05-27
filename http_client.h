@@ -3,9 +3,7 @@
 #include <map>
 #include <string>
 #include <memory>
-
-//#define CPPHTTPLIB_OPENSSL_SUPPORT
-#include "http/httplib.h"
+#include <functional>
 
 namespace tc
 {
@@ -19,12 +17,12 @@ namespace tc
     class HttpClient {
     public:
 
-        static std::shared_ptr<HttpClient> Make(const std::string& host, const std::string& path, int timeout_ms = 3000);
-        static std::shared_ptr<HttpClient> MakeSSL(const std::string& host, const std::string& path, int timeout_ms = 3000);
-        static std::shared_ptr<HttpClient> MakeDownloadHttp(const std::string& url);
-        static std::shared_ptr<HttpClient> MakeDownloadHttps(const std::string& url);
+        static std::shared_ptr<HttpClient> Make(const std::string& host, int port, const std::string& path, int timeout_ms = 3000);
+        static std::shared_ptr<HttpClient> MakeSSL(const std::string& host, int port, const std::string& path, int timeout_ms = 3000);
+        //static std::shared_ptr<HttpClient> MakeDownloadHttp(const std::string& url);
+        //static std::shared_ptr<HttpClient> MakeDownloadHttps(const std::string& url);
 
-        HttpClient(const std::string& host, const std::string& path, bool ssl, int timeout_ms = 3000);
+        HttpClient(const std::string& host, int port, const std::string& path, bool ssl, int timeout_ms = 3000);
         ~HttpClient();
 
         HttpResponse Request();
@@ -37,15 +35,11 @@ namespace tc
         int HeadFileSize();
 
     private:
-
-        std::string host; 
+        std::string host;
+        int port_ = 0;
         std::string path;
         bool ssl = false;
-
-        std::shared_ptr<httplib::Client> client = nullptr;
-#if 0
-        std::shared_ptr<httplib::SSLClient> ssl_client = nullptr;
-#endif
+        int timeout_ms_ = 1000;
 
     };
 
