@@ -290,4 +290,81 @@ namespace tc
         return res;
     }
 
+
+    bool WinHelper::InputDesktopSelected() {
+        HDESK current = GetThreadDesktop(GetCurrentThreadId());
+        HDESK input = OpenInputDesktop(0, FALSE,
+            DESKTOP_CREATEMENU | DESKTOP_CREATEWINDOW |
+            DESKTOP_ENUMERATE | DESKTOP_HOOKCONTROL |
+            DESKTOP_WRITEOBJECTS | DESKTOP_READOBJECTS |
+            DESKTOP_SWITCHDESKTOP | GENERIC_WRITE);
+        if (!input)
+        {
+            return FALSE;
+        }
+
+        DWORD size;
+        char currentname[256];
+        char inputname[256];
+
+        if (!GetUserObjectInformation(current, UOI_NAME, currentname, sizeof(currentname), &size))
+        {
+            CloseDesktop(input);
+            return FALSE;
+        }
+        if (!GetUserObjectInformation(input, UOI_NAME, inputname, sizeof(inputname), &size))
+        {
+            CloseDesktop(input);
+            return FALSE;
+        }
+        CloseDesktop(input);
+        
+        return strcmp(currentname, inputname) == 0 ? TRUE : FALSE;
+    }
+
+    
+    bool WinHelper::SelectInputDesktop() {
+    
+        // - Open the input desktop
+        HDESK desktop = OpenInputDesktop(0, FALSE,
+            DESKTOP_CREATEMENU | DESKTOP_CREATEWINDOW |
+            DESKTOP_ENUMERATE | DESKTOP_HOOKCONTROL |
+            DESKTOP_WRITEOBJECTS | DESKTOP_READOBJECTS |
+            DESKTOP_SWITCHDESKTOP | GENERIC_WRITE);
+        if (!desktop)
+        {
+            return false;
+        }
+
+        // - Switch into it
+        if (!SwitchToDesktop(desktop))
+        {
+            CloseDesktop(desktop);
+            return false;
+        }
+
+        // ***
+        DWORD size = 256;
+        char currentname[256];
+        if (GetUserObjectInformation(desktop, UOI_NAME, currentname, 256, &size))
+        {
+            //
+        }
+
+        return true;
+    }
+
+    bool WinHelper::SwitchToDesktop(HDESK desktop) {
+        HDESK old_desktop = GetThreadDesktop(GetCurrentThreadId());
+        if (!SetThreadDesktop(desktop))
+        {
+            return false;
+        }
+        if (!CloseDesktop(old_desktop))
+        {
+            //
+        }
+        return true;
+    }
+
 }
