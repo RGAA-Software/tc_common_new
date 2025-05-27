@@ -32,6 +32,14 @@ namespace tc
         static Response<bool, HWND> FindHwndByPid(uint32_t pid);
         static bool DontCareDPI();
 
+        // Determine whether the thread's current desktop is the input one
+        static bool InputDesktopSelected();
+
+        // Switch the current thread into the input desktop
+        static bool SelectInputDesktop();
+
+        // Switch the current thread to the specified desktop
+        static bool SwitchToDesktop(HDESK desktop);
     };
 
 }
