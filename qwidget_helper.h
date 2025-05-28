@@ -1,7 +1,6 @@
 #pragma once
 #ifdef WIN32
 #include <windows.h>
-#endif // 
 
 class QWidget;
 
@@ -13,3 +12,5 @@ namespace tc  {
         static HWND GetHWND(QWidget* window);
     };
 }
+
+#endif //
