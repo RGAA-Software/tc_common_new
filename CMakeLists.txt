@@ -90,6 +90,12 @@ if (WIN32)
     target_link_libraries(tc_common_new DirectXTex DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto Shlwapi.lib)#libssl64MT.lib libcrypto64MT.lib OpenSSL::SSL OpenSSL::Crypto
     target_link_libraries(tc_common_new Qt6::Core Qt6::Core5Compat Qt6::Widgets Qt6::Network FFTW3::fftw3)
 endif ()
+
+###
+if (ANDROID)
+    target_link_libraries(tc_common_new ${ANDROID_OPENSSL_LIBS})
+endif ()
+
 target_link_libraries(tc_common_new leveldb)
 
 target_include_directories(tc_common_new PUBLIC ${CMAKE_SOURCE_DIR}/tc_3rdparty/eventbus/src)

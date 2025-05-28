@@ -1,9 +1,8 @@
 #include "qwidget_helper.h"
-#include <QWidget>
 #ifdef WIN32
+#include <QWidget>
 #include <dwmapi.h>
 #pragma comment(lib, "dwmapi.lib")
-#endif // WIN32
 
 namespace tc {
    void QWidgetHelper::SetBorderInFullScreen(QWidget* window, bool hasBorder) {
@@ -32,3 +31,5 @@ namespace tc {
         return nullptr;
     }
 }
+
+#endif // WIN32
