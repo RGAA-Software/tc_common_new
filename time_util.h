@@ -76,6 +76,36 @@ namespace tc
 #endif
         }
 
+        static std::string FormatSecondsToDHMS(long long totalSeconds) {
+            // 计算各个时间单位
+            const int secondsPerMinute = 60;
+            const int secondsPerHour = 60 * secondsPerMinute;
+            const int secondsPerDay = 24 * secondsPerHour;
+
+            long long days = totalSeconds / secondsPerDay;
+            long long remainingSeconds = totalSeconds % secondsPerDay;
+
+            long long hours = remainingSeconds / secondsPerHour;
+            remainingSeconds %= secondsPerHour;
+
+            long long minutes = remainingSeconds / secondsPerMinute;
+            long long seconds = remainingSeconds % secondsPerMinute;
+
+            // 构建输出字符串
+            std::stringstream ss;
+
+            if (days > 0) {
+                ss << days << "D ";
+            }
+
+            ss << std::setw(2) << std::setfill('0') << hours << ":"
+               << std::setw(2) << std::setfill('0') << minutes << ":"
+               << std::setw(2) << std::setfill('0') << seconds;
+
+            return ss.str();
+        }
+
+
     };
 
     class TimeDuration {
