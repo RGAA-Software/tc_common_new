@@ -28,6 +28,10 @@ namespace tc
         bool RemoveTask(uint64_t task_id);
         // Exit
         void Exit();
+        // First Thread
+        std::shared_ptr<Thread> GetFirstThread();
+        // Last Thread
+        std::shared_ptr<Thread> GetLastThread();
 
         std::string Dump();
 

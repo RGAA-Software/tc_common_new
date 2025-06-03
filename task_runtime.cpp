@@ -86,4 +86,12 @@ namespace tc
         return ss.str();
     }
 
+    std::shared_ptr<Thread> TaskRuntime::GetFirstThread() {
+        return threads_.at(0);
+    }
+
+    std::shared_ptr<Thread> TaskRuntime::GetLastThread() {
+        return threads_.at(threads_.size()-1);
+    }
+
 }

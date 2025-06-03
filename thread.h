@@ -7,11 +7,14 @@
 #include <functional>
 #include <list>
 #include <sstream>
+#include <any>
 
 namespace tc
 {
 
     typedef std::function<void()> VoidFunc;
+    typedef std::function<std::any()> ExecFunc;
+    typedef std::function<void(std::any)> CallbackFunc;
 
     enum ThreadTaskState {
         kIdle,
