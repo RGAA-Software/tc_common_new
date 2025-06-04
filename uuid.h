@@ -6,6 +6,7 @@
 #define TC_APPLICATION_UUID_H
 
 #include <string>
+#include "md5.h"
 #include "tc_3rdparty/asio2/include/asio2/util/uuid.hpp"
 
 #ifdef WIN32
@@ -16,7 +17,7 @@ namespace tc
 {
     static std::string GetUUID() {
         asio2::uuid uuid;
-        return uuid.generate().short_uuid(32);
+        return MD5::Hex(uuid.generate().short_uuid(32));
     }
 }
 
