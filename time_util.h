@@ -37,6 +37,14 @@ namespace tc
             return std::string(buffer) + (with_ms ? ("." + std::to_string(time % 1000)) : "");
         }
 
+        static std::string FormatTimestamp2(uint64_t time, bool with_ms = false) {
+            time_t seconds = time / 1000;
+            std::tm timeinfo = *std::localtime(&seconds);
+            char buffer[80];
+            std::strftime(buffer, 80, "%Y_%m_%d-%H_%M_%S", &timeinfo);
+            return std::string(buffer) + (with_ms ? ("." + std::to_string(time % 1000)) : "");
+        }
+
         static uint64_t GetCurrentTimePointUS() {
             auto now = std::chrono::high_resolution_clock::now();
             auto microseconds = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
