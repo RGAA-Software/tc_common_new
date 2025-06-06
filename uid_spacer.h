@@ -11,7 +11,7 @@ namespace tc
 {
 
     static std::string SpaceId(const std::string& uid) {
-        if (uid.size() != 9) {
+        if ((uid.size() != 9 && uid.size() != 10) || uid.find(".") != std::string::npos) {
             return uid;
         }
         std::string result;
