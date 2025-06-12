@@ -79,7 +79,7 @@ namespace tc
         req.keep_alive(true);
         req.target(query_path);
 
-        LOGI("Request path: {}{}:{}{}", ssl ? "https://" : "http://", host, port_, query_path);
+        //LOGI("Request path: {}{}:{}{}", ssl ? "https://" : "http://", host, port_, query_path);
         if (ssl) {
             auto r = asio2::https_client::execute(host, port_, req, std::chrono::milliseconds(timeout_ms_));
             if (asio2::get_last_error()) {
@@ -102,7 +102,7 @@ namespace tc
             }
             else {
                 std::string body = r.body();
-                LOGI("req success: {}", body);
+                //LOGI("req success: {}", body);
                 return HttpResponse {
                     .status = 200,
                     .body = body,
