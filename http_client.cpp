@@ -33,24 +33,11 @@ namespace tc
 //    }
 
     HttpClient::HttpClient(const std::string& host, int port, const std::string& path, bool ssl, int timeout_ms) {
-        this->host = host;
+        this->host_ = host;
         this->port_ = port;
         this->path = path;
-        this->ssl = ssl;
+        this->ssl_ = ssl;
         this->timeout_ms_ = timeout_ms;
-        //LOGI("Host: {}, path: {}, ssl: {}, timeout: {}s", host, path, ssl, timeout);
-
-        if (ssl) {
-//            ssl_client = std::make_shared<httplib::SSLClient>(host);
-//            //ssl_client->set_follow_location(true);
-//            //ssl_client->set_keep_alive(true);
-//            ssl_client->enable_server_certificate_verification(false);
-//            ssl_client->set_connection_timeout(std::chrono::milliseconds(timeout_ms));
-        }
-        else {
-//            client = std::make_shared<httplib::Client>(host);
-//            client->set_connection_timeout(std::chrono::milliseconds(timeout_ms));
-        }
     }
 
     HttpClient::~HttpClient() {
@@ -80,8 +67,8 @@ namespace tc
         req.target(query_path);
 
         //LOGI("Request path: {}{}:{}{}", ssl ? "https://" : "http://", host, port_, query_path);
-        if (ssl) {
-            auto r = asio2::https_client::execute(host, port_, req, std::chrono::milliseconds(timeout_ms_));
+        if (ssl_) {
+            auto r = asio2::https_client::execute(host_, port_, req, std::chrono::milliseconds(timeout_ms_));
             if (asio2::get_last_error()) {
                 LOGE("Request failed: {}", asio2::last_error_msg());
             }
@@ -95,9 +82,9 @@ namespace tc
             }
         }
         else {
-            auto r = asio2::http_client::execute(host, port_, req, std::chrono::milliseconds(timeout_ms_));
+            auto r = asio2::http_client::execute(host_, port_, req, std::chrono::milliseconds(timeout_ms_));
             if (asio2::get_last_error()) {
-                LOGI("Request path: {}{}{}{}", ssl ? "https://" : "http://", host, port_, query_path);
+                LOGI("Request path: {}{}{}{}", ssl_ ? "https://" : "http://", host_, port_, query_path);
                 LOGE("Request failed: {}", asio2::last_error_msg());
             }
             else {
@@ -139,33 +126,33 @@ namespace tc
         req.keep_alive(true);
         req.target(query_path);
 
-        LOGI("Post path: {}{}:{}{}", ssl ? "https://" : "http://", host, port_, query_path);
-        if (ssl) {
-            auto r = asio2::https_client::execute(host, port_, req, std::chrono::milliseconds(timeout_ms_));
+        LOGI("Post path: {}{}:{}{}", ssl_ ? "https://" : "http://", host_, port_, query_path);
+        if (ssl_) {
+            auto r = asio2::https_client::execute(host_, port_, req, std::chrono::milliseconds(timeout_ms_));
             if (asio2::get_last_error()) {
                 LOGE("Post failed: {}", asio2::last_error_msg());
             }
             else {
                 std::string body = r.body();
-                LOGI("Post success: {}", body);
+                LOGI("Post SSL success: {}", body);
                 return HttpResponse {
-                        .status = 200,
-                        .body = body,
+                    .status = 200,
+                    .body = body,
                 };
             }
         }
         else {
-            auto r = asio2::http_client::execute(host, port_, req, std::chrono::milliseconds(timeout_ms_));
+            auto r = asio2::http_client::execute(host_, port_, req, std::chrono::milliseconds(timeout_ms_));
             if (asio2::get_last_error()) {
-                LOGI("Post path: {}{}{}{}", ssl ? "https://" : "http://", host, port_, query_path);
+                LOGI("Post path: {}{}{}{}", ssl_ ? "https://" : "http://", host_, port_, query_path);
                 LOGE("Post failed: {}", asio2::last_error_msg());
             }
             else {
                 std::string body = r.body();
                 LOGI("Post success: {}", body);
                 return HttpResponse {
-                        .status = 200,
-                        .body = body,
+                    .status = 200,
+                    .body = body,
                 };
             }
         }

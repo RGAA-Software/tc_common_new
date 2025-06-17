@@ -35,10 +35,10 @@ namespace tc
         int HeadFileSize();
 
     private:
-        std::string host;
+        std::string host_;
         int port_ = 0;
         std::string path;
-        bool ssl = false;
+        bool ssl_ = false;
         int timeout_ms_ = 1000;
 
     };
