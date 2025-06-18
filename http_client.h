@@ -39,7 +39,7 @@ namespace tc
         int port_ = 0;
         std::string path;
         bool ssl_ = false;
-        int timeout_ms_ = 1000;
+        int timeout_ms_ = 3000;
 
     };
 
