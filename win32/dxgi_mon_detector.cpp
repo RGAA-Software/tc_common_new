@@ -1,6 +1,6 @@
 #include "dxgi_mon_detector.h"
 #include "tc_common_new/log.h"
-#include "tc_common_new/string_ext.h"
+#include "tc_common_new/string_util.h"
 #include <QScreen>
 #include <QApplication>
 
@@ -45,7 +45,7 @@ namespace tc
 
                     DXGI_OUTPUT_DESC desc;
                     dxgi_output->GetDesc(&desc);
-                    info.display_name = StringExt::ToUTF8(desc.DeviceName);
+                    info.display_name = StringUtil::ToUTF8(desc.DeviceName);
                     info.rect = desc.DesktopCoordinates;
                     info.width = info.rect.right - info.rect.left;
                     info.height = info.rect.bottom - info.rect.top;

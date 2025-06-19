@@ -1,6 +1,6 @@
 #include "d3d_render.h"
 #include <d3d11_4.h>
-#include "tc_common_new/string_ext.h"
+#include "tc_common_new/string_util.h"
 namespace tc {
 
 std::shared_ptr<D3DRender> D3DRender::BuildD3DRenderFromTexture(ID3D11Texture2D* tex)
@@ -18,7 +18,7 @@ std::shared_ptr<D3DRender> D3DRender::Create(HANDLE handle,ID3D11Texture2D** out
  	Microsoft::WRL::ComPtr<IDXGIFactory> factory;
 	HRESULT hRes;
 	if (FAILED(hRes = CreateDXGIFactory1(__uuidof(IDXGIFactory), (void**)(&factory)))) {
-		printf("CreateDXGIFactory1 failed with %s", StringExt::GetErrorStr(hRes).c_str());
+		printf("CreateDXGIFactory1 failed with %s", StringUtil::GetErrorStr(hRes).c_str());
 		return nullptr;
 	}
 
@@ -32,27 +32,27 @@ std::shared_ptr<D3DRender> D3DRender::Create(HANDLE handle,ID3D11Texture2D** out
 		{
 			if (hRes == DXGI_ERROR_NOT_FOUND)
 				break;
-			printf("EnumAdapters failed with %s", StringExt::GetErrorStr(hRes).c_str());
+			printf("EnumAdapters failed with %s", StringUtil::GetErrorStr(hRes).c_str());
 			break;
 		}
 
 		DXGI_ADAPTER_DESC desc;
 		if (SUCCEEDED(adapterPtr->GetDesc(&desc)))
 		{
-			printf("Enum adapter name:%s index:%d", StringExt::ToUTF8(desc.Description).c_str(), adapterNum);
+			printf("Enum adapter name:%s index:%d", StringUtil::ToUTF8(desc.Description).c_str(), adapterNum);
 		}
 
 		Microsoft::WRL::ComPtr<ID3D11Device> device;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> ctx;
 		if (FAILED(hRes = D3D11CreateDevice(adapterPtr.Get(), D3D_DRIVER_TYPE_UNKNOWN, NULL, D3D11_CREATE_DEVICE_BGRA_SUPPORT, NULL, 0,
 			D3D11_SDK_VERSION, &device, NULL, &ctx))) {
-			printf("enum adapters D3D11CreateDevice failed err:%s adapterNum:%d", StringExt::GetErrorStr(hRes).c_str(), adapterNum);
+			printf("enum adapters D3D11CreateDevice failed err:%s adapterNum:%d", StringUtil::GetErrorStr(hRes).c_str(), adapterNum);
 			continue;
 		}
 
 		if (FAILED(hRes = device->OpenSharedResource(handle, IID_PPV_ARGS(outSharedTexture))))
 		{
-			printf("OpenSharedResource failed.  SharedTexHandle:%p err:%p info:%s, adapter index : %d", handle, hRes, StringExt::GetErrorStr(hRes).c_str(), adapterNum);
+			printf("OpenSharedResource failed.  SharedTexHandle:%p err:%p info:%s, adapter index : %d", handle, hRes, StringUtil::GetErrorStr(hRes).c_str(), adapterNum);
 			continue;
 		}
 		else
@@ -72,7 +72,7 @@ std::shared_ptr<D3DRender> D3DRender::Create()
 	Microsoft::WRL::ComPtr<IDXGIFactory> factory;
 	HRESULT hRes;
 	if (FAILED(hRes = CreateDXGIFactory1(__uuidof(IDXGIFactory), (void**)(&factory)))) {
-		printf("CreateDXGIFactory1 failed with %s", StringExt::GetErrorStr(hRes).c_str());
+		printf("CreateDXGIFactory1 failed with %s", StringUtil::GetErrorStr(hRes).c_str());
 		return nullptr;
 	}
 
@@ -85,21 +85,21 @@ std::shared_ptr<D3DRender> D3DRender::Create()
 		{
 			if (hRes == DXGI_ERROR_NOT_FOUND)
 				break;
-			printf("EnumAdapters failed with %s", StringExt::GetErrorStr(hRes).c_str());
+			printf("EnumAdapters failed with %s", StringUtil::GetErrorStr(hRes).c_str());
 			break;
 		}
 
 		DXGI_ADAPTER_DESC desc;
 		if (SUCCEEDED(adapterPtr->GetDesc(&desc)))
 		{
-			printf("Enum adapter name:%s index:%d", StringExt::ToUTF8(desc.Description).c_str(), adapterNum);
+			printf("Enum adapter name:%s index:%d", StringUtil::ToUTF8(desc.Description).c_str(), adapterNum);
 		}
 
 		Microsoft::WRL::ComPtr<ID3D11Device> device;
 		Microsoft::WRL::ComPtr<ID3D11DeviceContext> ctx;
 		if (FAILED(hRes = D3D11CreateDevice(adapterPtr.Get(), D3D_DRIVER_TYPE_UNKNOWN, NULL, D3D11_CREATE_DEVICE_BGRA_SUPPORT, NULL, 0,
 			D3D11_SDK_VERSION, &device, NULL, &ctx))) {
-			printf("enum adapters D3D11CreateDevice failed err:%s adapterNum:%d", StringExt::GetErrorStr(hRes).c_str(), adapterNum);
+			printf("enum adapters D3D11CreateDevice failed err:%s adapterNum:%d", StringUtil::GetErrorStr(hRes).c_str(), adapterNum);
 			continue;
 		}
 

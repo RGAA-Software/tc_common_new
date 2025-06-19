@@ -22,7 +22,7 @@
 namespace tc
 {
 
-    class StringExt {
+    class StringUtil {
     public:
 
         // 
@@ -122,7 +122,7 @@ namespace tc
 
         static std::string StandardizeWinPath(const std::string& path) {
             std::string normalized = path;
-            StringExt::Replace(normalized, "\\", "/");
+            StringUtil::Replace(normalized, "\\", "/");
             // D: => D:/
             if (normalized.size() == 2 && normalized[1] == ':') {
                 normalized += "/";

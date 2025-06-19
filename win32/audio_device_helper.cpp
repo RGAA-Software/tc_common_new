@@ -6,7 +6,7 @@
 #include <Windows.h>
 #include <Mmdeviceapi.h>
 #include <Functiondiscoverykeys_devpkey.h>
-#include "tc_common_new/string_ext.h"
+#include "tc_common_new/string_util.h"
 #include <QString>
 
 namespace tc

@@ -34,7 +34,7 @@ endif ()
 set(SRCS
         data.cpp
         shared_preference.cpp
-        string_ext.cpp
+        string_util.cpp
         time_util.cpp
         thread.cpp
         task_runtime.cpp

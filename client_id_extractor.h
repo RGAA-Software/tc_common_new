@@ -6,7 +6,7 @@
 #define GAMMARAY_CLIENT_ID_EXTRACTOR_H
 
 #include <vector>
-#include "string_ext.h"
+#include "string_util.h"
 
 namespace tc
 {
@@ -15,7 +15,7 @@ namespace tc
     // ==> 702789003
     static std::string ExtractClientId(const std::string& full_id) {
         std::vector<std::string> result;
-        StringExt::Split(full_id, result, "_");
+        StringUtil::Split(full_id, result, "_");
         if (result.size() > 1) {
             return result[1];
         }

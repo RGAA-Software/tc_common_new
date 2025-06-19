@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <iostream>
 #include "file_util.h"
-#include "string_ext.h"
+#include "string_util.h"
 
 namespace fs = std::filesystem;
 
@@ -20,9 +20,9 @@ namespace tc
                 auto path = entry.path();
                 if (entry.is_regular_file()) {
                     if (!filter_suffix.empty()) {
-                        auto u8path = StringExt::ToUTF8(path.wstring());
+                        auto u8path = StringUtil::ToUTF8(path.wstring());
                         auto suffix = FileUtil::GetFileSuffix(u8path);
-                        StringExt::ToLower(suffix);
+                        StringUtil::ToLower(suffix);
                         if (filter_suffix != suffix) {
                             continue;
                         }
@@ -59,9 +59,9 @@ namespace tc
             for (const auto& entry : fs::directory_iterator(current_path)) {
                 auto path = entry.path();
                 if (!filter_suffix.empty()) {
-                    auto u8path = StringExt::ToUTF8(path.wstring());
+                    auto u8path = StringUtil::ToUTF8(path.wstring());
                     auto suffix = FileUtil::GetFileSuffix(u8path);
-                    StringExt::ToLower(suffix);
+                    StringUtil::ToLower(suffix);
                     if (filter_suffix != suffix) {
                         continue;
                     }
@@ -89,8 +89,8 @@ namespace tc
                 //std::cout << std::string(depth * 2, ' ') << "|-- " << p.filename() << '\n';
                 if (fs::is_regular_file(p)) {
                     if (!filter_suffix.empty()) {
-                        auto u8path = StringExt::ToUTF8(p.wstring());
-                        auto suffix = StringExt::ToLowerCpy(FileUtil::GetFileSuffix(u8path));
+                        auto u8path = StringUtil::ToUTF8(p.wstring());
+                        auto suffix = StringUtil::ToLowerCpy(FileUtil::GetFileSuffix(u8path));
                         if (suffix == filter_suffix) {
                             cbk(VisitResult {
                                 .name_ = p.filename().wstring(),

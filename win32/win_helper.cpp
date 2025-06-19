@@ -13,7 +13,7 @@
 #include <QProcess>
 #include <QStringList>
 #include <QString>
-#include "tc_common_new/string_ext.h"
+#include "tc_common_new/string_util.h"
 
 #pragma comment(lib, "Wtsapi32.lib")
 #pragma comment(lib, "Shlwapi.lib")
@@ -161,7 +161,7 @@ namespace tc
             return ret;
         }
         ret.ok_ = true;
-        ret.value_ = StringExt::ToUTF8(path);
+        ret.value_ = StringUtil::ToUTF8(path);
         return ret;
     }
 
@@ -171,7 +171,7 @@ namespace tc
                        NULL, hr,
                        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                        buffer, sizeof(buffer) / sizeof(*buffer), NULL);
-        return Response<bool, std::string>::Make(true, StringExt::ToUTF8(buffer));
+        return Response<bool, std::string>::Make(true, StringUtil::ToUTF8(buffer));
     }
 
     Response<bool, std::string> WinHelper::GetExeName(DWORD pid) {
@@ -192,7 +192,7 @@ namespace tc
             LOGW("QueryFullProcessImageNameW failed.");
             return ret;
         }
-        upath = StringExt::ToUTF8(path);
+        upath = StringUtil::ToUTF8(path);
         if (upath.empty()) {
             return ret;
         }
@@ -226,7 +226,7 @@ namespace tc
     }
 
     Response<bool, std::string> WinHelper::GetModulePath(HMODULE hModule) {
-        auto file_path = StringExt::ToUTF8(GetModulePathW(hModule).value_);
+        auto file_path = StringUtil::ToUTF8(GetModulePathW(hModule).value_);
         return Response<bool, std::string>::Make(true, file_path);
     }
 
@@ -238,7 +238,7 @@ namespace tc
             return ret;
         }
         ret.ok_ = true;
-        ret.value_ = StringExt::ToUTF8(clazzName);
+        ret.value_ = StringUtil::ToUTF8(clazzName);
         return ret;
     }
 
@@ -250,7 +250,7 @@ namespace tc
             return ret;
         }
         ret.ok_ = true;
-        ret.value_ = StringExt::ToUTF8(text);
+        ret.value_ = StringUtil::ToUTF8(text);
         return ret;
     }
 

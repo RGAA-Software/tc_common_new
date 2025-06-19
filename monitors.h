@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <string>
 
-#include "string_ext.h"
+#include "string_util.h"
 
 namespace tc
 {
@@ -29,7 +29,7 @@ namespace tc
             MONITORINFOEX monitor_info = {sizeof(monitor_info)};
             GetMonitorInfo(monitor_handle, &monitor_info);
             std::wstring display_name(monitor_info.szDevice);
-            name_ = StringExt::ToUTF8(display_name);
+            name_ = StringUtil::ToUTF8(display_name);
             is_primary_ = (monitor_info.dwFlags & MONITORINFOF_PRIMARY) != 0;
         }
 
