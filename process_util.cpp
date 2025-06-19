@@ -5,7 +5,7 @@
 #include "process_util.h"
 #ifdef WIN32
 #include "tc_common_new/log.h"
-#include "tc_common_new/string_ext.h"
+#include "tc_common_new/string_util.h"
 #include <QString>
 #include <QStringList>
 #include <QProcess>
@@ -210,8 +210,8 @@ namespace tc
         ZeroMemory(&processInfo, sizeof(PROCESS_INFORMATION));
         DWORD dwCreationFlag = NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE | CREATE_UNICODE_ENVIRONMENT;
 
-        LOGI("workdir: {}", StringExt::ToUTF8(work_dir));
-        LOGI("cmdline: {}", StringExt::ToUTF8(cmdline));
+        LOGI("workdir: {}", StringUtil::ToUTF8(work_dir));
+        LOGI("cmdline: {}", StringUtil::ToUTF8(cmdline));
 
         if (CreateProcessAsUserW(hTokenDup, NULL, (wchar_t*)cmdline.c_str(), NULL, NULL, FALSE, dwCreationFlag, pEnv, (wchar_t*)work_dir.c_str(), &si, &processInfo) == 0) {
             DWORD nRet = GetLastError();

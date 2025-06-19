@@ -3,7 +3,7 @@
 #include <DirectXTex.h>
 #include <sstream>
 #include "d3d_render.h"
-#include "tc_common_new/string_ext.h"
+#include "tc_common_new/string_util.h"
 #include "tc_common_new/log.h"
 
 namespace tc {
@@ -39,7 +39,7 @@ namespace tc {
                                         image.GetImageCount(),
                                         image.GetMetadata(),
                                         DirectX::DDS_FLAGS_NONE,
-                                        StringExt::ToWString(oss.str()).c_str());
+                                        StringUtil::ToWString(oss.str()).c_str());
             if (FAILED(hr)) {
                 printf("Save DDSFile failed");
             }
@@ -138,7 +138,7 @@ namespace tc {
             hRes = curDevice->CreateTexture2D(&createDesc, NULL, texture2d.GetAddressOf());
             if (FAILED(hRes))
             {
-                printf("desktop capture create texture failed with:%s",  StringExt::GetErrorStr(hRes).c_str());
+                printf("desktop capture create texture failed with:%s",  StringUtil::GetErrorStr(hRes).c_str());
                 return false;
             }
         }

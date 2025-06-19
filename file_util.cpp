@@ -3,7 +3,7 @@
 //
 
 #include "file_util.h"
-#include "string_ext.h"
+#include "string_util.h"
 
 #ifdef WIN32
 #include <QFile>
@@ -14,8 +14,8 @@ namespace tc
 
     std::string FileUtil::GetFileNameFromPath(const std::string& path) {
         std::string target_path = path;
-        StringExt::Replace(target_path, R"(\\)", "/");
-        StringExt::Replace(target_path, R"(\)", "/");
+        StringUtil::Replace(target_path, R"(\\)", "/");
+        StringUtil::Replace(target_path, R"(\)", "/");
         auto idx = target_path.rfind('/');
         if (idx == std::string::npos) {
             return path;
@@ -36,16 +36,16 @@ namespace tc
 
     std::string FileUtil::GetFileFolder(const std::string& path) {
         std::string target_path = path;
-        StringExt::Replace(target_path, R"(\\)", "/");
-        StringExt::Replace(target_path, R"(\)", "/");
+        StringUtil::Replace(target_path, R"(\\)", "/");
+        StringUtil::Replace(target_path, R"(\)", "/");
         auto idx = target_path.rfind('/');
         return target_path.substr(0, idx);
     }
 
     std::string FileUtil::GetFolderNameFormAbsFolderPath(const std::string& path) {
         std::string target_path = path;
-        StringExt::Replace(target_path, R"(\\)", "/");
-        StringExt::Replace(target_path, R"(\)", "/");
+        StringUtil::Replace(target_path, R"(\\)", "/");
+        StringUtil::Replace(target_path, R"(\)", "/");
         auto idx = target_path.rfind('/');
         if (idx == path.size() - 1) {
             target_path = target_path.substr(0, idx);

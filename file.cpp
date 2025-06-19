@@ -5,7 +5,7 @@
 #include <filesystem>
 #include <cstdio>
 #include <cstdlib>
-#include "string_ext.h"
+#include "string_util.h"
 #include "log.h"
 
 namespace tc 
@@ -62,7 +62,7 @@ namespace tc
 
     File::File(const std::string& path, const std::string& mode) {
         auto origin_path = path;
-        StringExt::Replace(origin_path, "\\", "/");
+        StringUtil::Replace(origin_path, "\\", "/");
         this->file_path_ = origin_path;
 #ifdef WIN32
         file_ = std::make_shared<QFile>(path.c_str());

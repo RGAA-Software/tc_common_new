@@ -9,7 +9,7 @@
 #include <wbemidl.h>
 #include <comdef.h>
 #include "tc_common_new/log.h"
-#include "tc_common_new/string_ext.h"
+#include "tc_common_new/string_util.h"
 #include "tc_common_new/num_formatter.h"
 #include "tc_common_new/shared_preference.h"
 #include <QList>
@@ -36,7 +36,7 @@ namespace tc
         wchar_t computerName[MAX_COMPUTERNAME_LENGTH + 1];
         DWORD size = MAX_COMPUTERNAME_LENGTH + 1;
         if (GetComputerNameW(computerName, &size)) {
-            desktop_name_ = StringExt::ToUTF8(computerName);
+            desktop_name_ = StringUtil::ToUTF8(computerName);
         }
 
         MEMORYSTATUS ms;
@@ -153,7 +153,7 @@ namespace tc
                 {
                     hr = pclsObj->Get(L"Name", 0, &vtProp, 0, 0);
                     if (SUCCEEDED(hr)) {
-                        hw_cpu_.name_ = StringExt::ToUTF8(vtProp.bstrVal);
+                        hw_cpu_.name_ = StringUtil::ToUTF8(vtProp.bstrVal);
                         LOGI("CPU NAME: {}", hw_cpu_.name_);
 
                         sp->Put(kKeyCpuName, hw_cpu_.name_);
@@ -189,7 +189,7 @@ namespace tc
                 {
                     hr = pclsObj->Get(L"ProcessorId", 0, &vtProp, 0, 0);  // "ProcessorId" 是属性名，不同的信息需要查询不同的属性名
                     if (SUCCEEDED(hr)) {
-                        hw_cpu_.id_ = StringExt::ToUTF8(vtProp.bstrVal);
+                        hw_cpu_.id_ = StringUtil::ToUTF8(vtProp.bstrVal);
 
                         sp->Put(kKeyCpuId, hw_cpu_.id_);
                     }
@@ -237,17 +237,17 @@ namespace tc
                 // Get the value of the Name property
                 hr = pclsObj->Get(L"Name", 0, &vtProp, 0, 0);
 //            std::wcout << " Disk Name : " << vtProp.bstrVal << std::endl;
-                disk.name_ = StringExt::ToUTF8(vtProp.bstrVal);
+                disk.name_ = StringUtil::ToUTF8(vtProp.bstrVal);
                 VariantClear(&vtProp);
 
                 hr = pclsObj->Get(L"Model", 0, &vtProp, 0, 0);
 //            std::wcout << " Disk Model : " << vtProp.bstrVal << std::endl;
-                disk.model_ = StringExt::ToUTF8(vtProp.bstrVal);
+                disk.model_ = StringUtil::ToUTF8(vtProp.bstrVal);
                 VariantClear(&vtProp);
 
                 hr = pclsObj->Get(L"Status", 0, &vtProp, 0, 0);
 //            std::wcout << " Status : " << vtProp.bstrVal << std::endl;
-                disk.status_ = StringExt::ToUTF8(vtProp.bstrVal);
+                disk.status_ = StringUtil::ToUTF8(vtProp.bstrVal);
                 VariantClear(&vtProp);
 
                 hr = pclsObj->Get(L"DeviceID", 0, &vtProp, 0, 0);
@@ -257,12 +257,12 @@ namespace tc
 
                 hr = pclsObj->Get(L"SerialNumber", 0, &vtProp, 0, 0);
 //            std::wcout << " SerialNumber : " << vtProp.bstrVal << std::endl;
-                disk.serial_number_ = StringExt::ToUTF8(vtProp.bstrVal);
+                disk.serial_number_ = StringUtil::ToUTF8(vtProp.bstrVal);
                 VariantClear(&vtProp);
 
                 //InterfaceType
                 hr = pclsObj->Get(L"InterfaceType", 0, &vtProp, 0, 0);
-                disk.interface_type_ = StringExt::ToUTF8(vtProp.bstrVal);
+                disk.interface_type_ = StringUtil::ToUTF8(vtProp.bstrVal);
                 VariantClear(&vtProp);
 
                 pclsObj->Release();
@@ -304,7 +304,7 @@ namespace tc
                 if (FAILED(hr)) {
                     continue;
                 }
-                auto name = StringExt::ToUTF8(vtProp.bstrVal);
+                auto name = StringUtil::ToUTF8(vtProp.bstrVal);
                 driver.name_ = name;
                 VariantClear(&vtProp);
 
@@ -312,7 +312,7 @@ namespace tc
                 if (FAILED(hr)) {
                     continue;
                 }
-                auto display_name = StringExt::ToUTF8(vtProp.bstrVal);
+                auto display_name = StringUtil::ToUTF8(vtProp.bstrVal);
                 driver.display_name_ = display_name;
                 VariantClear(&vtProp);
 
@@ -320,7 +320,7 @@ namespace tc
                 if (FAILED(hr)) {
                     continue;
                 }
-                auto state = StringExt::ToUTF8(vtProp.bstrVal);
+                auto state = StringUtil::ToUTF8(vtProp.bstrVal);
                 driver.state_ = state;
                 VariantClear(&vtProp);
 
@@ -361,7 +361,7 @@ namespace tc
 
             // 显卡名称
             if (SUCCEEDED(pclsObj->Get(L"Name", 0, &vtProp, 0, 0))) {
-                hw_gpu.name_ = StringExt::ToUTF8(vtProp.bstrVal);
+                hw_gpu.name_ = StringUtil::ToUTF8(vtProp.bstrVal);
                 LOGI("GPU NAME: {}", hw_gpu.name_);
                 VariantClear(&vtProp);
             }
@@ -389,14 +389,14 @@ namespace tc
 
             // 驱动版本
             if (SUCCEEDED(pclsObj->Get(L"DriverVersion", 0, &vtProp, 0, 0))) {
-                hw_gpu.driver_version_ = StringExt::ToUTF8(vtProp.bstrVal);
+                hw_gpu.driver_version_ = StringUtil::ToUTF8(vtProp.bstrVal);
                 LOGI("Driver version: {}", hw_gpu.driver_version_);
                 VariantClear(&vtProp);
             }
 
             // 显卡PNP设备ID
             if (SUCCEEDED(pclsObj->Get(L"PNPDeviceID", 0, &vtProp, 0, 0))) {
-                hw_gpu.pnp_device_id_ = StringExt::ToUTF8(vtProp.bstrVal);
+                hw_gpu.pnp_device_id_ = StringUtil::ToUTF8(vtProp.bstrVal);
                 LOGI("PNPDeviceID: {}", hw_gpu.pnp_device_id_);
                 VariantClear(&vtProp);
             }

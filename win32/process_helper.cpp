@@ -17,7 +17,7 @@
 #include <userenv.h>
 
 #include "tc_common_new/log.h"
-#include "tc_common_new/string_ext.h"
+#include "tc_common_new/string_util.h"
 
 #pragma comment(lib, "ntdll.lib")
 
@@ -99,7 +99,7 @@ namespace tc
                 }
             }
 
-            upath = StringExt::ToUTF8(path);
+            upath = StringUtil::ToUTF8(path);
             if (upath.empty()) {
                 continue;
             }
@@ -178,7 +178,7 @@ namespace tc
         }
         BOOL bResult = Process32FirstW(hProcessSnap, &pe32);
         while (bResult) {
-            if (StringExt::ToUTF8(pe32.szExeFile) != excludeProcessName) {
+            if (StringUtil::ToUTF8(pe32.szExeFile) != excludeProcessName) {
                 if (isChildOf(pe32.th32ProcessID, pid))
                     retList.push_back(pe32.th32ProcessID);
             }
