@@ -13,8 +13,8 @@ using namespace nlohmann;
 namespace tc
 {
 
-    Result<std::string, bool> HttpBaseOp::CanPingServer(const std::string& host, const std::string& port) {
-        auto client = HttpClient::Make(host, std::atoi(port.c_str()), "/ping", 2000);
+    Result<std::string, bool> HttpBaseOp::CanPingServer(const std::string& host, int port) {
+        auto client = HttpClient::Make(host, port, "/ping", 2000);
         auto resp = client->Request();
         if (resp.status != 200 || resp.body.empty()) {
             LOGE("Request new device failed.");
