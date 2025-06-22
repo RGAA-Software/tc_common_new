@@ -18,26 +18,40 @@ namespace tc
     }
     
     void SharedPreference::Release() {
-        delete db_;
+        if (db_) {
+            delete db_;
+        }
     }
     
     bool SharedPreference::Put(const std::string& key, const std::string& value) {
+        if (!db_) {
+            return false;
+        }
         auto st = db_->Put(leveldb::WriteOptions(), key, value);
         return st.ok();
     }
 
     bool SharedPreference::PutInt(const std::string& key, int value) {
+        if (!db_) {
+            return false;
+        }
         auto st = db_->Put(leveldb::WriteOptions(), key, std::to_string(value));
         return st.ok();
     }
 
     std::string SharedPreference::Get(const std::string& key) {
+        if (!db_) {
+            return "";
+        }
         std::string value;
         db_->Get(leveldb::ReadOptions(), key, &value);
         return value;
     }
 
     std::string SharedPreference::Get(const std::string& key, const std::string& def) {
+        if (!db_) {
+            return def;
+        }
         std::string value;
         auto status = db_->Get(leveldb::ReadOptions(), key, &value);
         if (status.ok()) {
@@ -48,6 +62,9 @@ namespace tc
     }
 
     int SharedPreference::GetInt(const std::string& key, int def) {
+        if (!db_) {
+            return 0;
+        }
         std::string value;
         auto status = db_->Get(leveldb::ReadOptions(), key, &value);
         if (status.ok()) {
@@ -58,6 +75,9 @@ namespace tc
     }
 
     bool SharedPreference::Remove(const std::string& key) {
+        if (!db_) {
+            return false;
+        }
         auto st = db_->Delete(leveldb::WriteOptions(), key);
         return st.ok();
     }
