@@ -72,16 +72,23 @@ namespace tc
                 return;
             }
         } else {
-            if (!file_->open(QIODeviceBase::OpenModeFlag::ReadWrite)) {
-                LOGE("Open Read-Write failed, try readonly");
+            if (mode == "rb") {
                 if (!file_->open(QIODeviceBase::OpenModeFlag::ReadOnly)) {
-                    LOGE("Open Read-Write failed: {}", path);
+                    LOGE("Read only failed: {}", path);
                     return;
+                }
+            }
+            else {
+                if (!file_->open(QIODeviceBase::OpenModeFlag::ReadWrite)) {
+                    LOGE("Open Read-Write failed, try readonly: {}", path);
+                    if (!file_->open(QIODeviceBase::OpenModeFlag::ReadOnly)) {
+                        LOGE("Open Read-Write failed: {}", path);
+                        return;
+                    }
                 }
             }
         }
         file_info_ = QFileInfo(path.c_str());
-        //fopen_s(&fp_, this->file_path_.c_str(), mode.c_str());
 #else
         fopen(path.c_str(), mode.c_str());
 #endif
@@ -221,7 +228,7 @@ namespace tc
             LOGE("seek failed for writing data, offset: {}, file: {}", offset, file_path_);
             return -1;
         }
-        file_->write(data, (qint64)size);
+        return file_->write(data, (qint64)size);
 #else
         rewind(fp_);
         fseek(fp_, offset, SEEK_SET);
