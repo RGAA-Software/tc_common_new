@@ -9,29 +9,29 @@ namespace tc
 
     class Data {
     public:
-        static std::shared_ptr<Data> Make(const char* data, int size);
+        static std::shared_ptr<Data> Make(const char* data, int64_t size);
         static std::shared_ptr<Data> From(const std::string& data);
 
-        Data(const char *data, int size);
+        Data(const char *data, int64_t size);
         ~Data();
 
         const char *CStr();
         char* DataAddr();
         int Size();
-        char At(uint64_t offset);
+        char At(int64_t offset);
         std::string AsString();
         void ConvertToStr(std::string& out);
         std::shared_ptr<Data> Dup();
-        bool Append(char* data, int size);
-        int Offset();
+        bool Append(char* data, int64_t size);
+        int64_t Offset();
         void Reset();
         void Save(const std::string& path);
 
     private:
 
         char* data_{nullptr};
-        int   size_ = 0;
-        int offset_ = 0;
+        int64_t size_ = 0;
+        int64_t offset_ = 0;
 };
 
 

@@ -9,7 +9,7 @@
 namespace tc
 {
 
-    Data::Data(const char* src, int size) {
+    Data::Data(const char* src, int64_t size) {
 #ifdef WIN32
 #ifdef ENABLE_JEMALLOC
         this->data_ = (char*)je_malloc(size);
@@ -64,11 +64,11 @@ namespace tc
         return this->size_;
     }
 
-    std::shared_ptr<Data> Data::Make(const char *data_, int size) {
+    std::shared_ptr<Data> Data::Make(const char *data_, int64_t size) {
         return std::make_shared<Data>(data_, size);
     }
 
-    char Data::At(uint64_t offset) {
+    char Data::At(int64_t offset) {
         return *(this->data_ + offset);
     }
 
@@ -80,7 +80,7 @@ namespace tc
         return Data::Make(this->data_, this->size_);
     }
 
-    bool Data::Append(char* data, int size) {
+    bool Data::Append(char* data, int64_t size) {
         if (offset_ + size > size_) {
             return false;
         }
@@ -89,7 +89,7 @@ namespace tc
         return true;
     }
 
-    int Data::Offset() {
+    int64_t Data::Offset() {
         return offset_;
     }
 
