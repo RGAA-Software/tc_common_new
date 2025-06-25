@@ -459,7 +459,9 @@ namespace tc
             ss << disk.serial_number_;
         }
         //ss << mac_address_;
-        return ss.str();
+        std::string res = ss.str();
+        StringUtil::Replace(res, " ", "");
+        return res;
     }
 
     void Hardware::DetectMac() {
