@@ -13,6 +13,7 @@
 #include <QApplication>
 #include <UserEnv.h>
 #include <TlHelp32.h>
+#include <wtsapi32.h>
 
 namespace tc
 {
@@ -150,10 +151,10 @@ namespace tc
         return true;
     }
 
-    bool ProcessUtil::StartProcessAsUser(const std::wstring& cmdline, const std::wstring& work_dir, bool wait) {
+    bool ProcessUtil::StartProcessInSameUser(const std::wstring& cmdline, const std::wstring& work_dir, bool wait) {
         HANDLE hToken = NULL;
         if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ALL_ACCESS, &hToken)) {
-            LOGE("StartProcessAsUser OpenProcessToken failed.");
+            LOGE("StartProcessInSameUser OpenProcessToken failed.");
             return false;
         }
 
@@ -231,6 +232,77 @@ namespace tc
         CloseHandle(hToken);
 
         return true;
+    }
+
+    bool ProcessUtil::StartProcessInCurrentUser(const std::wstring& cmdline, const std::wstring& work_dir, bool wait) {
+        DWORD dwSessionId = WTSGetActiveConsoleSessionId();
+        if (dwSessionId == 0xFFFFFFFF) {
+            LOGE("StartProcessInCurrentUser, WTSGetActiveConsoleSessionId failed");
+            return FALSE; // 没有用户登录
+        }
+
+        HANDLE hUserToken = NULL;
+        if (!WTSQueryUserToken(dwSessionId, &hUserToken)) {
+            LOGE("StartProcessInCurrentUser, WTSQueryUserToken failed");
+            return FALSE; // 获取用户 Token 失败
+        }
+
+        // 复制 Token（避免权限问题）
+        HANDLE hDuplicatedToken = NULL;
+        if (!DuplicateTokenEx(
+                hUserToken,
+                TOKEN_ALL_ACCESS,
+                NULL,
+                SecurityImpersonation,
+                TokenPrimary,
+                &hDuplicatedToken
+        )) {
+            CloseHandle(hUserToken);
+            LOGE("StartProcessInCurrentUser, DuplicateTokenEx failed");
+            return FALSE;
+        }
+
+        // 设置环境变量（可选）
+        LPVOID lpEnvironment = NULL;
+        if (!CreateEnvironmentBlock(&lpEnvironment, hDuplicatedToken, FALSE)) {
+            CloseHandle(hDuplicatedToken);
+            CloseHandle(hUserToken);
+            LOGE("StartProcessInCurrentUser, CreateEnvironmentBlock failed");
+            return FALSE;
+        }
+
+        // 启动进程
+        STARTUPINFOW si = { sizeof(si) };
+        PROCESS_INFORMATION pi = { 0 };
+        BOOL bSuccess = CreateProcessAsUserW(
+                hDuplicatedToken,          // 用户 Token
+                NULL,         // 应用程序路径
+                (LPWSTR)cmdline.c_str(),     // 命令行参数
+                NULL,                      // 进程安全属性
+                NULL,                      // 线程安全属性
+                FALSE,                     // 不继承句柄
+                CREATE_UNICODE_ENVIRONMENT | NORMAL_PRIORITY_CLASS, // 标志
+                lpEnvironment,             // 环境变量
+                (LPWSTR)work_dir.c_str(),                      // 当前目录（NULL 表示使用父进程目录）
+                &si,                       // 启动信息
+                &pi                        // 进程信息
+        );
+
+        // 清理资源
+        if (lpEnvironment) {
+            DestroyEnvironmentBlock(lpEnvironment);
+        }
+        if (hDuplicatedToken) {
+            CloseHandle(hDuplicatedToken);
+        }
+        if (hUserToken) {
+            CloseHandle(hUserToken);
+        }
+        if (bSuccess) {
+            CloseHandle(pi.hProcess);
+            CloseHandle(pi.hThread);
+        }
+        return bSuccess;
     }
 
     uint32_t ProcessUtil::GetCurrentSessionId()
