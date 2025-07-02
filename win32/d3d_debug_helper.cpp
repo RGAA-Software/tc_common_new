@@ -41,11 +41,11 @@ namespace tc {
                                         DirectX::DDS_FLAGS_NONE,
                                         StringUtil::ToWString(oss.str()).c_str());
             if (FAILED(hr)) {
-                printf("Save DDSFile failed");
+                LOGE("Save DDSFile failed");
             }
             return true;
         } else {
-            printf("failed save image:%p", hr);
+            LOGE("failed save image:{}", hr);
             return false;
         }
     }
