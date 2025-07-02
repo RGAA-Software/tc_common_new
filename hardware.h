@@ -52,7 +52,6 @@ namespace tc
 
     class Hardware {
     public:
-
         static Hardware* Instance() {
             static Hardware hw;
             return &hw;
@@ -62,6 +61,8 @@ namespace tc
         void Dump();
         std::string GetHardwareDescription();
         std::vector<SysDriver> GetDrivers() { return drivers_; }
+
+        static std::string GetDesktopName();
 
     private:
         void DetectMac();
