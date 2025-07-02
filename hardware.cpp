@@ -481,4 +481,13 @@ namespace tc
         }
     }
 
+    std::string Hardware::GetDesktopName() {
+        wchar_t computerName[MAX_COMPUTERNAME_LENGTH + 1];
+        DWORD size = MAX_COMPUTERNAME_LENGTH + 1;
+        if (GetComputerNameW(computerName, &size)) {
+            return StringUtil::ToUTF8(computerName);
+        }
+        return "";
+    }
+
 }
