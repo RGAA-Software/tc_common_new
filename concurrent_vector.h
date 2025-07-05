@@ -15,7 +15,6 @@ namespace tc
     template<typename T>
     class ConcurrentVector {
     public:
-
         void PushBack(const T& t) {
             std::lock_guard<std::mutex> guard(mtx_);
             inner_.push_back(t);
@@ -35,6 +34,13 @@ namespace tc
             std::lock_guard<std::mutex> guard(mtx_);
             for (const auto& t : inner_) {
                 cbk(t);
+            }
+        }
+
+        void RemoveFirst() {
+            std::lock_guard<std::mutex> guard(mtx_);
+            if (!inner_.empty()) {
+                inner_.erase(inner_.begin());
             }
         }
 
