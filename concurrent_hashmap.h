@@ -24,6 +24,14 @@ namespace tc
             inner_[k] = v;
         }
 
+        void Replace(const K& k, const V& v) {
+            std::lock_guard<std::mutex> lock(mtx_);
+            if (inner_.contains(k)) {
+                inner_.erase(k);
+            }
+            inner_[k] = v;
+        }
+
         std::optional<V> Remove(const K& k) {
             std::lock_guard<std::mutex> lock(mtx_);
             auto it = inner_.find(k);
