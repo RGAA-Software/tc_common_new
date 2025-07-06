@@ -91,6 +91,12 @@ namespace tc
             return true;
         }
 
+        void CopyMemTo(std::vector<T>& out) {
+            std::lock_guard<std::mutex> guard(mtx_);
+            out.resize(inner_.size());
+            memcpy(out.data(), inner_.data(), inner_.size() * sizeof(T));
+        }
+
     private:
         std::mutex mtx_;
         std::vector<T> inner_;
