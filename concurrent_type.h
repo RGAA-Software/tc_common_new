@@ -45,6 +45,14 @@ namespace tc
             return *this;
         }
 
+        bool operator == (const T& other) {
+            return this->Load() == other;
+        }
+
+        bool operator != (const T& other) {
+            return this->Load() != other;
+        }
+
     private:
         mutable std::mutex mtx_;
         T inner_;

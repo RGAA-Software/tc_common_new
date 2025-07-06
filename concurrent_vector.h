@@ -25,6 +25,11 @@ namespace tc
             return inner_.size();
         }
 
+        void Resize(std::size_t size) {
+            std::lock_guard<std::mutex> guard(mtx_);
+            inner_.resize(size);
+        }
+
         T At(int idx) {
             std::lock_guard<std::mutex> guard(mtx_);
             return inner_.at(idx);
@@ -42,6 +47,48 @@ namespace tc
             if (!inner_.empty()) {
                 inner_.erase(inner_.begin());
             }
+        }
+
+        void Clear() {
+            std::lock_guard<std::mutex> guard(mtx_);
+            inner_.clear();
+        }
+
+        void CopyFrom(const std::vector<T>& f) {
+            std::lock_guard<std::mutex> guard(mtx_);
+            inner_.clear();
+            inner_.insert(inner_.begin(), f.begin(), f.end());
+        }
+
+        template<typename From,
+                typename = std::enable_if_t<std::is_same_v<T, typename From::value_type>>>
+        void CopyFrom(const From& f) {
+            if (!std::is_same_v<T, typename From::value_type>) {
+                return;
+            }
+            std::lock_guard<std::mutex> guard(mtx_);
+            inner_.clear();
+            inner_.insert(inner_.begin(), f.begin(), f.end());
+        }
+
+        bool CopyMemFrom(const std::vector<T>& f) {
+            std::lock_guard<std::mutex> guard(mtx_);
+            if (inner_.size() < f.size()) {
+                return false;
+            }
+            memcpy(inner_.data(), f.data(), f.size() * sizeof(T));
+            return true;
+        }
+
+        template<typename From,
+                typename = std::enable_if_t<std::is_same_v<T, typename From::value_type>>>
+        bool CopyMemFrom(const From& f) {
+            std::lock_guard<std::mutex> guard(mtx_);
+            if (inner_.size() < f.size()) {
+                return false;
+            }
+            memcpy(inner_.data(), f.data(), f.size() * sizeof(T));
+            return true;
         }
 
     private:
