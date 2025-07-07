@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 project(tc_common_new)
 
-option(OPTION_ENABLE_JEMALLOC "Enable feature for LibraryA" OFF)
-message("common cmake, OPTION_ENABLE_JEMALLOC: " ${OPTION_ENABLE_JEMALLOC})
 set(CMAKE_CXX_STANDARD 20)
 
 #find_package(OpenSSL REQUIRED)
@@ -83,10 +81,7 @@ add_library(tc_common_new ${SRCS})
 target_link_libraries(tc_common_new Dexode::EventBus)
 if (WIN32)
     add_subdirectory(tests)
-    if(OPTION_ENABLE_JEMALLOC)
-        target_compile_definitions(tc_common_new PRIVATE ENABLE_JEMALLOC)
-        target_link_libraries(tc_common_new jemalloc)
-    endif()
+    target_link_libraries(tc_common_new jemalloc)
     target_link_libraries(tc_common_new DirectXTex DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto Shlwapi.lib Wtsapi32.lib)#libssl64MT.lib libcrypto64MT.lib OpenSSL::SSL OpenSSL::Crypto
     target_link_libraries(tc_common_new Qt6::Core Qt6::Core5Compat Qt6::Widgets Qt6::Network FFTW3::fftw3)
 endif ()
