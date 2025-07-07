@@ -7,6 +7,7 @@
 
 #include <mutex>
 #include <queue>
+#include <vector>
 #include <functional>
 
 namespace tc
@@ -36,24 +37,38 @@ namespace tc
             return inner_.size();
         }
 
-        void Push(const T& e) {
+        void PushBack(const T& e) {
             std::lock_guard<std::mutex> guard(mtx_);
-            inner_.push(e);
+            inner_.push_back(e);
         }
 
-        void Push(T&& e) {
+        void PushBack(T&& e) {
             std::lock_guard<std::mutex> guard(mtx_);
-            inner_.push(std::move(e));
+            inner_.push_back(std::move(e));
         }
 
-        void Pop() {
+        void PopFront() {
             std::lock_guard<std::mutex> guard(mtx_);
-            inner_.pop();
+            inner_.pop_front();
+        }
+
+        void PopBack() {
+            std::lock_guard<std::mutex> guard(mtx_);
+            inner_.pop_back();
+        }
+
+        std::vector<T> ToVector() {
+            std::lock_guard<std::mutex> guard(mtx_);
+            std::vector<T> r;
+            for (const auto& v : inner_) {
+                r.push_back(v);
+            }
+            return r;
         }
 
     private:
         std::mutex mtx_;
-        std::queue<T> inner_;
+        std::deque<T> inner_;
     };
 
 }
