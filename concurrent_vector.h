@@ -74,9 +74,21 @@ namespace tc
         bool CopyMemFrom(const std::vector<T>& f) {
             std::lock_guard<std::mutex> guard(mtx_);
             if (inner_.size() < f.size()) {
-                return false;
+                inner_.resize(f.size());
             }
             memcpy(inner_.data(), f.data(), f.size() * sizeof(T));
+            return true;
+        }
+
+        bool CopyMemPartialFrom(const std::vector<T>& f, int size) {
+            std::lock_guard<std::mutex> guard(mtx_);
+            if (f.size() < size) {
+                return false;
+            }
+            if (inner_.size() < size) {
+                inner_.resize(size);
+            }
+            memcpy(inner_.data(), f.data(), size * sizeof(T));
             return true;
         }
 
