@@ -49,7 +49,7 @@ namespace tc
         return Request(params);
     }
 
-    HttpResponse HttpClient::Request(const std::map<std::string, std::string>& query) {
+    HttpResponse HttpClient::Request(const std::map<std::string, std::string>& query, const std::string& body) {
         auto query_path = path;
         auto index = 0;
         for (const auto& [k, v] : query) {
@@ -63,8 +63,12 @@ namespace tc
 
         http::web_request req;
         req.method(http::verb::get);
+        req.set(http::field::user_agent, "Chrome");
+        req.set(http::field::content_type, "application/json");
         req.keep_alive(true);
         req.target(query_path);
+        req.body() = body;
+        req.prepare_payload();
 
         //LOGI("Request path: {}{}:{}{}", ssl ? "https://" : "http://", host, port_, query_path);
         if (ssl_) {
@@ -109,7 +113,7 @@ namespace tc
         return Post(params);
     }
 
-    HttpResponse HttpClient::Post(const std::map<std::string, std::string>& query) {
+    HttpResponse HttpClient::Post(const std::map<std::string, std::string>& query, const std::string& body) {
         auto query_path = path;
         auto index = 0;
         for (const auto& [k, v] : query) {
@@ -123,8 +127,12 @@ namespace tc
 
         http::web_request req;
         req.method(http::verb::post);
+        req.set(http::field::user_agent, "Chrome");
+        req.set(http::field::content_type, "application/json");
         req.keep_alive(true);
         req.target(query_path);
+        req.body() = body;
+        req.prepare_payload();
 
         LOGI("Post path: {}{}:{}{}", ssl_ ? "https://" : "http://", host_, port_, query_path);
         if (ssl_) {
