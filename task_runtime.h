@@ -10,7 +10,7 @@
 #include "thread.h"
 #include "snowflake/snowflake.h"
 
-#define MAX_TASK_PER_THREAD 10000
+#define MAX_TASK_PER_THREAD 10000000
 
 namespace tc
 {
