@@ -13,7 +13,10 @@ namespace tc
             return "ok";
         }
         else if (code == kHandlerErrParams) {
-            return "error params";
+            return "request error params";
+        }
+        else if (code == kHandlerErrBody) {
+            return "request error body";
         }
         return "unknown code: " + std::to_string(code);
     }

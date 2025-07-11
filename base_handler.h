@@ -16,6 +16,7 @@ namespace tc
 {
 
     constexpr auto kHandlerErrParams = 600;
+    constexpr auto kHandlerErrBody = 601;
 
     class BaseHandler {
     public:
