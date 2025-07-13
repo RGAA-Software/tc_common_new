@@ -490,4 +490,52 @@ namespace tc
         return "";
     }
 
+    void Hardware::LockScreen() {
+#ifdef WIN32
+        LockWorkStation();
+#endif
+    }
+
+    void Hardware::RestartDevice() {
+#ifdef WIN32
+        HANDLE hToken;
+        TOKEN_PRIVILEGES tkp;
+
+        // Get a token for this process.
+
+        if (!OpenProcessToken(GetCurrentProcess(),
+                              TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
+            return;
+
+        // Get the LUID for the shutdown privilege.
+
+        LookupPrivilegeValue(NULL, SE_SHUTDOWN_NAME,
+                             &tkp.Privileges[0].Luid);
+
+        tkp.PrivilegeCount = 1;  // one privilege to set
+        tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+
+        // Get the shutdown privilege for this process.
+
+        AdjustTokenPrivileges(hToken, FALSE, &tkp, 0,
+                              (PTOKEN_PRIVILEGES)NULL, 0);
+
+        if (GetLastError() != ERROR_SUCCESS)
+            return;
+
+        if (ExitWindowsEx(EWX_REBOOT | EWX_FORCE, 0) == 0) {
+            LOGE("RestartDevice failed: {:x}", GetLastError());
+        }
+#endif
+    }
+
+    void Hardware::ShutdownDevice() {
+#ifdef WIN32
+        if (ExitWindowsEx(EWX_SHUTDOWN | EWX_FORCE, 0) == 0) {
+            LOGE("ShutdownDevice failed: {:x}", GetLastError());
+        }
+#endif
+    }
+
+
 }

@@ -78,7 +78,7 @@ namespace tc
             }
             else {
                 std::string body = r.body();
-                LOGI("req success: {}", body);
+                //LOGI("req success: {}", body);
                 return HttpResponse {
                     .status = 200,
                     .body = body,
