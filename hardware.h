@@ -64,6 +64,10 @@ namespace tc
 
         static std::string GetDesktopName();
 
+        static void LockScreen();
+        static void RestartDevice();
+        static void ShutdownDevice();
+
     private:
         void DetectMac();
 
