@@ -496,33 +496,35 @@ namespace tc
 #endif
     }
 
-    void Hardware::RestartDevice() {
-#ifdef WIN32
+    static bool AcquirePermissionForRestartDevice() {
         HANDLE hToken;
         TOKEN_PRIVILEGES tkp;
-
         // Get a token for this process.
-
-        if (!OpenProcessToken(GetCurrentProcess(),
-                              TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
-            return;
+        if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken)) {
+            LOGE("AcquirePermissionForRestartDevice, OpenProcessToken failed.");
+            return false;
+        }
 
         // Get the LUID for the shutdown privilege.
-
-        LookupPrivilegeValue(NULL, SE_SHUTDOWN_NAME,
-                             &tkp.Privileges[0].Luid);
+        if (!LookupPrivilegeValueW(NULL, SE_SHUTDOWN_NAME, &tkp.Privileges[0].Luid)) {
+            LOGE("AcquirePermissionForRestartDevice, LookupPrivilegeValueW failed.");
+            return false;
+        }
 
         tkp.PrivilegeCount = 1;  // one privilege to set
         tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
         // Get the shutdown privilege for this process.
+        if (!AdjustTokenPrivileges(hToken, FALSE, &tkp, 0, (PTOKEN_PRIVILEGES)NULL, 0)) {
+            LOGE("AcquirePermissionForRestartDevice, AdjustTokenPrivileges failed.");
+            return false;
+        }
+        return true;
+    }
 
-        AdjustTokenPrivileges(hToken, FALSE, &tkp, 0,
-                              (PTOKEN_PRIVILEGES)NULL, 0);
-
-        if (GetLastError() != ERROR_SUCCESS)
-            return;
-
+    void Hardware::RestartDevice() {
+#ifdef WIN32
+        AcquirePermissionForRestartDevice();
         if (ExitWindowsEx(EWX_REBOOT | EWX_FORCE, 0) == 0) {
             LOGE("RestartDevice failed: {:x}", GetLastError());
         }
@@ -531,6 +533,7 @@ namespace tc
 
     void Hardware::ShutdownDevice() {
 #ifdef WIN32
+        AcquirePermissionForRestartDevice();
         if (ExitWindowsEx(EWX_SHUTDOWN | EWX_FORCE, 0) == 0) {
             LOGE("ShutdownDevice failed: {:x}", GetLastError());
         }
