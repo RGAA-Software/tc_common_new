@@ -98,17 +98,6 @@ namespace tc
             return converter.to_bytes(src);
         }
 
-        static std::string Wstring2utf8string(const std::wstring& str)
-        {
-            static std::wstring_convert<std::codecvt_utf8<wchar_t> > strCnv;
-            return strCnv.to_bytes(str);
-        }
-
-        static std::wstring Utf8string2wstring(const std::string& str)
-        {
-            static std::wstring_convert< std::codecvt_utf8<wchar_t> > strCnv;
-            return strCnv.from_bytes(str);
-        }
 #ifdef WIN32
         static std::string GetErrorStr(HRESULT hr) {
             wchar_t buffer[4096] = { 0 };
@@ -117,7 +106,7 @@ namespace tc
                            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
                            buffer, sizeof(buffer) / sizeof(*buffer), NULL);
             std::wstring res = buffer;
-            return Wstring2utf8string(res);
+            return ToUTF8(res);
         }
 
         static std::string StandardizeWinPath(const std::string& path) {

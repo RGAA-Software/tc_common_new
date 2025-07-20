@@ -4,9 +4,9 @@ project(tc_common_new)
 set(CMAKE_CXX_STANDARD 20)
 
 #find_package(OpenSSL REQUIRED)
-include_directories(${CMAKE_SOURCE_DIR}/deps/tc_3rdparty/)
-include_directories(${CMAKE_SOURCE_DIR}/deps/tc_3rdparty/openssl/x64/include)
-include_directories(${CMAKE_SOURCE_DIR}/deps/tc_3rdparty/eventbus/src)
+include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/)
+include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/openssl/x64/include)
+include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/eventbus/src)
 
 if (WIN32)
     find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Core5Compat Widgets Network)
@@ -20,7 +20,7 @@ elseif (ANDROID)
 endif ()
 link_directories(VCPKG_STATIC_LIB_PATH)
 
-message("==--== " ${CMAKE_SOURCE_DIR}/tc_3rdparty/eventbus/src)
+message("==--== " ${GR_PROJECT_PATH}/tc_3rdparty/eventbus/src)
 
 add_definitions("-DUNICODE" "-D_UNICODE")
 add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
@@ -93,4 +93,4 @@ endif ()
 
 target_link_libraries(tc_common_new leveldb)
 
-target_include_directories(tc_common_new PUBLIC ${CMAKE_SOURCE_DIR}/tc_3rdparty/eventbus/src)
+target_include_directories(tc_common_new PUBLIC ${GR_PROJECT_PATH}/tc_3rdparty/eventbus/src)
