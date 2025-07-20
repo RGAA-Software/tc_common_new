@@ -7,7 +7,10 @@
 
 #include <memory>
 #include <functional>
-
+#ifdef WIN32
+#undef min
+#undef max
+#endif
 #include "dexode/EventBus.hpp"
 
 namespace tc
