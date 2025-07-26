@@ -287,6 +287,9 @@ namespace tc
                 &si,                       // 启动信息
                 &pi                        // 进程信息
         );
+        if (!bSuccess) {
+            LOGE("CreateProcessAsUser failed, error: {:x}", GetLastError());
+        }
 
         // 清理资源
         if (lpEnvironment) {
@@ -343,6 +346,16 @@ namespace tc
 #else
         QDir dir(QString("/proc/%1/task").arg(QCoreApplication::applicationPid()));
         return dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot).size();
+#endif
+    }
+
+    void ProcessUtil::SetProcessInHighLevel() {
+#ifdef WIN32
+        HANDLE hProcess = GetCurrentProcess();
+        BOOL result = SetPriorityClass(hProcess, HIGH_PRIORITY_CLASS);
+        if (!result) {
+            LOGE("SetPriorityClass failed, err: {}", GetLastError());
+        }
 #endif
     }
 
