@@ -29,6 +29,7 @@ namespace tc
         static uint32_t GetCurrentSessionId();
         static uint32_t GetProcessSessionId(uint32_t pid);
         static int GetThreadCount();
+        static void SetProcessInHighLevel();
     };
 
 }
