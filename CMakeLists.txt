@@ -74,6 +74,7 @@ if(WIN32)
         win32/dxgi_mon_detector.cpp
         hardware.cpp
         ip_util.cpp
+        auto_start.cpp
     )
 endif()
 
