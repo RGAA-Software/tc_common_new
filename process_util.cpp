@@ -234,6 +234,41 @@ namespace tc
         return true;
     }
 
+    static BOOL GetTokenByName(HANDLE& hToken, const std::string& lpName)
+    {
+        HANDLE hProcessSnap = NULL;
+        BOOL bRet = FALSE;
+        PROCESSENTRY32 pe32 = {0};
+
+        hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if (hProcessSnap == INVALID_HANDLE_VALUE)
+            return (FALSE);
+
+        pe32.dwSize = sizeof(PROCESSENTRY32);
+
+        if (Process32First(hProcessSnap, &pe32)) {
+            do {
+                auto exe_file = QString::fromStdWString(pe32.szExeFile).toUpper();
+                auto lpname = QString::fromStdString(lpName).toUpper();
+                if(exe_file == lpname) {
+                    HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE,pe32.th32ProcessID);
+                    bRet = OpenProcessToken(hProcess,TOKEN_ALL_ACCESS,&hToken);
+                    CloseHandle (hProcessSnap);
+                    LOGI("Found it : {}", lpName);
+                    return (bRet);
+                }
+            }
+            while (Process32Next(hProcessSnap, &pe32));
+            bRet = TRUE;
+        }
+        else {
+            bRet = FALSE;
+        }
+
+        CloseHandle (hProcessSnap);
+        return (bRet);
+    }
+
     bool ProcessUtil::StartProcessInCurrentUser(const std::wstring& cmdline, const std::wstring& work_dir, bool wait) {
         DWORD dwSessionId = WTSGetActiveConsoleSessionId();
         if (dwSessionId == 0xFFFFFFFF) {
@@ -246,28 +281,35 @@ namespace tc
             LOGE("StartProcessInCurrentUser, WTSQueryUserToken failed");
             return FALSE; // 获取用户 Token 失败
         }
+//
+//        // 复制 Token（避免权限问题）
+//        HANDLE hDuplicatedToken = NULL;
+//        if (!DuplicateTokenEx(
+//                hUserToken,
+//                TOKEN_ALL_ACCESS,
+//                NULL,
+//                SecurityImpersonation,
+//                TokenPrimary,
+//                &hDuplicatedToken
+//        )) {
+//            CloseHandle(hUserToken);
+//            LOGE("StartProcessInCurrentUser, DuplicateTokenEx failed");
+//            return FALSE;
+//        }
+//
+//        // 设置环境变量（可选）
+//        LPVOID lpEnvironment = NULL;
+//        if (!CreateEnvironmentBlock(&lpEnvironment, hDuplicatedToken, FALSE)) {
+//            CloseHandle(hDuplicatedToken);
+//            CloseHandle(hUserToken);
+//            LOGE("StartProcessInCurrentUser, CreateEnvironmentBlock failed");
+//            return FALSE;
+//        }
 
-        // 复制 Token（避免权限问题）
-        HANDLE hDuplicatedToken = NULL;
-        if (!DuplicateTokenEx(
-                hUserToken,
-                TOKEN_ALL_ACCESS,
-                NULL,
-                SecurityImpersonation,
-                TokenPrimary,
-                &hDuplicatedToken
-        )) {
-            CloseHandle(hUserToken);
-            LOGE("StartProcessInCurrentUser, DuplicateTokenEx failed");
-            return FALSE;
-        }
-
-        // 设置环境变量（可选）
-        LPVOID lpEnvironment = NULL;
-        if (!CreateEnvironmentBlock(&lpEnvironment, hDuplicatedToken, FALSE)) {
-            CloseHandle(hDuplicatedToken);
-            CloseHandle(hUserToken);
-            LOGE("StartProcessInCurrentUser, CreateEnvironmentBlock failed");
+        HANDLE token;
+        auto r = GetTokenByName(token, "EXPLORER.EXE");
+        if (!r) {
+            LOGE("Can't get token for: explorer.exe");
             return FALSE;
         }
 
@@ -275,31 +317,34 @@ namespace tc
         STARTUPINFOW si = { sizeof(si) };
         PROCESS_INFORMATION pi = { 0 };
         BOOL bSuccess = CreateProcessAsUserW(
-                hDuplicatedToken,          // 用户 Token
+                token,
                 NULL,         // 应用程序路径
                 (LPWSTR)cmdline.c_str(),     // 命令行参数
                 NULL,                      // 进程安全属性
                 NULL,                      // 线程安全属性
                 FALSE,                     // 不继承句柄
                 CREATE_UNICODE_ENVIRONMENT | NORMAL_PRIORITY_CLASS, // 标志
-                lpEnvironment,             // 环境变量
+                NULL/*lpEnvironment*/,             // 环境变量
                 (LPWSTR)work_dir.c_str(),                      // 当前目录（NULL 表示使用父进程目录）
                 &si,                       // 启动信息
                 &pi                        // 进程信息
         );
         if (!bSuccess) {
-            LOGE("CreateProcessAsUser failed, error: {:x}", GetLastError());
+            LOGE("**CreateProcessAsUser failed, error: {:x}", GetLastError());
         }
 
         // 清理资源
-        if (lpEnvironment) {
-            DestroyEnvironmentBlock(lpEnvironment);
-        }
-        if (hDuplicatedToken) {
-            CloseHandle(hDuplicatedToken);
-        }
-        if (hUserToken) {
-            CloseHandle(hUserToken);
+//        if (lpEnvironment) {
+//            DestroyEnvironmentBlock(lpEnvironment);
+//        }
+//        if (hDuplicatedToken) {
+//            CloseHandle(hDuplicatedToken);
+//        }
+//        if (hUserToken) {
+//            CloseHandle(hUserToken);
+//        }
+        if (token) {
+            CloseHandle(token);
         }
         if (bSuccess) {
             CloseHandle(pi.hProcess);
@@ -307,6 +352,43 @@ namespace tc
         }
         return bSuccess;
     }
+
+    /// TEST ///
+    void LaunchProcess(const QString& cmd)
+    {
+        HANDLE hToken = NULL;
+        //创建进程快照
+        PROCESSENTRY32 pe32 = { 0 };
+        pe32.dwSize = sizeof(pe32);
+        HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if (hSnapShot != 0 && hSnapShot != INVALID_HANDLE_VALUE)
+        {
+            BOOL bRet = Process32First(hSnapShot, &pe32);
+            while (bRet)
+            {
+                auto exe_file = QString::fromStdWString(pe32.szExeFile).toUpper();
+                auto lpname = QString::fromStdString("EXPLORER.EXE").toUpper();
+                if(exe_file == lpname) {
+                    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, pe32.th32ProcessID);
+
+                    if (hProcess != NULL)
+                    {
+                        BOOL flag = OpenProcessToken(hProcess, TOKEN_ALL_ACCESS, &hToken);
+                        CloseHandle(hProcess);
+                    }
+                    break;
+                }
+                bRet = Process32Next(hSnapShot, &pe32);
+            }
+            CloseHandle(hSnapShot);
+        }
+
+        STARTUPINFO si = { sizeof(si) };
+        PROCESS_INFORMATION pi;
+        BOOL bSuccess = CreateProcessAsUserW(hToken, L"C:\\Windows\\notepad.exe", NULL, NULL, NULL, FALSE, NULL,NULL, NULL, &si, &pi);
+        LOGI("Start : {}, ret: {}", cmd.toStdString(), bSuccess);
+    }
+    /// TEST ...
 
     uint32_t ProcessUtil::GetCurrentSessionId()
     {
