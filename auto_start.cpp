@@ -1,7 +1,7 @@
 //
 // Created by RGAA on 28/07/2025.
 //
-
+#ifdef WIN32
 #include "auto_start.h"
 #include <QSettings>
 #include <QFileInfo>
@@ -232,3 +232,4 @@ namespace tc
         return TRUE;
     }
 }
+#endif
