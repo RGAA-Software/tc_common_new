@@ -4,7 +4,7 @@
 
 #ifndef GAMMARAYPREMIUM_AUTO_START_H
 #define GAMMARAYPREMIUM_AUTO_START_H
-
+#ifdef WIN32
 #include <QString>
 #include <taskschd.h>
 #pragma comment(lib, "taskschd.lib")
@@ -47,5 +47,5 @@ namespace tc
     };
 
 }
-
+#endif // WIN32
 #endif //GAMMARAYPREMIUM_AUTO_START_H
