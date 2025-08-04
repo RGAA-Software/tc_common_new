@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 
+const std::string kExploreName = "explorer.exe";
+
 namespace tc
 {
     bool SetDpiAwarenessContext(DPI_AWARENESS_CONTEXT context);
@@ -30,6 +32,10 @@ namespace tc
         static uint32_t GetProcessSessionId(uint32_t pid);
         static int GetThreadCount();
         static void SetProcessInHighLevel();
+        static int GetPidByExeName(const std::string& exe_name);
+        // By explorer.exe
+        static HANDLE DupAdminToken();
+        static bool RunAsAdminWithShell(const std::wstring& path, const std::wstring& args = L"");
     };
 
 }

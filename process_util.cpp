@@ -14,6 +14,11 @@
 #include <UserEnv.h>
 #include <TlHelp32.h>
 #include <wtsapi32.h>
+#include <ShlObj_core.h>
+#include <shlobj.h>
+#include <shlwapi.h>
+#include <objbase.h>
+#include <shellapi.h>
 
 namespace tc
 {
@@ -57,6 +62,10 @@ namespace tc
         qint64 pid;
         if (detach) {
             QProcess::startDetached(QString::fromStdString(exe_path), exe_args, "", &pid);
+        }
+        else {
+            QProcess* process = new QProcess();
+            process->start(QString::fromStdString(exe_path), exe_args);
         }
         if (wait) {
             QProcess process;
@@ -113,29 +122,111 @@ namespace tc
         return result != 0;
     }
 
+    int ProcessUtil::GetPidByExeName(const std::string& exe_name) {
+        int find_pid = 0;
+        PROCESSENTRY32W pe32;
+        pe32.dwSize = sizeof(pe32);
+        HANDLE hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if (hProcessSnap == INVALID_HANDLE_VALUE) {
+            return 0;
+        }
+        int cur_ses_id = GetCurrentSessionId();
+        if(cur_ses_id == -1)
+            return 0;
+        BOOL bResult = Process32FirstW(hProcessSnap, &pe32);
+        while (bResult) {
+            bResult = Process32NextW(hProcessSnap, &pe32);
+            if (QString::fromStdWString(pe32.szExeFile) == QString::fromStdString(exe_name)) {
+                int ses_id = GetProcessSessionId(pe32.th32ProcessID);
+                if(ses_id == cur_ses_id) {
+                    find_pid = pe32.th32ProcessID;
+                    break;
+                }
+            }
+        }
+        CloseHandle(hProcessSnap);
+        return find_pid;
+    }
+
+
+    HANDLE ProcessUtil::DupAdminToken() {
+        int find_pid = GetPidByExeName(kExploreName);
+        if(find_pid == 0)
+            return nullptr;
+        HANDLE hProcess = INVALID_HANDLE_VALUE;
+        HANDLE hToken = INVALID_HANDLE_VALUE;
+        HANDLE hDuplicatedToken = INVALID_HANDLE_VALUE;
+        do
+        {
+            hProcess = ::OpenProcess(PROCESS_ALL_ACCESS, FALSE, find_pid);
+            if (!hProcess) {
+                break;
+            }
+            bool ret = OpenProcessToken(hProcess, TOKEN_ALL_ACCESS, &hToken);
+            if (!ret) {
+                break;
+            }
+            ret = DuplicateTokenEx(hToken, MAXIMUM_ALLOWED, NULL, SecurityIdentification, TokenPrimary, &hDuplicatedToken);//复制令牌
+            if (!ret) {
+                break;
+            }
+        } while (0);
+        if(hProcess)
+            CloseHandle(hProcess);
+        if(hToken)
+            CloseHandle(hToken);
+        return hDuplicatedToken;
+    }
+
     bool ProcessUtil::StartProcessInWorkDir(const std::string &work_dir, const std::string &cmdline,
                                             const std::vector<std::string> &args) {
-        STARTUPINFOA si;
+        STARTUPINFOW si;
         ZeroMemory(&si, sizeof(si));
         si.cb = sizeof(si);
 
         PROCESS_INFORMATION pi;
         ZeroMemory(&pi, sizeof(pi));
 
-        if (!CreateProcessA(
-                NULL,           // 模块名，NULL意味着使用命令行
-                (char*)cmdline.c_str(),    // 命令行
-                NULL,           // 进程安全属性
-                NULL,           // 线程安全属性
-                FALSE,          // 句柄继承选项
-                0,              // 创建标志
-                NULL,           // 使用父进程的环境块
-                (char*)work_dir.c_str(), // 设置子进程的工作目录
-                &si,            // 指向 STARTUPINFO 结构体
-                &pi             // 指向 PROCESS_INFORMATION 结构体
-        )) {
-            LOGE("CreateProcess failed: {}", GetLastError());
-            return false;
+        auto w_cmdline = QString::fromStdString(cmdline).toStdWString();
+        auto w_work_dir = QString::fromStdString(work_dir).toStdWString();
+
+        if (IsUserAnAdmin()) {
+            HANDLE user_token = DupAdminToken();
+            if (user_token == INVALID_HANDLE_VALUE) {
+                LOGE("DuplicateLimitPrivilegeToken failed.");
+                return false;
+            }
+            LOGI("IsUserAnAdmin，create process with token.");
+
+            bool suspend = false;
+            DWORD create_flag = suspend ? CREATE_SUSPENDED : 0;
+            create_flag |= ABOVE_NORMAL_PRIORITY_CLASS;
+
+            void *lpEnvironment = NULL;
+            CreateEnvironmentBlock(&lpEnvironment, user_token, TRUE);//创建用户环境
+            auto ret = CreateProcessWithTokenW(user_token, 0, NULL, (wchar_t*)w_cmdline.c_str(),
+                                          create_flag | CREATE_UNICODE_ENVIRONMENT, lpEnvironment, w_work_dir.c_str(),
+                                          &si, &pi);
+            LOGI("CreateProcessWithTokenW: {}", ret);
+            CloseHandle(user_token);
+            DestroyEnvironmentBlock(lpEnvironment);
+        }
+        else {
+            if (!CreateProcessW(
+                    NULL,           // 模块名，NULL意味着使用命令行
+                    (wchar_t *) w_cmdline.c_str(),    // 命令行
+                    NULL,           // 进程安全属性
+                    NULL,           // 线程安全属性
+                    FALSE,          // 句柄继承选项
+                    0,              // 创建标志
+                    NULL,           // 使用父进程的环境块
+                    (wchar_t *) w_work_dir.c_str(), // 设置子进程的工作目录
+                    &si,            // 指向 STARTUPINFO 结构体
+                    &pi             // 指向 PROCESS_INFORMATION 结构体
+            )) {
+                LOGE("CreateProcessW failed: {}", GetLastError());
+                return false;
+            }
         }
 
         LOGI("==> CreateProcessSuccess...{} {}", pi.dwProcessId, pi.dwThreadId);
@@ -390,8 +481,7 @@ namespace tc
     }
     /// TEST ...
 
-    uint32_t ProcessUtil::GetCurrentSessionId()
-    {
+    uint32_t ProcessUtil::GetCurrentSessionId() {
         return GetProcessSessionId(GetCurrentProcessId());
     }
 
@@ -439,6 +529,33 @@ namespace tc
             LOGE("SetPriorityClass failed, err: {}", GetLastError());
         }
 #endif
+    }
+
+    bool ProcessUtil::RunAsAdminWithShell(const std::wstring& exePath, const std::wstring& parameters)
+    {
+        SHELLEXECUTEINFO sei = { sizeof(sei) };
+
+        sei.lpVerb = L"runas";
+        sei.lpFile = exePath.c_str();
+        sei.lpParameters = parameters.empty() ? NULL : parameters.c_str();
+        sei.nShow = SW_SHOWNORMAL;
+        sei.fMask = SEE_MASK_NOCLOSEPROCESS;
+
+        if (!ShellExecuteEx(&sei)) {
+            DWORD err = GetLastError();
+            if (err == ERROR_CANCELLED) {
+                // 用户取消了UAC弹窗
+                LOGE("UAC denied");
+            } else {
+                LOGE("UAC error: {}", err);
+            }
+            return false;
+        }
+
+        if (sei.hProcess) {
+            CloseHandle(sei.hProcess);
+        }
+        return true;
     }
 
 }

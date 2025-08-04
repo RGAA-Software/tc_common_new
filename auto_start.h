@@ -31,7 +31,9 @@ namespace tc
         // 参数3: char * lpszParameters        计划任务参数
         // 参数4: char * lpszAuthor            计划任务作者
         //************************************
-        BOOL NewTask(char* lpszTaskName, char* lpszProgramPath, char* lpszParameters, char* lpszAuthor);
+        BOOL NewLogonTask(char* lpszTaskName, char* lpszProgramPath, char* lpszParameters, char* lpszAuthor);
+
+        BOOL NewTimeTask(char* lpszTaskName, char* lpszProgramPath, char* lpszParameters, char* lpszAuthor);
 
         //************************************
         // 函数名:  CMyTaskSchedule::Delete
