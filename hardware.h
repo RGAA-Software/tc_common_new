@@ -67,7 +67,7 @@ namespace tc
         static void LockScreen();
         static void RestartDevice();
         static void ShutdownDevice();
-
+        static bool AcquirePermissionForRestartDevice();
     private:
         void DetectMac();
 

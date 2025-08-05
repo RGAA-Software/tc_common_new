@@ -496,7 +496,7 @@ namespace tc
 #endif
     }
 
-    static bool AcquirePermissionForRestartDevice() {
+    bool Hardware::AcquirePermissionForRestartDevice() {
         HANDLE hToken;
         TOKEN_PRIVILEGES tkp;
         // Get a token for this process.
