@@ -24,6 +24,21 @@ namespace tc
             inner_[k] = v;
         }
 
+        void BatchInsert(const std::map<K, V>& values) {
+            std::lock_guard<std::mutex> lock(mtx_);
+            for (const auto& [k, v] : values) {
+                inner_[k] = v;
+            }
+        }
+
+        void ClearAndBatchInsert(const std::map<K, V>& values) {
+            std::lock_guard<std::mutex> lock(mtx_);
+            inner_.clear();
+            for (const auto& [k, v] : values) {
+                inner_[k] = v;
+            }
+        }
+
         void Replace(const K& k, const V& v) {
             std::lock_guard<std::mutex> lock(mtx_);
             if (inner_.contains(k)) {
