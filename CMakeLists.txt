@@ -72,6 +72,7 @@ if(WIN32)
         qrcode/qrcodegen.cpp
         qrcode/qrcodegen.hpp
         win32/dxgi_mon_detector.cpp
+        win32/process_cmdline.cpp
         hardware.cpp
         ip_util.cpp
         auto_start.cpp

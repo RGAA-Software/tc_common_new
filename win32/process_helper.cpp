@@ -16,7 +16,9 @@
 #include <winternl.h>
 #include <userenv.h>
 
+#include "process_cmdline.h"
 #include "tc_common_new/log.h"
+#include "tc_common_new/file_util.h"
 #include "tc_common_new/string_util.h"
 
 #pragma comment(lib, "ntdll.lib")
@@ -105,6 +107,26 @@ namespace tc
             }
             info->exe_full_path_ = upath;
             info->is_x86_ = x86;
+
+            // exe name
+            info->exe_name_ = FileUtil::GetFileNameFromPath(upath);
+
+            // command line
+            SIZE_T nCommandLineSize = 0;
+            if (GetProcessCommandLineW(handle, NULL, NULL, &nCommandLineSize)) {
+                std::wstring cmdline;
+                cmdline.resize(nCommandLineSize);
+                if (GetProcessCommandLineW(handle, cmdline.data(), nCommandLineSize, &nCommandLineSize)) {
+                    info->exe_cmdline_ = StringUtil::ToUTF8(cmdline);
+                }
+            }
+
+            // session id
+            DWORD session_id = -1;
+            if (ProcessIdToSessionId(info->pid_, &session_id)) {
+                info->session_id_ = session_id;
+            }
+
             if (upath.starts_with(R"(C:\Windows\System32\)")
                 /*other....*/) {
                 continue;

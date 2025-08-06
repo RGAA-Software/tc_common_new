@@ -19,6 +19,8 @@ namespace tc
     public:
         // C:\xx\xxx\xxx.exe
         std::string exe_full_path_{};
+        std::string exe_name_{};
+        std::string exe_cmdline_{};
         bool is_x86_{};
         uint32_t pid_{};
         uint32_t ppid_{};
@@ -26,6 +28,7 @@ namespace tc
         HWND hwnd_ = nullptr;
         HICON icon_ = nullptr;
         std::string icon_name_;
+        int32_t session_id_{};
 
         [[nodiscard]] bool Valid() const {
             return pid_ > 0 && !exe_full_path_.empty();
