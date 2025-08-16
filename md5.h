@@ -15,6 +15,9 @@ namespace tc
     public:
 
         static std::string Hex(const std::string& input) {
+            if (input.empty()) {
+                return "";
+            }
             return StringUtil::ToLowerCpy(asio2::md5(input).str());
         }
 
