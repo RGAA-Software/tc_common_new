@@ -62,9 +62,14 @@ namespace tc
                 NULL
         );
         if (FAILED(hres)) {
-            LOGE("Failed to initialize security: {:x}", hres);
-            CoUninitialize();
-            return -1;
+            if (hres == RPC_E_TOO_LATE) {
+                LOGE("WQLHelper: CoInitializeSecurity already initialized, continuing... hres: {}",hres);
+            }
+            else {
+                LOGE("WQLHelper: CoInitializeSecurity error hres: {}", hres);
+                CoUninitialize();
+                return -1;
+            }
         }
 
         IWbemLocator *pLoc = NULL;
@@ -75,7 +80,7 @@ namespace tc
                 IID_IWbemLocator,
                 (LPVOID *) &pLoc
         );
-        if (FAILED(hres)) {
+        if (FAILED(hres) || !pLoc) {
             LOGE("Failed to create IWbemLocator object.");
             CoUninitialize();
             return -1;
@@ -94,6 +99,13 @@ namespace tc
         );
         if (FAILED(hres)) {
             LOGE("Could not connect to WMI server.");
+            pLoc->Release();
+            CoUninitialize();
+            return -1;
+        }
+
+        if (!pSvc) {
+            LOGE("IWbemServices is null.");
             pLoc->Release();
             CoUninitialize();
             return -1;
@@ -148,62 +160,90 @@ namespace tc
                     break;
                 }
 
+                if (!pclsObj) {
+                    break;
+                }
+
                 VARIANT vtProp;
                 // name
                 {
                     hr = pclsObj->Get(L"Name", 0, &vtProp, 0, 0);
-                    if (SUCCEEDED(hr)) {
+                    do {
+                        if (FAILED(hr)) {
+                            break;
+                        }
+                        if (vtProp.vt != VT_BSTR || vtProp.bstrVal == NULL) {
+                            VariantClear(&vtProp);
+                            break;
+                        }
                         hw_cpu_.name_ = StringUtil::ToUTF8(vtProp.bstrVal);
                         LOGI("CPU NAME: {}", hw_cpu_.name_);
-
                         sp->Put(kKeyCpuName, hw_cpu_.name_);
-                    }
-                    VariantClear(&vtProp);
+                        VariantClear(&vtProp);
+
+                    } while (0);
                 }
 
                 // NumberOfLogicalProcessors
                 {
                     hr = pclsObj->Get(L"NumberOfCores", 0, &vtProp, 0, 0);
-                    if (SUCCEEDED(hr)) {
+                    do {
+                        if (FAILED(hr)) {
+                            break;
+                        }
                         hw_cpu_.num_cores_ = vtProp.uintVal;
                         LOGI("CPU Cores: {}", hw_cpu_.num_cores_);
-
                         sp->Put(kKeyCpuCores, std::to_string(hw_cpu_.num_cores_));
-                    }
-                    VariantClear(&vtProp);
+                        VariantClear(&vtProp);
+                    } while (0);
                 }
 
                 // MaxClockSpeed
                 {
                     hr = pclsObj->Get(L"MaxClockSpeed", 0, &vtProp, 0, 0);
-                    if (SUCCEEDED(hr)) {
+                    do {
+                        if (FAILED(hr)) {
+                            break;
+                        }
                         hw_cpu_.max_clock_speed_ = vtProp.uintVal;
                         LOGI("CPU clocks: {}", hw_cpu_.max_clock_speed_);
-
                         sp->Put(kKeyCpuMaxClock, std::to_string(hw_cpu_.max_clock_speed_));
-                    }
-                    VariantClear(&vtProp);
+                        VariantClear(&vtProp);
+
+                    } while (0);
                 }
 
                 // process id
                 {
                     hr = pclsObj->Get(L"ProcessorId", 0, &vtProp, 0, 0);  // "ProcessorId" 是属性名，不同的信息需要查询不同的属性名
-                    if (SUCCEEDED(hr)) {
+                    do {
+                        if (FAILED(hr)) {
+                            break;
+                        }
+                        if (vtProp.vt != VT_BSTR || vtProp.bstrVal == NULL) {
+                            VariantClear(&vtProp);
+                            break;
+                        }
                         hw_cpu_.id_ = StringUtil::ToUTF8(vtProp.bstrVal);
-
+                        LOGI("CPU id: {}", hw_cpu_.id_);
                         sp->Put(kKeyCpuId, hw_cpu_.id_);
-                    }
-                    VariantClear(&vtProp);
-                }
+                        VariantClear(&vtProp);
 
+                    } while (0);
+                }
 
                 pclsObj->Release();
             }
         }
         else {
             hw_cpu_.name_ = sp->Get(kKeyCpuName);
-            hw_cpu_.num_cores_ = std::atoll(sp->Get(kKeyCpuName).c_str());
-            hw_cpu_.max_clock_speed_ = std::atoll(sp->Get(kKeyCpuMaxClock).c_str());
+            try {
+                hw_cpu_.num_cores_ = std::atoll(sp->Get(kKeyCpuName).c_str());
+                hw_cpu_.max_clock_speed_ = std::atoll(sp->Get(kKeyCpuMaxClock).c_str());
+            }
+            catch (std::exception& e) {
+                LOGE("error: is {}", e.what());
+            }
             hw_cpu_.id_ = sp->Get(kKeyCpuId);
         }
 
@@ -234,36 +274,92 @@ namespace tc
 
                 VARIANT vtProp;
 
+                if (!pclsObj) {
+                    break;
+                }
                 // Get the value of the Name property
                 hr = pclsObj->Get(L"Name", 0, &vtProp, 0, 0);
-//            std::wcout << " Disk Name : " << vtProp.bstrVal << std::endl;
-                disk.name_ = StringUtil::ToUTF8(vtProp.bstrVal);
-                VariantClear(&vtProp);
+                do {
+                    if (FAILED(hr)) {
+                        break;
+                    }
+                    if (vtProp.vt != VT_BSTR || vtProp.bstrVal == NULL) {
+                        VariantClear(&vtProp);
+                        break;
+                    }
+                    disk.name_ = StringUtil::ToUTF8(vtProp.bstrVal);
+                    VariantClear(&vtProp);
+                } while (0);
 
                 hr = pclsObj->Get(L"Model", 0, &vtProp, 0, 0);
-//            std::wcout << " Disk Model : " << vtProp.bstrVal << std::endl;
-                disk.model_ = StringUtil::ToUTF8(vtProp.bstrVal);
-                VariantClear(&vtProp);
+                do {
+                    if (FAILED(hr)) {
+                        break;
+                    }
+                    if (vtProp.vt != VT_BSTR || vtProp.bstrVal == NULL) {
+                        VariantClear(&vtProp);
+                        break;
+                    }
+                    disk.model_ = StringUtil::ToUTF8(vtProp.bstrVal);
+                    VariantClear(&vtProp);
+                } while (0);
+
 
                 hr = pclsObj->Get(L"Status", 0, &vtProp, 0, 0);
-//            std::wcout << " Status : " << vtProp.bstrVal << std::endl;
-                disk.status_ = StringUtil::ToUTF8(vtProp.bstrVal);
-                VariantClear(&vtProp);
+                do {
+                    if (FAILED(hr)) {
+                        break;
+                    }
+                    if (vtProp.vt != VT_BSTR || vtProp.bstrVal == NULL) {
+                        VariantClear(&vtProp);
+                        break;
+                    }
+                    disk.status_ = StringUtil::ToUTF8(vtProp.bstrVal);
+                    VariantClear(&vtProp);
+                } while (0);
+
+
 
                 hr = pclsObj->Get(L"DeviceID", 0, &vtProp, 0, 0);
-//            std::wcout << " Device ID : " << vtProp.bstrVal << std::endl;
-                VariantClear(&vtProp);
+                do {
+                    if (FAILED(hr)) {
+                        break;
+                    }
+                    if (vtProp.vt != VT_BSTR || vtProp.bstrVal == NULL) {
+                        VariantClear(&vtProp);
+                        break;
+                    }
+                    // no to do
+                    VariantClear(&vtProp);
+                } while (0);
 
 
                 hr = pclsObj->Get(L"SerialNumber", 0, &vtProp, 0, 0);
-//            std::wcout << " SerialNumber : " << vtProp.bstrVal << std::endl;
-                disk.serial_number_ = StringUtil::ToUTF8(vtProp.bstrVal);
-                VariantClear(&vtProp);
+                do {
+                    if (FAILED(hr)) {
+                        break;
+                    }
+                    if (vtProp.vt != VT_BSTR || vtProp.bstrVal == NULL) {
+                        VariantClear(&vtProp);
+                        break;
+                    }
+                    disk.serial_number_ = StringUtil::ToUTF8(vtProp.bstrVal);
+                    VariantClear(&vtProp);
+                } while (0);
 
                 //InterfaceType
                 hr = pclsObj->Get(L"InterfaceType", 0, &vtProp, 0, 0);
-                disk.interface_type_ = StringUtil::ToUTF8(vtProp.bstrVal);
-                VariantClear(&vtProp);
+                do {
+                    if (FAILED(hr)) {
+                        break;
+                    }
+                    if (vtProp.vt != VT_BSTR || vtProp.bstrVal == NULL) {
+                        VariantClear(&vtProp);
+                        break;
+                    }
+                    disk.interface_type_ = StringUtil::ToUTF8(vtProp.bstrVal);
+                    VariantClear(&vtProp);
+                } while (0);
 
                 pclsObj->Release();
 
@@ -300,29 +396,53 @@ namespace tc
                 VARIANT vtProp;
                 SysDriver driver;
 
-                hr = pclsObj->Get(L"Name", 0, &vtProp, 0, 0);
-                if (FAILED(hr)) {
-                    continue;
+                if (!pclsObj) {
+                    break;
                 }
-                auto name = StringUtil::ToUTF8(vtProp.bstrVal);
-                driver.name_ = name;
-                VariantClear(&vtProp);
+
+                hr = pclsObj->Get(L"Name", 0, &vtProp, 0, 0);
+                do {
+                    if (FAILED(hr)) {
+                        break;
+                    }
+                    if (vtProp.vt != VT_BSTR || vtProp.bstrVal == NULL) {
+                        VariantClear(&vtProp);
+                        break;
+                    }
+                    auto name = StringUtil::ToUTF8(vtProp.bstrVal);
+                    driver.name_ = name;
+                    VariantClear(&vtProp);
+                } while (0);
+
+
 
                 hr = pclsObj->Get(L"DisplayName", 0, &vtProp, 0, 0);
-                if (FAILED(hr)) {
-                    continue;
-                }
-                auto display_name = StringUtil::ToUTF8(vtProp.bstrVal);
-                driver.display_name_ = display_name;
-                VariantClear(&vtProp);
+                do {
+                    if (FAILED(hr)) {
+                        break;
+                    }
+                    if (vtProp.vt != VT_BSTR || vtProp.bstrVal == NULL) {
+                        VariantClear(&vtProp);
+                        break;
+                    }
+                    auto display_name = StringUtil::ToUTF8(vtProp.bstrVal);
+                    driver.display_name_ = display_name;
+                    VariantClear(&vtProp);
+                } while (0);
 
                 hr = pclsObj->Get(L"State", 0, &vtProp, 0, 0);
-                if (FAILED(hr)) {
-                    continue;
-                }
-                auto state = StringUtil::ToUTF8(vtProp.bstrVal);
-                driver.state_ = state;
-                VariantClear(&vtProp);
+                do {
+                    if (FAILED(hr)) {
+                        break;
+                    }
+                    if (vtProp.vt != VT_BSTR || vtProp.bstrVal == NULL) {
+                        VariantClear(&vtProp);
+                        break;
+                    }
+                    auto state = StringUtil::ToUTF8(vtProp.bstrVal);
+                    driver.state_ = state;
+                    VariantClear(&vtProp);
+                } while (0);
 
                 drivers_.push_back(driver);
 
@@ -350,7 +470,7 @@ namespace tc
         int gpuCount = 0;
         while (pEnumerator) {
             hres = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
-            if (uReturn == 0) break;
+            if (uReturn == 0 || FAILED(hres)) break;
 
             gpuCount++;
             LOGI("GPU: {}", gpuCount);
@@ -359,47 +479,93 @@ namespace tc
 
             VARIANT vtProp;
 
+            if (!pclsObj) {
+                break;
+            }
+
             // 显卡名称
-            if (SUCCEEDED(pclsObj->Get(L"Name", 0, &vtProp, 0, 0))) {
+            auto hr = pclsObj->Get(L"Name", 0, &vtProp, 0, 0);
+            do {
+                if (FAILED(hr)) {
+                    break;
+                }
+                if (vtProp.vt != VT_BSTR || vtProp.bstrVal == NULL) {
+                    VariantClear(&vtProp);
+                    break;
+                }
                 hw_gpu.name_ = StringUtil::ToUTF8(vtProp.bstrVal);
                 LOGI("GPU NAME: {}", hw_gpu.name_);
                 VariantClear(&vtProp);
-            }
+            } while (0);
 
             // 显存大小
-            if (SUCCEEDED(pclsObj->Get(L"AdapterRAM", 0, &vtProp, 0, 0))) {
+            hr = pclsObj->Get(L"AdapterRAM", 0, &vtProp, 0, 0);
+            do {
+                if (FAILED(hr)) {
+                    break;
+                }
                 hw_gpu.size_ = vtProp.ullVal;
                 hw_gpu.size_str_ = NumFormatter::FormatStorageSize(vtProp.ullVal);
                 LOGI("AdapterRAM: {}Bytes, {}", hw_gpu.size_, hw_gpu.size_str_);
                 VariantClear(&vtProp);
-            }
+            } while (0);
 
             // 当前分辨率
             if (SUCCEEDED(pclsObj->Get(L"CurrentHorizontalResolution", 0, &vtProp, 0, 0)) &&
                 SUCCEEDED(pclsObj->Get(L"CurrentVerticalResolution", 0, &vtProp, 0, 0))) {
-                VARIANT vtPropH, vtPropV;
-                pclsObj->Get(L"CurrentHorizontalResolution", 0, &vtPropH, 0, 0);
-                pclsObj->Get(L"CurrentVerticalResolution", 0, &vtPropV, 0, 0);
-                LOGI("Res: {}x{}", vtPropH.intVal, vtPropV.intVal);
-                hw_gpu.res_w_ = vtPropH.intVal;
-                hw_gpu.res_h_ = vtPropV.intVal;
-                VariantClear(&vtPropH);
-                VariantClear(&vtPropV);
+
+                do {
+                    VARIANT vtPropH, vtPropV;
+                    hr = pclsObj->Get(L"CurrentHorizontalResolution", 0, &vtPropH, 0, 0);
+                    if (FAILED(hr)) {
+                        break;
+                    }
+
+                    hr = pclsObj->Get(L"CurrentVerticalResolution", 0, &vtPropV, 0, 0);
+                    if (FAILED(hr)) {
+                        VariantClear(&vtPropH);
+                        break;
+                    }
+
+                    LOGI("Res: {}x{}", vtPropH.intVal, vtPropV.intVal);
+                    hw_gpu.res_w_ = vtPropH.intVal;
+                    hw_gpu.res_h_ = vtPropV.intVal;
+                    VariantClear(&vtPropH);
+                    VariantClear(&vtPropV);
+                } while (0);
             }
 
             // 驱动版本
-            if (SUCCEEDED(pclsObj->Get(L"DriverVersion", 0, &vtProp, 0, 0))) {
+            hr = pclsObj->Get(L"DriverVersion", 0, &vtProp, 0, 0);
+            do {
+                if (FAILED(hr)) {
+                    break;
+                }
+                if (vtProp.vt != VT_BSTR || vtProp.bstrVal == NULL) {
+                    VariantClear(&vtProp);
+                    break;
+                }
                 hw_gpu.driver_version_ = StringUtil::ToUTF8(vtProp.bstrVal);
                 LOGI("Driver version: {}", hw_gpu.driver_version_);
                 VariantClear(&vtProp);
-            }
+            } while (0);
 
             // 显卡PNP设备ID
-            if (SUCCEEDED(pclsObj->Get(L"PNPDeviceID", 0, &vtProp, 0, 0))) {
+            hr = pclsObj->Get(L"PNPDeviceID", 0, &vtProp, 0, 0);
+            do {
+                if (FAILED(hr)) {
+                    break;
+                }
+                if (vtProp.vt != VT_BSTR || vtProp.bstrVal == NULL) {
+                    VariantClear(&vtProp);
+                    break;
+                }
                 hw_gpu.pnp_device_id_ = StringUtil::ToUTF8(vtProp.bstrVal);
                 LOGI("PNPDeviceID: {}", hw_gpu.pnp_device_id_);
                 VariantClear(&vtProp);
-            }
+            } while (0);
+
+
             std::wcout << L"----------------------------------------\n";
 
             if (hw_gpu.name_.find("Virtual") != std::string::npos || hw_gpu.size_ < 1024 * 1024 * 128) {
