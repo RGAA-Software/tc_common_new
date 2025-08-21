@@ -5,8 +5,10 @@
 #ifndef TC_APPLICATION_MD5_H
 #define TC_APPLICATION_MD5_H
 
-#include "tc_3rdparty/asio2/include/asio2/util/md5.hpp"
+//#include "tc_3rdparty/asio2/include/asio2/util/md5.hpp"
 #include "string_util.h"
+
+#include <openssl/md5.h>
 
 namespace tc
 {
@@ -15,11 +17,23 @@ namespace tc
     public:
 
         static std::string Hex(const std::string& input) {
-            if (input.empty()) {
-                return "";
+            unsigned char digest[MD5_DIGEST_LENGTH]; // MD5_DIGEST_LENGTH = 16
+            ::MD5(reinterpret_cast<const unsigned char*>(input.c_str()), input.size(), digest);
+
+            std::ostringstream oss;
+            oss << std::hex << std::setfill('0');
+            for (int i = 0; i < MD5_DIGEST_LENGTH; ++i) {
+                oss << std::setw(2) << static_cast<int>(digest[i]);
             }
-            return StringUtil::ToLowerCpy(asio2::md5(input).str());
+            return oss.str();
         }
+
+        //static std::string Hex(const std::string& input) {
+        //    if (input.empty()) {
+        //        return "";
+        //    }
+        //    return StringUtil::ToLowerCpy(asio2::md5(input).str());
+        //}
 
     };
 

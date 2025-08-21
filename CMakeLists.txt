@@ -11,7 +11,9 @@ include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/eventbus/src)
 if (WIN32)
     find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Core5Compat Widgets Network)
     find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Core5Compat Widgets Network)
-    find_package(FFTW3 CONFIG REQUIRED)
+    if (FFTW3_ENABLED)
+        find_package(FFTW3 CONFIG REQUIRED)
+    endif()
     find_package(OpenSSL REQUIRED)
     #set(VCPKG_STATIC_LIB_PATH ${VCPKG_ROOT}/installed/x64-windows-static/lib)
     set(VCPKG_STATIC_LIB_PATH )
@@ -49,7 +51,6 @@ set(SRCS
         folder_util.cpp
         num_formatter.cpp
         monitors.cpp
-        fft_32.cpp
         key_helper.cpp
         url_helper.cpp
         ws_server.cpp
@@ -62,8 +63,6 @@ set(SRCS
 
 if(WIN32)
     list(APPEND SRCS
-        win32/d3d_debug_helper.cpp
-        win32/d3d_render.cc
         win32/process_helper.cpp
         win32/win_helper.cpp
         win32/audio_device_helper.cpp
@@ -79,13 +78,34 @@ if(WIN32)
     )
 endif()
 
+if(DirectXTex_ENABLED)
+    list(APPEND SRCS
+        win32/d3d_debug_helper.cpp
+        win32/d3d_render.cc
+    )
+endif()
+
+if(FFTW3_ENABLED)
+    list(APPEND SRCS
+        fft_32.cpp
+    )
+endif()
+
 add_library(tc_common_new ${SRCS})
 target_link_libraries(tc_common_new Dexode::EventBus)
 if (WIN32)
-    add_subdirectory(tests)
+    if(TESTS_ENABLED)
+        add_subdirectory(tests)
+    endif()
     target_link_libraries(tc_common_new jemalloc)
-    target_link_libraries(tc_common_new DirectXTex DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto Shlwapi.lib Wtsapi32.lib)#libssl64MT.lib libcrypto64MT.lib OpenSSL::SSL OpenSSL::Crypto
-    target_link_libraries(tc_common_new Qt6::Core Qt6::Core5Compat Qt6::Widgets Qt6::Network FFTW3::fftw3)
+    target_link_libraries(tc_common_new DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto Shlwapi.lib Wtsapi32.lib)#libssl64MT.lib libcrypto64MT.lib OpenSSL::SSL OpenSSL::Crypto
+    target_link_libraries(tc_common_new Qt6::Core Qt6::Core5Compat Qt6::Widgets Qt6::Network)
+    if (DirectXTex_ENABLED)
+        target_link_libraries(tc_common_new DirectXTex)
+    endif()
+    if (FFTW3_ENABLED)
+        target_link_libraries(tc_common_new FFTW3::fftw3)
+    endif()
 endif ()
 
 ###
