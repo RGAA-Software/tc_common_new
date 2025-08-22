@@ -46,7 +46,6 @@ set(SRCS
         message_notifier.cpp
         http_client.cpp
         file_util.cpp
-        process_util.cpp
         dump_helper.cpp
         folder_util.cpp
         num_formatter.cpp
@@ -75,6 +74,7 @@ if(WIN32)
         hardware.cpp
         ip_util.cpp
         auto_start.cpp
+        process_util.cpp
     )
 endif()
 
