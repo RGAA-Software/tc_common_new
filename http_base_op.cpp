@@ -6,7 +6,6 @@
 #include "http_client.h"
 #include "log.h"
 #include "json/json.hpp"
-#include <format>
 
 using namespace nlohmann;
 

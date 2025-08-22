@@ -3,9 +3,9 @@
 //
 
 #include "num_formatter.h"
-
 #include <sstream>
 #include <iomanip>
+#include <cmath>
 
 namespace tc
 {
@@ -63,7 +63,7 @@ namespace tc
     }
 
     float NumFormatter::Round2DecimalPlaces(float num) {
-        return std::nearbyint(num * 100) / 100;
+        return std::round(num * 100) / 100;
     }
 
 }
