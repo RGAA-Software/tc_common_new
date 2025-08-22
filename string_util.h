@@ -14,6 +14,7 @@
 #include <codecvt>
 #include <cctype>
 #include <iomanip>
+#include <cstring>
 
 #ifdef WIN32
 #include <Windows.h>

@@ -1,6 +1,6 @@
 #include "data.h"
 
-#ifdef WIN32
+#if defined(WIN32) || (defined(__linux__) && !defined(__ANDROID__))
 #include "jemalloc/jemalloc.h"
 #endif
 
