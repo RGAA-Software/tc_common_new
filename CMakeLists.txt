@@ -97,7 +97,7 @@ if (WIN32)
     if(TESTS_ENABLED)
         add_subdirectory(tests)
     endif()
-    target_link_libraries(tc_common_new jemalloc)
+
     target_link_libraries(tc_common_new DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto Shlwapi.lib Wtsapi32.lib)#libssl64MT.lib libcrypto64MT.lib OpenSSL::SSL OpenSSL::Crypto
     target_link_libraries(tc_common_new Qt6::Core Qt6::Core5Compat Qt6::Widgets Qt6::Network)
     if (DirectXTex_ENABLED)
@@ -106,6 +106,10 @@ if (WIN32)
     if (FFTW3_ENABLED)
         target_link_libraries(tc_common_new FFTW3::fftw3)
     endif()
+endif ()
+
+if(JEMALLOC_ENABLED)
+    target_link_libraries(tc_common_new jemalloc)
 endif ()
 
 ###

@@ -1,6 +1,7 @@
 #include "data.h"
+#include <cstring>
 
-#if defined(WIN32) || (defined(__linux__) && !defined(__ANDROID__))
+#if JEMALLOC_ON
 #include "jemalloc/jemalloc.h"
 #endif
 
@@ -8,9 +9,9 @@ namespace tc
 {
 
     Data::Data(const char* src, int64_t size) {
-#if defined(WIN32) || (defined(__linux__) && !defined(__ANDROID__))
+#if JEMALLOC_ON
         this->data_ = (char*)je_malloc(size);
-#elif defined(__ANDROID__)
+#else
         this->data_ = (char *) malloc(size);
 #endif
         if (src) {
@@ -25,9 +26,9 @@ namespace tc
 
     Data::~Data() {
         if (this->data_) {
-#if defined(WIN32) || (defined(__linux__) && !defined(__ANDROID__))
+#if JEMALLOC_ON
             je_free(this->data_);
-#elif defined(__ANDROID__)
+#else
             free(this->data_);
 #endif
         }
