@@ -7,7 +7,7 @@
 
 #include <string>
 #include "md5.h"
-#include "tc_3rdparty/asio2/include/asio2/util/uuid.hpp"
+#include "uuid_impl/uuid_impl.hpp"
 
 #ifdef WIN32
 #pragma comment(lib, "Bcrypt.lib")
@@ -16,8 +16,12 @@
 namespace tc
 {
     static std::string GetUUID() {
-        asio2::uuid uuid;
-        return MD5::Hex(uuid.generate().short_uuid(32));
+        tc::uuid uuid;
+        return uuid.generate().short_uuid(32);
+    }
+
+    static std::string GetUUIDInMD5() {
+        return MD5::Hex(GetUUID());
     }
 }
 
