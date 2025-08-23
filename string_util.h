@@ -27,43 +27,33 @@ namespace tc
     public:
 
         // 
-        static void Split(const std::string &s,
-                          std::vector<std::string> &sv,
-                          const char delim = ' ') {
+        static void Split(const std::string &s, std::vector<std::string> &sv, const char delim = ' ') {
             sv.clear();
             std::istringstream iss(s);
             std::string temp;
-
             while (std::getline(iss, temp, delim)) {
                 sv.emplace_back(std::move(temp));
             }
         }
 
-
-        static void Split(const std::string& s,
-                          std::vector<std::string>& res,
-                          const std::string& delimiter) {
+        static void Split(const std::string& s, std::vector<std::string>& res, const std::string& delimiter) {
             size_t pos_start = 0, pos_end, delim_len = delimiter.length();
             std::string token;
-
             while ((pos_end = s.find (delimiter, pos_start)) != std::string::npos) {
                 token = s.substr (pos_start, pos_end - pos_start);
                 pos_start = pos_end + delim_len;
                 res.push_back (token);
             }
-
             res.push_back (s.substr (pos_start));
         }
 
         static void ToLower(std::string& data) {
-            std::transform(data.begin(), data.end(), data.begin(),
-                           [](unsigned char c){ return std::tolower(c); });
+            std::transform(data.begin(), data.end(), data.begin(), [](unsigned char c){ return std::tolower(c); });
         }
 
         static std::string ToLowerCpy(const std::string& data) {
             std::string target = data;
-            std::transform(target.begin(), target.end(), target.begin(),
-                           [](unsigned char c) -> char { return std::tolower(c); });
+            std::transform(target.begin(), target.end(), target.begin(), [](unsigned char c) -> char { return std::tolower(c); });
             return target;
         }
 
@@ -138,6 +128,16 @@ namespace tc
         }
 
         static std::string Trim(const std::string& str);
+
+        static bool IsValidInteger(const std::string& str) {
+            if (str.empty()) return false;
+            for (char c : str) {
+                if (!std::isdigit(c)) {
+                    return false;
+                }
+            }
+            return true;
+        }
     };
 
 }
