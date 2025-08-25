@@ -33,15 +33,21 @@ namespace tc
             return inner_;
         }
 
-        void Apply(std::function<void(const T& t)>&& cbk) const {
+        /**
+         *  auto r = c_auther.WithLock([=, this](auto& inner) {
+         *       auto c = inner.find_one(make_document(
+         *           kvp(kParamAutherName, auther_name)
+         *       ));
+         *       return c;
+         *   });
+         * @tparam F
+         * @param func
+         * @return
+         */
+        template<typename F>
+        decltype(auto) WithLock(F&& func) {
             std::lock_guard<std::mutex> guard(mtx_);
-            cbk(inner_);
-        }
-
-        template<typename R>
-        R Apply(std::function<R(const T& t)>&& cbk) const {
-            std::lock_guard<std::mutex> guard(mtx_);
-            return cbk(inner_);
+            return func(inner_);
         }
 
         ConcurrentType<T>& operator=(const ConcurrentType<T>& other) {
@@ -71,6 +77,9 @@ namespace tc
     };
 
     using ConcurrentString = tc::ConcurrentType<std::string>;
+
+    template<typename T>
+    using Mutex = tc::ConcurrentType<T>;
 }
 
 #endif //GAMMARAY_CONCURRENT_TYPE_H
