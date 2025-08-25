@@ -7,6 +7,7 @@
 
 #include <mutex>
 #include <string>
+#include <functional>
 
 namespace tc
 {
@@ -30,6 +31,17 @@ namespace tc
         T Load() const {
             std::lock_guard<std::mutex> guard(mtx_);
             return inner_;
+        }
+
+        void Apply(std::function<void(const T& t)>&& cbk) const {
+            std::lock_guard<std::mutex> guard(mtx_);
+            cbk(inner_);
+        }
+
+        template<typename R>
+        R Apply(std::function<R(const T& t)>&& cbk) const {
+            std::lock_guard<std::mutex> guard(mtx_);
+            return cbk(inner_);
         }
 
         ConcurrentType<T>& operator=(const ConcurrentType<T>& other) {
