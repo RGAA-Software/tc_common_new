@@ -10,7 +10,6 @@
 #include <sstream>
 #include <algorithm>
 #include <locale>
-#include <string>
 #include <codecvt>
 #include <cctype>
 #include <iomanip>
@@ -138,6 +137,8 @@ namespace tc
             }
             return true;
         }
+
+        static std::string ToHexString(const std::vector<uint8_t>& data);
     };
 
 }

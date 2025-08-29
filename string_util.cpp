@@ -18,4 +18,12 @@ namespace tc {
         return str;
 #endif
 	}
+
+    std::string ToHexString(const std::vector<uint8_t>& data) {
+        std::ostringstream oss;
+        for (const auto& byte : data) {
+            oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
+        }
+        return oss.str();
+    }
 }

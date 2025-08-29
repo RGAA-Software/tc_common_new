@@ -58,6 +58,7 @@ set(SRCS
         http_base_op.cpp
         qwidget_helper.cpp
         math_helper.cpp
+        tc_aes.cpp
 )
 
 if(WIN32)
