@@ -1,7 +1,14 @@
 #include "http_client.h"
 
-#include <any>
 #include "log.h"
+#include <memory>
+#include <string>
+#include <cpr/error.h>
+#include <cpr/cpr.h>
+#include <cpr/cprtypes.h>
+#include <cpr/redirect.h>
+#include <cpr/session.h>
+
 #include <asio2/asio2.hpp>
 
 namespace tc
