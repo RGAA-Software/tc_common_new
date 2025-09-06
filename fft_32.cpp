@@ -1,16 +1,17 @@
-#include "fft_32.h"
 #ifdef WIN32
+
+#include "fft_32.h"
 #include <fftw3.h>
 #include <cmath>
-
 #include <iostream>
+#include "data.h"
 
 namespace tc
 {
 
     std::mutex FFT32::fft_mtx_;
 
-    void FFT32::DoFFT(std::vector<double> &fft, const DataPtr& one_channel_pcm_data, int bytes, bool pre_alloc_fft) {
+    void FFT32::DoFFT(std::vector<double> &fft, const std::shared_ptr<Data>& one_channel_pcm_data, int bytes, bool pre_alloc_fft) {
         std::lock_guard<std::mutex> guard(fft_mtx_);
         int bytes_size = one_channel_pcm_data->Size();
         if (bytes_size > bytes) {

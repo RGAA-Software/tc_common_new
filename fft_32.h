@@ -1,7 +1,7 @@
-#pragma once
+#ifndef FFT_32_H_
+#define FFT_32_H_
 
 #ifdef WIN32
-#include "tc_common_new/data.h"
 
 #include <mutex>
 #include <vector>
@@ -10,13 +10,17 @@
 namespace tc
 {
 
+    class Data;
+
     class FFT32 {
     public:
 
-        static void DoFFT(std::vector<double> &fft, const DataPtr& one_channel_pcm_data, int bytes = 0, bool pre_alloc_fft = false);
+        static void DoFFT(std::vector<double> &fft, const std::shared_ptr<Data>& one_channel_pcm_data, int bytes = 0, bool pre_alloc_fft = false);
         static std::mutex fft_mtx_;
 
     };
 
 }
+#endif
+
 #endif
