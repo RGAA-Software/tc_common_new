@@ -12,6 +12,7 @@
 #include "../log.h"
 #include "../base64.h"
 #include "../file.h"
+#include "../tc_aes.h"
 
 using namespace tc;
 
@@ -60,7 +61,7 @@ TEST(Test_TR, tr_post_many_task) {
     }
 
     std::cout << runtime.Dump() << std::endl;
-    std::this_thread::sleep_for(std::chrono::milliseconds(3200));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     runtime.Exit();
 }
 
@@ -86,7 +87,7 @@ TEST(Test_TR, tr_remove_task) {
     runtime.RemoveTask(the_second_task_id);
     std::cout << runtime.Dump() << std::endl;
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(3200));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1200));
     runtime.Exit();
 }
 
@@ -125,9 +126,43 @@ TEST(Test_file, read_all) {
     auto file = File::OpenForReadB("vc_redist.x64.exe");
     auto file_cpy = File::OpenForWriteB("vc_redist.x64_cpy.exe");
     file->ReadAll([=](auto offset, DataPtr&& data)->bool {
-        LOGI("offset: {}, data size: {}", offset, data->Size());
+        //LOGI("offset: {}, data size: {}", offset, data->Size());
         file_cpy->Write(offset, data);
         return false;
     }, 1024);
 
+}
+
+TEST(Test_AES_enc, AES_enc) {
+    std::string input = "this is a test string@333";
+    const std::string user_key = MD5::Hex("123@321");
+    std::string key = user_key.substr(0, 16);
+    std::string iv = user_key.substr(user_key.length() - 16);
+    std::vector<uint8_t> output;
+    auto r = AesEncryptPcks7Cbc128((uint8_t*)input.c_str(), input.size(), (uint8_t*)key.c_str(), (uint8_t*)iv.c_str(), output);
+    auto output_b64 = Base64::Base64Encode(output.data(), output.size());
+    LOGI("AES Enc, input: {}", input);
+    LOGI("user key: {}", user_key);
+    LOGI("key: {}", key);
+    LOGI("iv: {}", iv);
+    LOGI("output b64: {}", output_b64);
+    ASSERT_EQ(r, true);
+}
+
+TEST(Test_AES_enc, AES_dec) {
+    std::string input = "Ac9AB55203wqg4AYKb7alxeKlh6DArEDBZF0d1HV+eM=";
+    const std::string user_key = MD5::Hex("123@321");
+    std::string key = user_key.substr(0, 16);
+    std::string iv = user_key.substr(user_key.length() - 16);
+    std::vector<uint8_t> output;
+    auto input_raw = Base64::Base64Decode(input);
+    auto r = AesDecryptPcks7Cbc128((uint8_t*)input_raw.c_str(), input_raw.size(), (uint8_t*)key.c_str(), (uint8_t*)iv.c_str(), output);
+    LOGI("AES Enc, input: {}", input);
+    LOGI("user key: {}", user_key);
+    LOGI("key: {}", key);
+    LOGI("iv: {}", iv);
+    std::string output_raw((char*)output.data(), output.size());
+    LOGI("output b64: {}", output_raw);
+    ASSERT_EQ(r, true);
+    ASSERT_EQ(std::string("this is a test string@333") == output_raw, true);
 }
