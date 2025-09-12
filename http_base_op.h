@@ -12,7 +12,7 @@ namespace tc
 {
     class HttpBaseOp {
     public:
-        static Result<std::string, bool> CanPingServer(bool ssl, const std::string& host, int port);
+        static Result<std::string, bool> CanPingServer(bool ssl, const std::string& host, int port, const std::string& appkey);
     };
 }
 
