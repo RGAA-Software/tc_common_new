@@ -93,4 +93,11 @@ namespace tc
 //        file->Close();
     }
 
+    std::shared_ptr<Data> Data::Clone() {
+        if (this->data_ && this->size_ > 0) {
+            return Data::Make(this->CStr(), this->Size());
+        }
+        return nullptr;
+    }
+
 }

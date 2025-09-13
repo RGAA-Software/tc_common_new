@@ -26,6 +26,7 @@ namespace tc
         int64_t Offset();
         void Reset();
         void Save(const std::string& path);
+        std::shared_ptr<Data> Clone();
 
     private:
 
