@@ -4,6 +4,8 @@
 #if JEMALLOC_ON
 #include "jemalloc/jemalloc.h"
 #endif
+#include "memory_stat.h"
+#include "snowflake/snowflake.h"
 
 namespace tc
 {
@@ -18,6 +20,16 @@ namespace tc
             memcpy(this->data_, src, size);
         }
         this->size_ = size;
+
+#if MEMORY_STST_ON
+        id_ = SnowflakeId::generate().implode();
+        MemoryStat::Instance()->AddMemInfo(id_, std::make_shared<MemoryInfo>(MemoryInfo {
+            .id_ = id_,
+            .size_ = (uint64_t)size,
+            .module_ = "",
+            .name_ = "data"
+        }));
+#endif
     }
 
     std::shared_ptr<Data> Data::From(const std::string& data) {
@@ -31,6 +43,10 @@ namespace tc
 #else
             free(this->data_);
 #endif
+#if MEMORY_STST_ON
+      MemoryStat::Instance()->RemoveMemInfo(id_);
+#endif
+
         }
     }
 

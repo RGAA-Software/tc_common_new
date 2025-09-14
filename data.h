@@ -29,10 +29,10 @@ namespace tc
         std::shared_ptr<Data> Clone();
 
     private:
-
         char* data_{nullptr};
         int64_t size_ = 0;
         int64_t offset_ = 0;
+        uint64_t id_ = 0;
 };
 
 

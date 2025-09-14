@@ -32,33 +32,34 @@ if (ANDROID)
 endif ()
 
 set(SRCS
-        data.cpp
-        shared_preference.cpp
-        string_util.cpp
-        time_util.cpp
-        thread.cpp
-        task_runtime.cpp
-        base64.cpp
-        file.cpp
-        image.cpp
-        ipc_shm.cpp
-        ipc_msg_queue.cpp
-        message_notifier.cpp
-        http_client.cpp
-        file_util.cpp
-        dump_helper.cpp
-        folder_util.cpp
-        num_formatter.cpp
-        monitors.cpp
-        key_helper.cpp
-        url_helper.cpp
-        ws_server.cpp
-        message_looper.cpp
-        base_handler.cpp
-        http_base_op.cpp
-        qwidget_helper.cpp
-        math_helper.cpp
-        tc_aes.cpp
+    data.cpp
+    shared_preference.cpp
+    string_util.cpp
+    time_util.cpp
+    thread.cpp
+    task_runtime.cpp
+    base64.cpp
+    file.cpp
+    image.cpp
+    ipc_shm.cpp
+    ipc_msg_queue.cpp
+    message_notifier.cpp
+    http_client.cpp
+    file_util.cpp
+    dump_helper.cpp
+    folder_util.cpp
+    num_formatter.cpp
+    monitors.cpp
+    key_helper.cpp
+    url_helper.cpp
+    ws_server.cpp
+    message_looper.cpp
+    base_handler.cpp
+    http_base_op.cpp
+    qwidget_helper.cpp
+    math_helper.cpp
+    tc_aes.cpp
+    memory_stat.cpp
 )
 
 if(WIN32)
