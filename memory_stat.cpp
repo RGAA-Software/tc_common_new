@@ -4,12 +4,15 @@
 
 #include "memory_stat.h"
 #include <sstream>
+#include "num_formatter.h"
 
 namespace tc
 {
 
     std::string MemoryStatInfo::Dump() {
         std::stringstream ss;
+        ss << std::endl;
+        ss << std::format("History alloc size: {}", NumFormatter::FormatStorageSize(alloc_size_)) << std::endl;
         ss << std::format("Total count: {}", total_count_) << std::endl;
         ss << std::format("Total memory size: {}", total_memory_size_) << std::endl;
         ss << std::format("Total memory size: {} KB", total_memory_size_KB_) << std::endl;
@@ -19,6 +22,7 @@ namespace tc
 
     void MemoryStat::AddMemInfo(uint64_t id, const std::shared_ptr<MemoryInfo>& info) {
         mem_info_.Insert(id, info);
+        alloc_size_ += info->size_;
     }
 
     void MemoryStat::RemoveMemInfo(uint64_t id) {
@@ -27,6 +31,7 @@ namespace tc
 
     MemoryStatInfo MemoryStat::GetStatInfo() {
         MemoryStatInfo stat_info;
+        stat_info.alloc_size_ = alloc_size_;
         stat_info.total_count_ = mem_info_.Size();
         mem_info_.VisitAll([&](uint64_t key, std::shared_ptr<MemoryInfo>& info){
             stat_info.total_memory_size_ += info->size_;

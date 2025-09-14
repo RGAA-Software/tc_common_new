@@ -23,6 +23,7 @@ namespace tc
         std::string Dump();
 
     public:
+        uint64_t alloc_size_ = 0;
         uint64_t total_count_ = 0;
         uint64_t total_memory_size_ = 0;
         uint64_t total_memory_size_KB_ = 0;
@@ -43,6 +44,7 @@ namespace tc
 
     private:
         tc::ConcurrentHashMap<uint64_t, std::shared_ptr<MemoryInfo>> mem_info_;
+        std::atomic_uint64_t alloc_size_ = 0;
     };
 
 }
