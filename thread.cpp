@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include "log.h"
+#include "memory_stat.h"
 
 namespace tc
 {
@@ -10,20 +11,31 @@ namespace tc
         return std::make_shared<Thread>(name, max_task);
     }
 
+    std::shared_ptr<Thread> Thread::MakeOnceTask(OnceTask&& task, const std::string& name, bool join) {
+        auto t = std::make_shared<Thread>(std::move(task), name, join);
+        return t;
+    }
+
     Thread::Thread(const std::string &name, int max_task) : max_tasks_(max_task) {
         this->name_ = name;
     }
 
     Thread::Thread(OnceTask &&task, const std::string &name, bool join) {
         this->name_ = name;
-        thread_ = std::make_shared<std::thread>(task);
+        thread_ = std::make_shared<std::thread>([=, this]() {
+#ifdef WIN32
+            this->tid_ = GetCurrentThreadId();
+#endif
+            task();
+        });
+        
         if (join) {
             thread_->join();
         }
     }
 
     Thread::~Thread() {
-
+        MemoryStat::Instance()->RemoveThread(GetGeneralId());
     }
 
     void Thread::Poll() {
@@ -36,8 +48,13 @@ namespace tc
         }
 
         thread_ = std::make_shared<std::thread>([this]() {
+#ifdef WIN32
+            this->tid_ = GetCurrentThreadId();
+#endif
             TaskLoop();
         });
+
+        MemoryStat::Instance()->AddThread(GetGeneralId(), shared_from_this());
     }
 
 
@@ -168,10 +185,20 @@ namespace tc
         return max_tasks_;
     }
 
-    std::string Thread::GetId() {
-        std::stringstream ss;
-        //ss << std::this_thread::get_id();
-        return ss.str();
+    uint32_t Thread::GetGeneralId() {
+        auto id = thread_->get_id();
+        std::hash<std::thread::id> hasher;
+        size_t hash_value = hasher(id);
+        int thread_id = static_cast<int>(hash_value);
+        return thread_id;
+    }
+
+    uint32_t Thread::GetTid() {
+        return tid_;
+    }
+
+    std::string Thread::GetThreadName() {
+        return name_;
     }
 
 }

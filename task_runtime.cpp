@@ -16,7 +16,7 @@ namespace tc
         this->num_threads_ = num_threads;
 
         for (int idx = 0; idx < num_threads; idx++) {
-            auto t = Thread::Make("", MAX_TASK_PER_THREAD);
+            auto t = Thread::Make(std::format("runtime_{}", idx), MAX_TASK_PER_THREAD);
             t->Poll();
             threads_.insert({idx, t});
         }

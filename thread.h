@@ -95,10 +95,11 @@ namespace tc
     typedef std::shared_ptr<ThreadTask> ThreadTaskPtr;
     typedef std::function<void()>       OnceTask;
 
-    class Thread
+    class Thread : public std::enable_shared_from_this<Thread>
     {
     public:
         static std::shared_ptr<Thread> Make(const std::string& name, int max_task);
+        static std::shared_ptr<Thread> MakeOnceTask(OnceTask&& task, const std::string& name, bool join = false);
 
         Thread() = delete;
         explicit Thread(const std::string& name, int max_task = -1);
@@ -125,11 +126,17 @@ namespace tc
 
         unsigned long ExecCount();
 
-        std::string GetId();
+        // Not PID
+        uint32_t GetGeneralId();
+        // Thread id
+        uint32_t GetTid();
+        // Thread name
+        std::string GetThreadName();
 
     private:
-
         void TaskLoop();
+
+    private:
 
         std::mutex init_mtx_;
         bool init_{false};
@@ -149,6 +156,7 @@ namespace tc
         unsigned long task_exec_count_{0};
 
         std::string name_;
+        uint32_t tid_ = 0;
     };
 
 
