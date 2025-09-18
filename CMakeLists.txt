@@ -119,6 +119,6 @@ if (ANDROID)
     target_link_libraries(tc_common_new ${ANDROID_OPENSSL_LIBS})
 endif ()
 
-target_link_libraries(tc_common_new leveldb)
+target_link_libraries(tc_common_new leveldb cpr::cpr)
 
 target_include_directories(tc_common_new PUBLIC ${GR_PROJECT_PATH}/tc_3rdparty/eventbus/src)

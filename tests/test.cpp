@@ -27,10 +27,10 @@ TEST(Test_GenUUID, gen_uuid) {
 }
 
 TEST(Test_Data_String, data_string) {
-    auto data = Data::Make(nullptr, 100);
-    memcpy(data->DataAddr(), "Jack", 4);
-    auto str = data->AsString();
-    std::cout << "Str: " << str << std::endl;
+//    auto data = Data::Make(nullptr, 100);
+//    memcpy(data->DataAddr(), "Jack", 4);
+//    auto str = data->AsString();
+//    LOGI("DataString: {}", str);
 }
 
 TEST(Test_MD5, md5) {

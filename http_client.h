@@ -5,6 +5,12 @@
 #include <memory>
 #include <functional>
 
+#include <cpr/error.h>
+#include "cpr/cpr.h"
+#include "cpr/cprtypes.h"
+#include "cpr/redirect.h"
+#include "cpr/session.h"
+
 namespace tc
 {
 
@@ -33,6 +39,7 @@ namespace tc
         HttpResponse Download(std::function<void(const std::string& body, bool success)>&& download_cbk);
         
         int HeadFileSize();
+        std::string GetReqPath();
 
     private:
         std::string host_;
@@ -40,6 +47,7 @@ namespace tc
         std::string path;
         bool ssl_ = false;
         int timeout_ms_ = 3000;
+        std::string req_path_;
 
     };
 

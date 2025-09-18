@@ -57,62 +57,35 @@ namespace tc
     }
 
     HttpResponse HttpClient::Request(const std::map<std::string, std::string>& query, const std::string& body) {
-        auto query_path = path;
-        auto index = 0;
+        cpr::Parameters params;
         for (const auto& [k, v] : query) {
-            if (index == 0) {
-                query_path += "?" + k + "=" + v;
-            } else {
-                query_path += "&" + k + "=" + v;
-            }
-            index++;
+            // params
+            params.Add({k, v});
         }
 
-        http::web_request req;
-        req.method(http::verb::get);
-        req.set(http::field::user_agent, "Chrome");
-        req.set(http::field::content_type, "application/json");
-        req.keep_alive(true);
-        req.target(query_path);
-        req.body() = body;
-        req.prepare_payload();
+        //req_path_ = std::format("{}{}:{}{}", ssl_ ? "https://" : "http://", host_, port_, query_path);
+        auto url_path = std::format("{}{}:{}{}", ssl_ ? "https://" : "http://", host_, port_, path);
+        cpr::Url url{url_path};
+        cpr::Session session;
+        session.SetUrl(url);
+        session.SetBody(body);
+        session.SetVerifySsl(false);
+        session.SetTimeout(cpr::Timeout{5000});
+        session.SetHeader(cpr::Header{{"Authorization", "Bearer token"}});
+        session.SetParameters(params);
 
-        //LOGI("Request path: {}{}:{}{}", ssl ? "https://" : "http://", host, port_, query_path);
-        if (ssl_) {
-            auto r = asio2::https_client::execute(host_, port_, req, std::chrono::milliseconds(timeout_ms_));
-            if (asio2::get_last_error()) {
-                LOGE("Request failed: {}", asio2::last_error_msg());
-            }
-            else {
-                std::string body = r.body();
-                //LOGI("req success: {}", body);
-                return HttpResponse {
-                    .status = 200,
-                    .body = body,
-                };
-            }
-        }
-        else {
-            auto r = asio2::http_client::execute(host_, port_, req, std::chrono::milliseconds(timeout_ms_));
-            if (asio2::get_last_error()) {
-                LOGI("Request path: {}{}{}{}", ssl_ ? "https://" : "http://", host_, port_, query_path);
-                LOGE("Request failed: {}", asio2::last_error_msg());
-            }
-            else {
-                std::string body = r.body();
-                //LOGI("req success: {}", body);
-                return HttpResponse {
-                    .status = 200,
-                    .body = body,
-                };
-            }
-        }
+        cpr::Response response = session.Get();
+        req_path_ = response.url.str();
 
+        // EXPECT_EQ(expected_text, response.text);
+        // EXPECT_EQ(Url{url + "?key=value&hello=world&test=case"}, response.url);
+        // EXPECT_EQ(std::string{"text/html"}, response.header["content-type"]);
+        // EXPECT_EQ(200, response.status_code);
+        // EXPECT_EQ(cpr::ErrorCode::OK, response.error.code);
         return HttpResponse {
-            .status = -1,
-            .body = "",
+            .status = response.status_code,
+            .body = response.text,
         };
-
     }
 
     HttpResponse HttpClient::Post() {
@@ -121,60 +94,33 @@ namespace tc
     }
 
     HttpResponse HttpClient::Post(const std::map<std::string, std::string>& query, const std::string& body) {
-        auto query_path = path;
-        auto index = 0;
+        cpr::Parameters params;
         for (const auto& [k, v] : query) {
-            if (index == 0) {
-                query_path += "?" + k + "=" + v;
-            } else {
-                query_path += "&" + k + "=" + v;
-            }
-            index++;
+            // params
+            params.Add({k, v});
         }
 
-        http::web_request req;
-        req.method(http::verb::post);
-        req.set(http::field::user_agent, "Chrome");
-        req.set(http::field::content_type, "application/json");
-        req.keep_alive(true);
-        req.target(query_path);
-        req.body() = body;
-        req.prepare_payload();
+        auto url_path = std::format("{}{}:{}{}", ssl_ ? "https://" : "http://", host_, port_, path);
+        cpr::Url url{url_path};
+        cpr::Session session;
+        session.SetUrl(url);
+        session.SetVerifySsl(false);
+        session.SetBody(body);
+        session.SetTimeout(cpr::Timeout{5000});
+        session.SetHeader(cpr::Header{{"Authorization", "Bearer token"}});
+        session.SetParameters(params);
 
-        LOGI("Post path: {}{}:{}{}", ssl_ ? "https://" : "http://", host_, port_, query_path);
-        if (ssl_) {
-            auto r = asio2::https_client::execute(host_, port_, req, std::chrono::milliseconds(timeout_ms_));
-            if (asio2::get_last_error()) {
-                LOGE("Post failed: {}", asio2::last_error_msg());
-            }
-            else {
-                std::string body = r.body();
-                LOGI("Post SSL success: {}", body);
-                return HttpResponse {
-                    .status = 200,
-                    .body = body,
-                };
-            }
-        }
-        else {
-            auto r = asio2::http_client::execute(host_, port_, req, std::chrono::milliseconds(timeout_ms_));
-            if (asio2::get_last_error()) {
-                LOGI("Post path: {}{}{}{}", ssl_ ? "https://" : "http://", host_, port_, query_path);
-                LOGE("Post failed: {}", asio2::last_error_msg());
-            }
-            else {
-                std::string body = r.body();
-                LOGI("Post success: {}", body);
-                return HttpResponse {
-                    .status = 200,
-                    .body = body,
-                };
-            }
-        }
+        cpr::Response response = session.Post();
+        req_path_ = response.url.str();
 
+        // EXPECT_EQ(expected_text, response.text);
+        // EXPECT_EQ(Url{url + "?key=value&hello=world&test=case"}, response.url);
+        // EXPECT_EQ(std::string{"text/html"}, response.header["content-type"]);
+        // EXPECT_EQ(200, response.status_code);
+        // EXPECT_EQ(cpr::ErrorCode::OK, response.error.code);
         return HttpResponse {
-            .status = -1,
-            .body = "",
+            .status = response.status_code,
+            .body = response.text,
         };
     }
 
@@ -191,6 +137,10 @@ namespace tc
     int HttpClient::HeadFileSize() {
 
         return 0;
+    }
+
+    std::string HttpClient::GetReqPath() {
+        return req_path_;
     }
 
 }
