@@ -60,6 +60,7 @@ set(SRCS
     math_helper.cpp
     tc_aes.cpp
     memory_stat.cpp
+    cpu_frequency.cpp
 )
 
 if(WIN32)

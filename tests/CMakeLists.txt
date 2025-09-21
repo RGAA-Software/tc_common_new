@@ -15,3 +15,6 @@ target_link_libraries(test_http PRIVATE tc_common_new ${Boost_LIBRARIES} GTest::
 #add_custom_command(TARGET test_http POST_BUILD
 #    COMMAND ${QT_ROOT}/bin/windeployqt.exe $<TARGET_FILE:test_common> --no-translations --release
 #)
+
+add_executable(test_cpu test_cpu.cpp)
+target_link_libraries(test_cpu PRIVATE tc_common_new ${Boost_LIBRARIES} GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main Qt6::Core Qt6::Core5Compat)
