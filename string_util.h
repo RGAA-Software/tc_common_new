@@ -116,11 +116,15 @@ namespace tc
         static std::string FormatSize(uint64_t byte_size) {
             static const char* suffixes[] = { "B", "KB", "MB", "GB" };
             const int numSuffixes = sizeof(suffixes) / sizeof(suffixes[0]);
+
+            double size = static_cast<double>(byte_size);
             int suffixIndex = 0;
-            while (byte_size >= 1024 && suffixIndex < numSuffixes - 1) {
-                byte_size /= 1024;
-                suffixIndex++;
+
+            while (size >= 1024.0 && suffixIndex < numSuffixes - 1) {
+                size /= 1024.0;
+                ++suffixIndex;
             }
+
             std::ostringstream stream;
             stream << std::fixed << std::setprecision(2) << byte_size << " " << suffixes[suffixIndex];
             return stream.str();
