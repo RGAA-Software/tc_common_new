@@ -30,9 +30,9 @@ namespace tc
     }
 
     std::string NumFormatter::FormatSpeed(int64_t bytes) {
-        const size_t GB = 1024 * 1024 * 1024;
-        const size_t MB = 1024 * 1024;
-        const size_t KB = 1024;
+        const size_t GB = 1000 * 1000 * 1000;
+        const size_t MB = 1000 * 1000;
+        const size_t KB = 1000;
 
         std::stringstream stream;
 

@@ -19,6 +19,8 @@
 #include <Windows.h>
 #endif
 
+#include "num_formatter.h"
+
 namespace tc
 {
 
@@ -114,20 +116,21 @@ namespace tc
         }
 #endif
         static std::string FormatSize(uint64_t byte_size) {
-            static const char* suffixes[] = { "B", "KB", "MB", "GB" };
-            const int numSuffixes = sizeof(suffixes) / sizeof(suffixes[0]);
-
-            double size = static_cast<double>(byte_size);
-            int suffixIndex = 0;
-
-            while (size >= 1024.0 && suffixIndex < numSuffixes - 1) {
-                size /= 1024.0;
-                ++suffixIndex;
-            }
-
-            std::ostringstream stream;
-            stream << std::fixed << std::setprecision(2) << byte_size << " " << suffixes[suffixIndex];
-            return stream.str();
+//            static const char* suffixes[] = { "B", "KB", "MB", "GB" };
+//            const int numSuffixes = sizeof(suffixes) / sizeof(suffixes[0]);
+//
+//            double size = static_cast<double>(byte_size);
+//            int suffixIndex = 0;
+//
+//            while (size >= 1024.0 && suffixIndex < numSuffixes - 1) {
+//                size /= 1024.0;
+//                ++suffixIndex;
+//            }
+//
+//            std::ostringstream stream;
+//            stream << std::fixed << std::setprecision(2) << byte_size << " " << suffixes[suffixIndex];
+//            return stream.str();
+            return NumFormatter::FormatStorageSize(byte_size);
         }
 
         static std::string Trim(const std::string& str);
