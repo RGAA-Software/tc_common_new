@@ -28,6 +28,10 @@ namespace tc
             }
         }
 
+        bool IsValid() const {
+            return d3d11_device_ && d3d11_device_context_;
+        }
+
     public:
         uint64_t adapter_uid_ = 0;
         ComPtr<ID3D11Device> d3d11_device_ = nullptr;
