@@ -70,7 +70,7 @@ namespace tc
         session.SetUrl(url);
         session.SetBody(body);
         session.SetVerifySsl(false);
-        session.SetTimeout(cpr::Timeout{5000});
+        session.SetTimeout(cpr::Timeout{this->timeout_ms_});
         session.SetHeader(cpr::Header{{"Authorization", "Bearer token"}});
         session.SetParameters(params);
 
@@ -106,7 +106,7 @@ namespace tc
         session.SetUrl(url);
         session.SetVerifySsl(false);
         session.SetBody(body);
-        session.SetTimeout(cpr::Timeout{5000});
+        session.SetTimeout(cpr::Timeout{this->timeout_ms_});
         session.SetHeader(cpr::Header{{"Authorization", "Bearer token"}});
         session.SetParameters(params);
 
