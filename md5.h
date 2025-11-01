@@ -5,9 +5,8 @@
 #ifndef TC_APPLICATION_MD5_H
 #define TC_APPLICATION_MD5_H
 
-//#include "tc_3rdparty/asio2/include/asio2/util/md5.hpp"
 #include "string_util.h"
-
+#define OPENSSL_API_COMPAT 10100
 #include <openssl/md5.h>
 
 namespace tc
