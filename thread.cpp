@@ -97,7 +97,11 @@ namespace tc
         if (exit_) {return;}
         std::lock_guard<std::mutex> guard(task_mtx_);
         if (max_tasks_ > 0 && (int)tasks_.size() >= max_tasks_) {
+            auto deleted_task = tasks_.front();
             tasks_.pop_front();
+            if (on_front_task_callback_) {
+                on_front_task_callback_(deleted_task);
+            }
         }
         tasks_.push_back(task);
         take_var_.notify_all();
@@ -107,7 +111,11 @@ namespace tc
         if (exit_) {return;}
         std::lock_guard<std::mutex> guard(task_mtx_);
         if (max_tasks_ > 0 && (int)tasks_.size() >= max_tasks_) {
+            auto deleted_task = tasks_.front();
             tasks_.pop_front();
+            if (on_front_task_callback_) {
+                on_front_task_callback_(deleted_task);
+            }
         }
         tasks_.push_back(std::move(task));
         take_var_.notify_all();

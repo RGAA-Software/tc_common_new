@@ -56,12 +56,12 @@ namespace tc
                 callback_();
             }
         }
-
-    private:
+    protected:
         VoidFunc exec_func_;
         VoidFunc callback_;
-
     };
+
+
 
     template <class ExecFunc, class CallbackFunc>
     class ReturnThreadTask : public ThreadTask {
@@ -133,6 +133,9 @@ namespace tc
         // Thread name
         std::string GetThreadName();
 
+        void SetOnFrontTaskCallback(std::function<void(ThreadTaskPtr task_ptr)> callback) {
+            on_front_task_callback_ = callback;
+        }
     private:
         void TaskLoop();
 
@@ -157,6 +160,8 @@ namespace tc
 
         std::string name_;
         uint32_t tid_ = 0;
+
+        std::function<void(ThreadTaskPtr task_ptr)> on_front_task_callback_;
     };
 
 
