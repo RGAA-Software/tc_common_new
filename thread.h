@@ -123,6 +123,7 @@ namespace tc
         bool IsLastTaskReturned();
         bool IsJoinable();
         void Join();
+        void Clear();
 
         unsigned long ExecCount();
 

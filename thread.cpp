@@ -136,6 +136,11 @@ namespace tc
         return false;
     }
 
+    void Thread::Clear() {
+        std::lock_guard<std::mutex> guard(task_mtx_);
+        tasks_.clear();
+    }
+
     bool Thread::TaskExists(uint64_t task_id) {
         std::lock_guard<std::mutex> guard(task_mtx_);
         for (auto it = tasks_.begin(); it != tasks_.end(); it++) {
