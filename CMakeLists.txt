@@ -61,6 +61,7 @@ set(SRCS
     tc_aes.cpp
     memory_stat.cpp
     cpu_frequency.cpp
+    image_generator.cpp
 )
 
 if(WIN32)
