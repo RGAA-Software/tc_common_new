@@ -8,6 +8,14 @@
 #include "file_util.h"
 #include "string_util.h"
 
+#ifdef Q_OS_WIN
+#include <QStandardPaths>
+#include <QDir>
+#include <QCoreApplication>
+#include <windows.h>
+#include <shlobj.h>
+#endif
+
 namespace fs = std::filesystem;
 
 namespace tc
@@ -154,4 +162,29 @@ namespace tc
     }
 
 #endif
+
+    std::wstring FolderUtil::GetProgramDataPath() {
+#ifdef Q_OS_WIN
+        QString sharedPath;
+        // Windows: 使用ProgramData
+        wchar_t path[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_COMMON_APPDATA, NULL, 0, path))) {
+            sharedPath = QDir::fromNativeSeparators(QString::fromWCharArray(path));
+        } else {
+            sharedPath = "C:/ProgramData";
+        }
+        // 创建应用子目录
+        QString appPath = sharedPath + "/GammaRay";// + QCoreApplication::applicationName();
+        QDir dir;
+        if (!dir.exists(appPath)) {
+            dir.mkpath(appPath);
+        }
+        return appPath.toStdWString();
+#else
+        // Linux/macOS: 使用GenericDataLocation
+        sharedPath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
+#endif
+        return L"";
+    }
+
 }

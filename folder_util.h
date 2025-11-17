@@ -40,6 +40,7 @@ namespace tc
         static std::wstring GetCurrentFolderPath();
         static void CreateDir(const std::string& path);
         static void OpenDir(const std::string& path);
+        static std::wstring GetProgramDataPath();
 #endif
     };
 }
