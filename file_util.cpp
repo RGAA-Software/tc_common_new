@@ -7,6 +7,8 @@
 
 #ifdef WIN32
 #include <QFile>
+#include <QString>
+#include <QProcess>
 #endif
 
 namespace tc
@@ -68,4 +70,14 @@ namespace tc
 #endif
         return false;
     }
+
+    void FileUtil::SelectFileInExplorer(const std::string& p) {
+#ifdef WIN32
+        QString path = QString::fromStdString(p);
+        QString url = QString(R"(file:///%1)").arg(path.replace("/", "\\"));
+        QString command = QString("explorer.exe /select,\"%1\"").arg(url);
+        QProcess::startDetached(command);
+#endif
+    }
+
 }

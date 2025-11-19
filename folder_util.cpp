@@ -187,4 +187,64 @@ namespace tc
         return L"";
     }
 
+    bool FolderUtil::CopyDirectory(const fs::path& source, const fs::path& destination, bool overwrite) {
+        try {
+            if (!fs::exists(source) || !fs::is_directory(source)) {
+                std::cerr << "Source directory does not exist or is not a directory: " << source << std::endl;
+                return false;
+            }
+
+            // 创建目标目录（如果不存在）
+            if (!fs::exists(destination)) {
+                fs::create_directories(destination);
+                std::cout << "Created destination directory: " << destination << std::endl;
+            }
+
+            // 递归遍历源目录
+            for (const auto& entry : fs::recursive_directory_iterator(
+                    source,
+                    fs::directory_options::skip_permission_denied)) {
+
+                try {
+                    // 计算目标路径
+                    auto relative_path = fs::relative(entry.path(), source);
+                    auto target_path = destination / relative_path;
+
+                    if (fs::is_directory(entry.status())) {
+                        // 创建目录
+                        fs::create_directories(target_path);
+                    } else if (fs::is_regular_file(entry.status())) {
+                        // 拷贝文件
+                        if (fs::exists(target_path)) {
+                            if (overwrite) {
+                                fs::remove(target_path); // 删除已存在的文件
+                            } else {
+                                std::cout << "Skipped (already exists): " << relative_path << std::endl;
+                                continue;
+                            }
+                        }
+
+                        // 拷贝文件内容
+                        fs::copy_file(entry.path(), target_path, fs::copy_options::overwrite_existing);
+                        std::cout << "Copied: " << relative_path << std::endl;
+                    }
+                } catch (const fs::filesystem_error& ex) {
+                    std::cerr << "Error processing " << entry.path() << ": " << ex.what() << std::endl;
+                    // 继续处理其他文件
+                    continue;
+                }
+            }
+
+            std::cout << "Directory copy completed: " << source << " -> " << destination << std::endl;
+            return true;
+
+        } catch (const fs::filesystem_error& ex) {
+            std::cerr << "Filesystem error: " << ex.what() << std::endl;
+            return false;
+        } catch (const std::exception& ex) {
+            std::cerr << "Error: " << ex.what() << std::endl;
+            return false;
+        }
+    }
+
 }

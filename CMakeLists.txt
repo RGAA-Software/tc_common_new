@@ -62,6 +62,8 @@ set(SRCS
     memory_stat.cpp
     cpu_frequency.cpp
     image_generator.cpp
+    zip_util.cpp
+    ../tc_3rdparty/miniz/miniz.c
 )
 
 if(WIN32)

@@ -12,14 +12,13 @@ namespace tc
 
     class FileUtil {
     public:
-
         static std::string GetFileNameFromPath(const std::string& path);
         static std::string GetFileNameFromPathNoSuffix(const std::string& path);
         static std::string GetFileSuffix(const std::string& path);
         static std::string GetFileFolder(const std::string& path);
         static std::string GetFolderNameFormAbsFolderPath(const std::string& path);
         static bool CopyFileExt(const std::string& from, const std::string& to, bool force_replace);
-
+        static void SelectFileInExplorer(const std::string& path);
     };
 
 }
