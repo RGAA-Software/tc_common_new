@@ -35,6 +35,9 @@ namespace tc
         HttpResponse Request(const std::map<std::string, std::string>& query, const std::string& body = "");
         HttpResponse Post();
         HttpResponse Post(const std::map<std::string, std::string>& query, const std::string& body = "");
+        HttpResponse PostMultiPart(const std::map<std::string, std::string>& query,
+                                   const std::map<std::string, std::string>& form_parts,
+                                   const std::map<std::string, std::string>& file_parts);
 
         HttpResponse Download(std::function<void(const std::string& body, bool success)>&& download_cbk);
         

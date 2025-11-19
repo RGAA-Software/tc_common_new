@@ -124,6 +124,76 @@ namespace tc
         };
     }
 
+    //auto resp = client.PostMultiPart(
+    //    // query 参数
+    //    {
+    //        {"uid", "123"},
+    //        {"debug", "1"}
+    //    },
+    //
+    //    // form 字段
+    //    {
+    //        {"type", "avatar"},
+    //        {"desc", "hello multipart"}
+    //    },
+    //
+    //    // file 字段
+    //    {
+    //        {"avatar", "C:/img/a.png"},
+    //        {"cover",  "C:/img/b.jpg"}
+    //    }
+    //);
+    HttpResponse HttpClient::PostMultiPart(const std::map<std::string, std::string>& query,
+                                           const std::map<std::string, std::string>& form_parts,
+                                           const std::map<std::string, std::string>& file_parts) {
+        // 构造 URL
+        auto url_path = std::format("{}{}:{}{}", ssl_ ? "https://" : "http://", host_, port_, path);
+
+        cpr::Url url{url_path};
+        cpr::Session session;
+        session.SetUrl(url);
+        session.SetVerifySsl(false);
+        session.SetTimeout(cpr::Timeout{timeout_ms_});
+        session.SetHeader(cpr::Header{{"Authorization", "Bearer token"}});
+
+        // --- URL Query ---
+        if (!query.empty()) {
+            cpr::Parameters params;
+            for (auto& [k, v] : query) {
+                params.Add({k, v});
+            }
+            session.SetParameters(params);
+        }
+
+        // --- Multipart ---
+        cpr::Multipart multipart{};
+
+        // 添加表单字段
+        for (auto& [k, v] : form_parts) {
+            multipart.parts.emplace_back(k, v);  // text field
+        }
+
+        // 添加文件字段
+        for (auto& [k, path] : file_parts) {
+            multipart.parts.emplace_back(
+                    k,
+                    cpr::File{path}  // 自动推断 MIME
+            );
+        }
+
+        // 设置 multipart
+        session.SetMultipart(multipart);
+
+        // POST
+        cpr::Response response = session.Post();
+        req_path_ = response.url.str();
+
+        return HttpResponse{
+            .status = (int)response.status_code,
+            .body   = response.text,
+        };
+    }
+
     HttpResponse HttpClient::Download(std::function<void(const std::string& body, bool success)>&& download_cbk) {
         LOGI("Download: {}", path.c_str());
         std::string body;

@@ -16,6 +16,10 @@ namespace tc
     public:
 
         static std::string Hex(const std::string& input) {
+            if (input.empty()) {
+                return "";
+            }
+
             unsigned char digest[MD5_DIGEST_LENGTH]; // MD5_DIGEST_LENGTH = 16
             ::MD5(reinterpret_cast<const unsigned char*>(input.c_str()), input.size(), digest);
 
