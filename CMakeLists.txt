@@ -8,6 +8,17 @@ include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/)
 include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/openssl/x64/include)
 include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/eventbus/src)
 
+#if (ANDROID)
+#    include(FetchContent)
+#    FetchContent_Declare(cpr GIT_REPOSITORY https://github.com/libcpr/cpr.git
+#            GIT_TAG 1.12.0) # Replace with your desired git commit from: https://github.com/libcpr/cpr/releases
+#    set(CURL_USE_LIBPSL OFF FORCE)
+#    set(ZLIB_COMPAT OFF FORCE)
+#    FetchContent_MakeAvailable(cpr)
+#
+#endif ()
+find_package(cpr CONFIG REQUIRED)
+
 if (WIN32)
     find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Core5Compat Widgets Network)
     find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Core5Compat Widgets Network)

@@ -14,7 +14,7 @@ namespace tc
         int i = 0;
         while (i < str.length()) {
             if (str[i] == '%') {
-                sscanf(str.substr(i + 1, 2).c_str(), "%x", &ch);
+                sscanf(str.substr(i + 1, 2).c_str(), "%x", (unsigned int*)&ch);
                 result += ch;
                 i += 3;
             } else if (str[i] == '+') {

@@ -83,7 +83,7 @@ namespace tc
         // EXPECT_EQ(200, response.status_code);
         // EXPECT_EQ(cpr::ErrorCode::OK, response.error.code);
         return HttpResponse {
-            .status = response.status_code,
+            .status = (int)response.status_code,
             .body = response.text,
         };
     }
@@ -119,7 +119,7 @@ namespace tc
         // EXPECT_EQ(200, response.status_code);
         // EXPECT_EQ(cpr::ErrorCode::OK, response.error.code);
         return HttpResponse {
-            .status = response.status_code,
+            .status = (int)response.status_code,
             .body = response.text,
         };
     }
