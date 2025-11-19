@@ -164,7 +164,7 @@ namespace tc
 #endif
 
     std::wstring FolderUtil::GetProgramDataPath() {
-#ifdef Q_OS_WIN
+#ifdef WIN32
         QString sharedPath;
         // Windows: 使用ProgramData
         wchar_t path[MAX_PATH];
@@ -180,10 +180,16 @@ namespace tc
             dir.mkpath(appPath);
         }
         return appPath.toStdWString();
-#else
-        // Linux/macOS: 使用GenericDataLocation
+#endif
+
+#ifdef UNIX
         sharedPath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
 #endif
+
+#ifdef ANDROID
+        return L"";
+#endif
+
         return L"";
     }
 

@@ -37,13 +37,13 @@ namespace tc
         static void VisitAll(const std::string& path, std::function<void(VisitResult&&)>&&, const std::string& filter_suffix = "");
         static void VisitRecursiveFiles(const std::filesystem::path& path, int depth, int max_depth, const std::function<void(VisitResult&&)>&, const std::string& filter_suffix = "");
         static bool CopyDirectory(const fs::path& source, const fs::path& destination, bool overwrite);
+        static std::wstring GetProgramDataPath();
 #ifdef WIN32
         static void VisitAllByQt(const std::string& path, std::function<void(VisitResult&&)>&&, const std::string& filter_suffix = "");
         static std::wstring GetCurrentFilePath();
         static std::wstring GetCurrentFolderPath();
         static void CreateDir(const std::string& path);
         static void OpenDir(const std::string& path);
-        static std::wstring GetProgramDataPath();
 #endif
     };
 }
