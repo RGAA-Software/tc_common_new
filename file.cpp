@@ -60,6 +60,19 @@ namespace tc
 #endif
     }
 
+    int64_t File::Size(const std::string& path) {
+#ifdef WIN32
+        QFileInfo fi(path.c_str());
+        if (!fi.exists()) {
+            return -1;
+        }
+        return (int64_t)fi.size();
+#else
+        uintmax_t size = std::filesystem::file_size(path);
+        return (int64_t)size;
+#endif
+    }
+
     File::File(const std::string& path, const std::string& mode) {
         auto origin_path = path;
         StringUtil::Replace(origin_path, "\\", "/");

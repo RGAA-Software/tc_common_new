@@ -28,6 +28,7 @@ namespace tc
 
         static bool IsFolder(const std::string& path);
         static bool Exists(const std::string& path);
+        static int64_t Size(const std::string& path);
 
         File(const std::string& path, const std::string& mode);
         ~File();
