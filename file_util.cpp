@@ -80,4 +80,14 @@ namespace tc
 #endif
     }
 
+    bool FileUtil::ReName(const std::string& old_path, const std::string& new_path) {
+        QFile file(QString::fromStdString(old_path));
+        if (file.rename(QString::fromStdString(new_path))) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
 }

@@ -19,6 +19,7 @@ namespace tc
         static std::string GetFolderNameFormAbsFolderPath(const std::string& path);
         static bool CopyFileExt(const std::string& from, const std::string& to, bool force_replace);
         static void SelectFileInExplorer(const std::string& path);
+        static bool ReName(const std::string& old_path, const std::string& new_path);
     };
 
 }
