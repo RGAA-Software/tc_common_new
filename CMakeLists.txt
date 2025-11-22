@@ -123,6 +123,8 @@ if (WIN32)
     if (FFTW3_ENABLED)
         target_link_libraries(tc_common_new FFTW3::fftw3)
     endif()
+    set(BREAKPAD_LIB_PATH ${VCPKG_ROOT}/packages/breakpad_x64-windows-static/lib)
+    target_link_libraries(tc_common_new ${BREAKPAD_LIB_PATH}/libbreakpad.lib ${BREAKPAD_LIB_PATH}/libbreakpad_client.lib)
 endif ()
 
 if(JEMALLOC_ENABLED)

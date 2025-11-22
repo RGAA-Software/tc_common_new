@@ -1,4 +1,9 @@
 #include "dump_helper.h"
+#include "log.h"
+#include "file_util.h"
+#include "string_util.h"
+#include "time_util.h"
+#include "folder_util.h"
 
 #ifdef WIN32
 
@@ -16,6 +21,8 @@
 #include <tlhelp32.h>
 #include <wtsapi32.h>
 #include <winternl.h>
+#include "client/windows/handler/exception_handler.h"
+#include "client/windows/crash_generation/crash_generation_client.h"
 
 #pragma comment(lib, "Wtsapi32.lib")
 #pragma comment(lib, "Shlwapi.lib")
@@ -77,4 +84,50 @@ namespace tc
         SetUnhandledExceptionFilter(UnhandledExceptionFilter);
     }
 }
+#endif
+
+#ifdef WIN32
+
+namespace tc
+{
+
+    std::wstring dump_path = L"./dumps";
+
+    static bool DumpCallback(const wchar_t *dump_path, const wchar_t *minidump_id,
+                             void *context, EXCEPTION_POINTERS *exinfo,
+                             MDRawAssertionInfo *assertion, bool succeeded) {
+        LOGE("!!!--CRASHED--!!");
+        auto bc = (BreakpadContext*)context;
+        if (succeeded) {
+            auto exe_name = StringUtil::ToWString(bc->app_name_);
+            auto exe_version = StringUtil::ToWString(bc->version_);
+            std::wstring original_dmp = std::wstring(dump_path) + L"/" + minidump_id + L".dmp";
+            std::wstring new_dmp_name = std::wstring(dump_path) + L"/" + exe_name + L"_" + exe_version + L".dmp";
+            LOGE("ORIGIN: {}", StringUtil::ToUTF8(original_dmp));
+            LOGE("TARGET: {}", StringUtil::ToUTF8(new_dmp_name));
+            FileUtil::ReName(StringUtil::ToUTF8(original_dmp), StringUtil::ToUTF8(new_dmp_name));
+            LOGE("!!!--DUMP Generated--!!");
+        } else {
+            LOGE("!!!--Can't Generate DUMP--!!");
+        }
+
+        return succeeded;
+    }
+
+    google_breakpad::ExceptionHandler *exception_handler = nullptr;
+
+    void CaptureDumpByBreakpad(BreakpadContext* bc) {
+        auto dir_path = StringUtil::ToUTF8(dump_path);
+        FolderUtil::CreateDir(dir_path);
+
+        exception_handler = new google_breakpad::ExceptionHandler(
+            dump_path,
+            nullptr,
+            DumpCallback,
+            bc,
+            google_breakpad::ExceptionHandler::HANDLER_ALL
+        );
+    }
+}
+
 #endif

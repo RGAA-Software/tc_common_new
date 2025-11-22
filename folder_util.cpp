@@ -150,8 +150,8 @@ namespace tc
     }
 
     void FolderUtil::CreateDir(const std::string& path) {
-        QDir dir(path.c_str());
-        if (!dir.exists()) {
+        QDir dir;
+        if (!dir.exists(path.c_str())) {
             dir.mkpath(path.c_str());
         }
     }

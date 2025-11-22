@@ -81,6 +81,10 @@ namespace tc
     }
 
     bool FileUtil::ReName(const std::string& old_path, const std::string& new_path) {
+#ifdef WIN32
+        if (!QFile::exists(old_path.c_str())) {
+            return false;
+        }
         QFile file(QString::fromStdString(old_path));
         if (file.rename(QString::fromStdString(new_path))) {
             return true;
@@ -88,6 +92,18 @@ namespace tc
         else {
             return false;
         }
+#else
+        try {
+            if (!std::filesystem::exists(old_path)) {
+                return false;
+            }
+            std::filesystem::rename(old_path, new_path);
+            return true;
+        } catch (const std::filesystem::filesystem_error& ex) {
+            return false;
+        }
+#endif
+
     }
 
 }
