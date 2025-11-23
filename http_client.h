@@ -39,7 +39,7 @@ namespace tc
                                    const std::map<std::string, std::string>& form_parts,
                                    const std::map<std::string, std::string>& file_parts);
 
-        HttpResponse Download(std::function<void(const std::string& body, bool success)>&& download_cbk);
+        static HttpResponse Download(const std::string& url, std::function<void(const std::string& body)>&& download_cbk);
         
         int HeadFileSize();
         std::string GetReqPath();

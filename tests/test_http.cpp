@@ -57,3 +57,9 @@ TEST(Test_Get, Post_Https) {
     ASSERT_NE(0, resp.status);
     ASSERT_NE(true, resp.body.empty());
 }
+
+TEST(Test_Download, Download) {
+    HttpClient::Download("https://github.com/RGAA-Software/GammaRay/releases/download/v2.0.1/GammaRay2.0.1.7z", [](const std::string& d) {
+
+    });
+}

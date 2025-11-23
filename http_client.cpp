@@ -194,13 +194,27 @@ namespace tc
         };
     }
 
-    HttpResponse HttpClient::Download(std::function<void(const std::string& body, bool success)>&& download_cbk) {
+    HttpResponse HttpClient::Download(const std::string& path, std::function<void(const std::string& body)>&& download_cbk) {
         LOGI("Download: {}", path.c_str());
-        std::string body;
+        cpr::Url url{path};
+        cpr::Session session;
+        session.SetHeader(cpr::Header{{"Accept-Encoding", "gzip"}});
+        session.SetUrl(url);
+        session.SetVerifySsl(false);
+        session.SetTimeout(cpr::Timeout{5000});
 
-        return HttpResponse {
-            .status = -1,
-            .body = "",
+        auto fn_cbk = [=](std::string_view data, intptr_t /*userdata*/) -> bool {
+            LOGI("Download size: {}", data.size());
+            auto cpy = std::string(data.data(), data.size());
+            download_cbk(cpy);
+            return true;
+        };
+
+        cpr::Response response = session.Download(cpr::WriteCallback{fn_cbk, 0});
+
+        return HttpResponse{
+            .status = (int)response.status_code,
+            .body   = response.text,
         };
     }
 
