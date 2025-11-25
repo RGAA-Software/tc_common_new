@@ -21,6 +21,7 @@
 #include <tlhelp32.h>
 #include <wtsapi32.h>
 #include <winternl.h>
+#include "folder_util.h"
 #include "client/windows/handler/exception_handler.h"
 #include "client/windows/crash_generation/crash_generation_client.h"
 
@@ -91,8 +92,6 @@ namespace tc
 namespace tc
 {
 
-    std::wstring dump_path = L"./dumps";
-
     static bool DumpCallback(const wchar_t *dump_path, const wchar_t *minidump_id,
                              void *context, EXCEPTION_POINTERS *exinfo,
                              MDRawAssertionInfo *assertion, bool succeeded) {
@@ -117,6 +116,7 @@ namespace tc
     google_breakpad::ExceptionHandler *exception_handler = nullptr;
 
     void CaptureDumpByBreakpad(BreakpadContext* bc) {
+        auto dump_path = FolderUtil::GetProgramDataPath() + L"/gr_dumps";
         auto dir_path = StringUtil::ToUTF8(dump_path);
         FolderUtil::CreateDir(dir_path);
 
