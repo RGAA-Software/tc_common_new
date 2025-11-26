@@ -36,8 +36,17 @@ namespace tc
         static void VisitFolders(const std::string& path, std::function<void(VisitResult&&)>&&);
         static void VisitAll(const std::string& path, std::function<void(VisitResult&&)>&&, const std::string& filter_suffix = "");
         static void VisitRecursiveFiles(const std::filesystem::path& path, int depth, int max_depth, const std::function<void(VisitResult&&)>&, const std::string& filter_suffix = "");
-        static bool CopyDirectory(const fs::path& source, const fs::path& destination, bool overwrite);
-        static std::wstring GetProgramDataPath();
+        // source:
+        // destination:
+        // ignore_suffix: lowercase, eg: {".h264", ".h265"}
+        // overwrite:
+        static bool CopyDir(const fs::path& source, const fs::path& destination, const std::vector<std::string>& ignore_suffix = {}, bool overwrite = true);
+
+        static std::wstring GetProgramDataPath(const std::string& app = "GammaRay");
+
+        static bool DeleteDir(const std::string& path);
+
+        static bool DeleteDir(const std::wstring& path);
 #ifdef WIN32
         static void VisitAllByQt(const std::string& path, std::function<void(VisitResult&&)>&&, const std::string& filter_suffix = "");
         static std::wstring GetCurrentFilePath();

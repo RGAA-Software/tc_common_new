@@ -14,6 +14,7 @@ namespace tc
     public:
         static std::string GetFileNameFromPath(const std::string& path);
         static std::string GetFileNameFromPathNoSuffix(const std::string& path);
+        // only return suffix name, eg: h264
         static std::string GetFileSuffix(const std::string& path);
         static std::string GetFileFolder(const std::string& path);
         static std::string GetFolderNameFormAbsFolderPath(const std::string& path);

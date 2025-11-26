@@ -5,6 +5,7 @@
 #include "folder_util.h"
 #include <filesystem>
 #include <iostream>
+#include "log.h"
 #include "file_util.h"
 #include "string_util.h"
 
@@ -137,14 +138,14 @@ namespace tc
 
     std::wstring FolderUtil::GetCurrentFilePath() {
         wchar_t path[MAX_PATH] = {0};
-        GetModuleFileNameW(NULL, path, MAX_PATH);
-        return std::wstring(path);
+        GetModuleFileNameW(nullptr, path, MAX_PATH);
+        return {path};
     }
 
     std::wstring FolderUtil::GetCurrentFolderPath() {
         const int maxPath = 4096;
         wchar_t szFullPath[maxPath] = { 0 };
-        ::GetModuleFileNameW(NULL, szFullPath, maxPath);
+        ::GetModuleFileNameW(nullptr, szFullPath, maxPath);
         ::PathRemoveFileSpecW(szFullPath);
         return {szFullPath};
     }
@@ -163,18 +164,19 @@ namespace tc
 
 #endif
 
-    std::wstring FolderUtil::GetProgramDataPath() {
+    std::wstring FolderUtil::GetProgramDataPath(const std::string& app) {
 #ifdef WIN32
         QString sharedPath;
         // Windows: 使用ProgramData
         wchar_t path[MAX_PATH];
-        if (SUCCEEDED(SHGetFolderPathW(NULL, CSIDL_COMMON_APPDATA, NULL, 0, path))) {
+        if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_COMMON_APPDATA, nullptr, 0, path))) {
             sharedPath = QDir::fromNativeSeparators(QString::fromWCharArray(path));
-        } else {
+        }
+        else {
             sharedPath = "C:/ProgramData";
         }
         // 创建应用子目录
-        QString appPath = sharedPath + "/GammaRay";// + QCoreApplication::applicationName();
+        QString appPath = sharedPath + "/" + app.c_str();
         QDir dir;
         if (!dir.exists(appPath)) {
             dir.mkpath(appPath);
@@ -193,7 +195,32 @@ namespace tc
         return L"";
     }
 
-    bool FolderUtil::CopyDirectory(const fs::path& source, const fs::path& destination, bool overwrite) {
+    bool FolderUtil::DeleteDir(const std::string& path) {
+        auto wp = QString::fromStdString(path).toStdWString();
+        return FolderUtil::DeleteDir(wp);
+    }
+
+    bool FolderUtil::DeleteDir(const std::wstring& path) {
+#ifdef WIN32
+        QDir dir(QString::fromStdWString(path));
+        if (dir.exists()) {
+            return dir.removeRecursively();
+        }
+        return true;
+#else
+        fs::path dir = path;
+        std::error_code ec;
+        fs::remove_all(dir, ec);
+
+        if (ec) {
+            return false;
+        } else {
+            return true;
+        }
+#endif
+    }
+
+    bool FolderUtil::CopyDir(const fs::path& source, const fs::path& destination, const std::vector<std::string>& ignore_suffix, bool overwrite) {
         try {
             if (!fs::exists(source) || !fs::is_directory(source)) {
                 std::cerr << "Source directory does not exist or is not a directory: " << source << std::endl;
@@ -219,12 +246,31 @@ namespace tc
                     if (fs::is_directory(entry.status())) {
                         // 创建目录
                         fs::create_directories(target_path);
-                    } else if (fs::is_regular_file(entry.status())) {
+                    }
+                    else if (fs::is_regular_file(entry.status())) {
+                        auto path = entry.path().filename();
+                        auto filename = entry.path().filename().string();
+                        auto suffix = FileUtil::GetFileSuffix(filename);
+                        suffix = StringUtil::ToLowerCpy(suffix);
+                        bool need_ignore_it = false;
+                        for (const auto& sf : ignore_suffix) {
+                            if (suffix.find(sf) != std::string::npos) {
+                                need_ignore_it = true;
+                                break;
+                            }
+                        }
+
+                        if (need_ignore_it) {
+                            LOGI("CopyDir, ignoring the file: {}", filename);
+                            continue;
+                        }
+
                         // 拷贝文件
                         if (fs::exists(target_path)) {
                             if (overwrite) {
                                 fs::remove(target_path); // 删除已存在的文件
-                            } else {
+                            }
+                            else {
                                 std::cout << "Skipped (already exists): " << relative_path << std::endl;
                                 continue;
                             }
@@ -234,8 +280,10 @@ namespace tc
                         fs::copy_file(entry.path(), target_path, fs::copy_options::overwrite_existing);
                         std::cout << "Copied: " << relative_path << std::endl;
                     }
-                } catch (const fs::filesystem_error& ex) {
-                    std::cerr << "Error processing " << entry.path() << ": " << ex.what() << std::endl;
+                }
+                catch (const fs::filesystem_error& ex) {
+                    auto filename = entry.path().filename().string();
+                    LOGE("Error processing :{} -> {}", filename, ex.what());
                     // 继续处理其他文件
                     continue;
                 }
@@ -244,11 +292,13 @@ namespace tc
             std::cout << "Directory copy completed: " << source << " -> " << destination << std::endl;
             return true;
 
-        } catch (const fs::filesystem_error& ex) {
-            std::cerr << "Filesystem error: " << ex.what() << std::endl;
+        }
+        catch (const fs::filesystem_error& ex) {
+            LOGE("Filesystem error: {}", ex.what());
             return false;
-        } catch (const std::exception& ex) {
-            std::cerr << "Error: " << ex.what() << std::endl;
+        }
+        catch (const std::exception& ex) {
+            LOGE("Error: {} ", ex.what());
             return false;
         }
     }
