@@ -58,6 +58,12 @@ namespace tc
             return target;
         }
 
+        static std::string ToUpperCpy(const std::string& data) {
+            std::string target = data;
+            std::transform(target.begin(), target.end(), target.begin(), [](unsigned char c) -> char { return std::toupper(c); });
+            return target;
+        }
+
         static bool StartWith(const std::string& input, const std::string& find) {
             if (input.rfind(find, 0) == 0) {
                 return true;
