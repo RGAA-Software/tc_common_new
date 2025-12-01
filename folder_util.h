@@ -40,7 +40,15 @@ namespace tc
         // destination:
         // ignore_suffix: lowercase, eg: {".h264", ".h265"}
         // overwrite:
-        static bool CopyDir(const fs::path& source, const fs::path& destination, const std::vector<std::string>& ignore_suffix = {}, bool overwrite = true);
+        static bool CopyDir(const fs::path& source,
+                            const fs::path& destination,
+                            const std::vector<std::string>& ignore_suffix = {},
+                            bool overwrite = true);
+        //
+        static bool CopyDir(const fs::path& source,
+                            const fs::path& destination,
+                            std::function<bool(const std::string& path, const std::string& filename)>&& ignore_predicate,
+                            bool overwrite = true);
 
         static std::wstring GetProgramDataPath(const std::string& app = "GammaRay");
 

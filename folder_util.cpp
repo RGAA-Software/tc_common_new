@@ -221,54 +221,58 @@ namespace tc
     }
 
     bool FolderUtil::CopyDir(const fs::path& source, const fs::path& destination, const std::vector<std::string>& ignore_suffix, bool overwrite) {
+        return CopyDir(source, destination, [&](const std::string& path, const std::string& filename) -> bool {
+            auto suffix = FileUtil::GetFileSuffix(filename);
+            suffix = StringUtil::ToLowerCpy(suffix);
+            bool need_ignore_it = false;
+            for (const auto& sf : ignore_suffix) {
+                if (suffix.find(sf) != std::string::npos) {
+                    need_ignore_it = true;
+                    break;
+                }
+            }
+            return need_ignore_it;
+        }, overwrite);
+    }
+
+    bool FolderUtil::CopyDir(const fs::path& source,
+                             const fs::path& destination,
+                             std::function<bool(const std::string& path, const std::string& filename)>&& ignore_predicate,
+                             bool overwrite) {
         try {
             if (!fs::exists(source) || !fs::is_directory(source)) {
                 std::cerr << "Source directory does not exist or is not a directory: " << source << std::endl;
                 return false;
             }
 
-            // 创建目标目录（如果不存在）
             if (!fs::exists(destination)) {
                 fs::create_directories(destination);
                 std::cout << "Created destination directory: " << destination << std::endl;
             }
 
-            // 递归遍历源目录
             for (const auto& entry : fs::recursive_directory_iterator(
                     source,
                     fs::directory_options::skip_permission_denied)) {
 
                 try {
-                    // 计算目标路径
                     auto relative_path = fs::relative(entry.path(), source);
                     auto target_path = destination / relative_path;
 
                     if (fs::is_directory(entry.status())) {
-                        // 创建目录
                         fs::create_directories(target_path);
                     }
                     else if (fs::is_regular_file(entry.status())) {
-                        auto path = entry.path().filename();
+                        auto path = entry.path().string();
                         auto filename = entry.path().filename().string();
-                        auto suffix = FileUtil::GetFileSuffix(filename);
-                        suffix = StringUtil::ToLowerCpy(suffix);
-                        bool need_ignore_it = false;
-                        for (const auto& sf : ignore_suffix) {
-                            if (suffix.find(sf) != std::string::npos) {
-                                need_ignore_it = true;
-                                break;
-                            }
-                        }
-
+                        auto need_ignore_it = ignore_predicate(path, filename);
                         if (need_ignore_it) {
                             LOGI("CopyDir, ignoring the file: {}", filename);
                             continue;
                         }
 
-                        // 拷贝文件
                         if (fs::exists(target_path)) {
                             if (overwrite) {
-                                fs::remove(target_path); // 删除已存在的文件
+                                fs::remove(target_path);
                             }
                             else {
                                 std::cout << "Skipped (already exists): " << relative_path << std::endl;
@@ -276,15 +280,12 @@ namespace tc
                             }
                         }
 
-                        // 拷贝文件内容
                         fs::copy_file(entry.path(), target_path, fs::copy_options::overwrite_existing);
-                        std::cout << "Copied: " << relative_path << std::endl;
                     }
                 }
                 catch (const fs::filesystem_error& ex) {
                     auto filename = entry.path().filename().string();
                     LOGE("Error processing :{} -> {}", filename, ex.what());
-                    // 继续处理其他文件
                     continue;
                 }
             }
