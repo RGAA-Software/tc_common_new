@@ -47,7 +47,7 @@ namespace tc
 
     std::vector<ProcessInfoPtr> ProcessHelper::GetProcessList(bool query_icon) {
         std::vector<ProcessInfoPtr> processes;
-        std::vector<ProcessInfoPtr> retList;
+        std::vector<ProcessInfoPtr> ret_list;
 
         PROCESSENTRY32W pe32;
         pe32.dwSize = sizeof(pe32);
@@ -55,7 +55,7 @@ namespace tc
         HANDLE hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
         if (hProcessSnap == INVALID_HANDLE_VALUE) {
             LOGE("CreateToolhelp32Snapshot Error!");
-            return retList;
+            return ret_list;
         }
         BOOL bResult = Process32FirstW(hProcessSnap, &pe32);
         while (bResult) {
@@ -70,7 +70,7 @@ namespace tc
             CloseHandle(hProcessSnap);
         }
 
-        for (auto &info: processes) {
+        for (const auto& info: processes) {
             uint32_t pid = info->pid_;
             HANDLE handle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,FALSE, pid);
             if (handle == nullptr) {
@@ -113,7 +113,7 @@ namespace tc
 
             // command line
             SIZE_T nCommandLineSize = 0;
-            if (GetProcessCommandLineW(handle, NULL, NULL, &nCommandLineSize)) {
+            if (GetProcessCommandLineW(handle, nullptr, 0, &nCommandLineSize)) {
                 std::wstring cmdline;
                 cmdline.resize(nCommandLineSize);
                 if (GetProcessCommandLineW(handle, cmdline.data(), nCommandLineSize, &nCommandLineSize)) {
@@ -124,16 +124,16 @@ namespace tc
             // session id
             DWORD session_id = -1;
             if (ProcessIdToSessionId(info->pid_, &session_id)) {
-                info->session_id_ = session_id;
+                info->session_id_ = (int32_t)session_id;
             }
 
             if (upath.starts_with(R"(C:\Windows\System32\)")
                 /*other....*/) {
                 continue;
             }
-            retList.push_back(info);
+            ret_list.push_back(info);
         }
-        return retList;
+        return ret_list;
     }
 
     bool ProcessHelper::CloseProcess(DWORD pid) {
