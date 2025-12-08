@@ -19,7 +19,7 @@ namespace tc
         }
 
         ConcurrentType(const ConcurrentType& other) {
-            T other_value = other.Load();
+            T other_value = other.Clone();
             this->Update(other_value);
         }
 
@@ -28,7 +28,7 @@ namespace tc
             inner_ = s;
         }
 
-        T Load() const {
+        T Clone() const {
             std::lock_guard<std::mutex> guard(mtx_);
             return inner_;
         }
@@ -52,7 +52,7 @@ namespace tc
 
         ConcurrentType<T>& operator=(const ConcurrentType<T>& other) {
             if (this != &other) {
-                T other_value = other.Load();
+                T other_value = other.Clone();
                 this->Update(other_value);
             }
             return *this;
@@ -64,11 +64,11 @@ namespace tc
         }
 
         bool operator == (const T& other) {
-            return this->Load() == other;
+            return this->Clone() == other;
         }
 
         bool operator != (const T& other) {
-            return this->Load() != other;
+            return this->Clone() != other;
         }
 
     private:
