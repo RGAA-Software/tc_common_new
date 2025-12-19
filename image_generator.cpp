@@ -32,6 +32,8 @@ namespace tc
         qDebug() << "Background filled";
 
         QPainter painter(&image);
+        painter.setRenderHint(QPainter::Antialiasing);
+        painter.setRenderHint(QPainter::TextAntialiasing);
         qDebug() << "Painter created, isActive:" << painter.isActive();
 
         if (!painter.isActive()) {
