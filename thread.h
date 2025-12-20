@@ -163,6 +163,8 @@ namespace tc
         uint32_t tid_ = 0;
 
         std::function<void(ThreadTaskPtr task_ptr)> on_front_task_callback_;
+
+        uint32_t thread_id_ = 0;
     };
 
 

@@ -28,14 +28,16 @@ namespace tc
 #endif
             task();
         });
-        
+        thread_id_ = GetGeneralId();
+
         if (join) {
             thread_->join();
         }
     }
 
     Thread::~Thread() {
-        MemoryStat::Instance()->RemoveThread(GetGeneralId());
+        MemoryStat::Instance()->RemoveThread(thread_id_);
+        Exit();
     }
 
     void Thread::Poll() {
@@ -53,8 +55,8 @@ namespace tc
 #endif
             TaskLoop();
         });
-
-        MemoryStat::Instance()->AddThread(GetGeneralId(), shared_from_this());
+        thread_id_ = GetGeneralId();
+        MemoryStat::Instance()->AddThread(thread_id_, shared_from_this());
     }
 
 
@@ -168,6 +170,7 @@ namespace tc
         take_var_.notify_one();
         if (thread_ && thread_->joinable()) {
             thread_->join();
+            thread_ = nullptr;
         }
     }
 

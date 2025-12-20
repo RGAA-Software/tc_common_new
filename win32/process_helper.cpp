@@ -116,6 +116,7 @@ namespace tc
             if (GetProcessCommandLineW(handle, nullptr, 0, &nCommandLineSize)) {
                 std::wstring cmdline;
                 cmdline.resize(nCommandLineSize);
+                memset(cmdline.data(), 0, cmdline.size()*2);
                 if (GetProcessCommandLineW(handle, cmdline.data(), nCommandLineSize, &nCommandLineSize)) {
                     info->exe_cmdline_ = StringUtil::ToUTF8(cmdline);
                 }
