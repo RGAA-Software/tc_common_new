@@ -34,7 +34,7 @@ namespace tc
         HttpResponse Request();
         HttpResponse Request(const std::map<std::string, std::string>& query, const std::string& body = "");
         HttpResponse Post();
-        HttpResponse Post(const std::map<std::string, std::string>& query, const std::string& body = "");
+        HttpResponse Post(const std::map<std::string, std::string>& query, const std::string& body = "", const std::string content_type = "");
         HttpResponse PostMultiPart(const std::map<std::string, std::string>& query,
                                    const std::map<std::string, std::string>& form_parts,
                                    const std::map<std::string, std::string>& file_parts);

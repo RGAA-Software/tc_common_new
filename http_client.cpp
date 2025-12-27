@@ -93,7 +93,7 @@ namespace tc
         return Post(params);
     }
 
-    HttpResponse HttpClient::Post(const std::map<std::string, std::string>& query, const std::string& body) {
+    HttpResponse HttpClient::Post(const std::map<std::string, std::string>& query, const std::string& body, const std::string content_type) {
         cpr::Parameters params;
         for (const auto& [k, v] : query) {
             // params
@@ -107,7 +107,11 @@ namespace tc
         session.SetVerifySsl(false);
         session.SetBody(body);
         session.SetTimeout(cpr::Timeout{this->timeout_ms_});
-        session.SetHeader(cpr::Header{{"Authorization", "Bearer token"}});
+        auto header = cpr::Header{ {"Authorization", "Bearer token"} };
+        if (!content_type.empty()) {
+            header.insert({ "Content-Type", content_type });
+        }
+        session.SetHeader(header);
         session.SetParameters(params);
 
         cpr::Response response = session.Post();
