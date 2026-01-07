@@ -41,7 +41,7 @@ namespace tc
         QList<QNetworkInterface> interfaces = QNetworkInterface::allInterfaces();
         QList<QNetworkAddressEntry> entry;
         for(QNetworkInterface inter : interfaces) {
-            LOGI("human readable name: {}", inter.humanReadableName().toStdString());
+            //LOGI("human readable name: {}", inter.humanReadableName().toStdString());
             if (NeedIgnoreNetwork(inter.humanReadableName())) {
                 continue;
             }
@@ -60,7 +60,7 @@ namespace tc
                     if (entry.at(i).ip().protocol() == QAbstractSocket::IPv4Protocol) {
                         auto ip = entry.at(i).ip().toString().toStdString();
                         auto broadcast = entry.at(i).broadcast().toString().toStdString();
-                        LOGI("IP: {}, broadcast: {}", ip, broadcast);
+                        //LOGI("IP: {}, broadcast: {}", ip, broadcast);
                         if (-1 != inter.name().indexOf("wireless")) {
                             all_et_info.push_back(EthernetInfo{
                                 .human_readable_name_ = inter.humanReadableName().toStdString(),
@@ -69,7 +69,7 @@ namespace tc
                                 .mac_address_ = mac_address,
                             });
                         } else if (-1 != inter.name().indexOf("ethernet")) {
-                            LOGI("Net Name: {}", inter.name().toStdString());
+                            //LOGI("Net Name: {}", inter.name().toStdString());
                             all_et_info.push_back(EthernetInfo{
                                     .human_readable_name_ = inter.humanReadableName().toStdString(),
                                     .ip_addr_ = entry.at(i).ip().toString().toStdString(),
