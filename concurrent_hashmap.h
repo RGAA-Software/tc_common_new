@@ -154,6 +154,10 @@ namespace tc
             return inner_.size();
         }
 
+        bool Empty() {
+            return Size() <= 0;
+        }
+
         void Clear() {
             std::lock_guard<std::mutex> lock(mtx_);
             inner_.clear();
