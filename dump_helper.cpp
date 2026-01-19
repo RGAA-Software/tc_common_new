@@ -128,6 +128,53 @@ namespace tc
             google_breakpad::ExceptionHandler::HANDLER_ALL
         );
     }
+
+    void ClearOldDumps() {
+        auto dump_path = FolderUtil::GetProgramDataPath() + L"/gr_dumps";
+        CleanupDirectory(dump_path, 20);
+    }
+
+    void CleanupDirectory(const fs::path& dir, std::size_t keep_count) {
+        if (!fs::exists(dir) || !fs::is_directory(dir)) {
+            std::cerr << "Directory not exists: " << dir << std::endl;
+            return;
+        }
+
+        struct FileInfo {
+            fs::path path;
+            fs::file_time_type time;
+        };
+
+        std::vector<FileInfo> files;
+
+        for (const auto& entry : fs::directory_iterator(dir)) {
+            if (entry.is_regular_file()) {
+                files.push_back({ entry.path(), entry.last_write_time() });
+            }
+        }
+
+        if (files.size() <= keep_count) {
+            return;
+        }
+
+        //按时间排序（新 → 旧）
+        std::sort(files.begin(), files.end(),
+            [](const FileInfo& a, const FileInfo& b) {
+                return a.time > b.time;
+            });
+
+        // 删除多余的
+        for (std::size_t i = keep_count; i < files.size(); ++i) {
+            try {
+                fs::remove(files[i].path);
+                std::cout << "Deleted: " << files[i].path << std::endl;
+            }
+            catch (const std::exception& e) {
+                std::cerr << "Failed to delete " << files[i].path
+                    << ": " << e.what() << std::endl;
+            }
+        }
+    }
 }
 
 #endif
