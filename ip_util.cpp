@@ -71,10 +71,10 @@ namespace tc
                         } else if (-1 != inter.name().indexOf("ethernet")) {
                             //LOGI("Net Name: {}", inter.name().toStdString());
                             all_et_info.push_back(EthernetInfo{
-                                    .human_readable_name_ = inter.humanReadableName().toStdString(),
-                                    .ip_addr_ = entry.at(i).ip().toString().toStdString(),
-                                    .nt_type_ = IPNetworkType::kWired,
-                                    .mac_address_ = mac_address,
+                                .human_readable_name_ = inter.humanReadableName().toStdString(),
+                                .ip_addr_ = entry.at(i).ip().toString().toStdString(),
+                                .nt_type_ = IPNetworkType::kWired,
+                                .mac_address_ = mac_address,
                             });
                         }
                     }
