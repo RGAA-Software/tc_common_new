@@ -33,6 +33,11 @@ namespace tc
             return inner_;
         }
 
+        bool HasValue() const {
+            std::lock_guard<std::mutex> guard(mtx_);
+            return inner_ ? true : false;
+        }
+
         /**
          *  auto r = c_auther.WithLock([=, this](auto& inner) {
          *       auto c = inner.find_one(make_document(
