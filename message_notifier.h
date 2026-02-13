@@ -27,6 +27,12 @@ namespace tc
             });
         }
 
+        void UnListenAll() const {
+            if (listener_) {
+                listener_->unlistenAll();
+            }
+        }
+
     private:
         std::shared_ptr<dexode::EventBus::Listener> listener_ = nullptr;
     };
