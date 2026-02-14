@@ -4,6 +4,7 @@
 
 #include "file_util.h"
 #include "string_util.h"
+#include <filesystem>
 
 #ifdef WIN32
 #include <QFile>
