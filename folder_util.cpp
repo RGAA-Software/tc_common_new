@@ -196,7 +196,11 @@ namespace tc
     }
 
     bool FolderUtil::DeleteDir(const std::string& path) {
+#ifdef WIN32
         auto wp = QString::fromStdString(path).toStdWString();
+#else
+        auto wp = StringUtil::ToWString(path);
+#endif
         return FolderUtil::DeleteDir(wp);
     }
 

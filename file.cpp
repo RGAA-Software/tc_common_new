@@ -103,7 +103,7 @@ namespace tc
         }
         file_info_ = QFileInfo(path.c_str());
 #else
-        fopen(path.c_str(), mode.c_str());
+        auto r = fopen(path.c_str(), mode.c_str());
 #endif
     }
     

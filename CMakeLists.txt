@@ -110,33 +110,36 @@ if(FFTW3_ENABLED)
 endif()
 
 add_library(tc_common_new ${SRCS})
-target_link_libraries(tc_common_new Dexode::EventBus)
+target_link_libraries(tc_common_new PRIVATE Dexode::EventBus)
 if (WIN32)
     if(TESTS_ENABLED)
         add_subdirectory(tests)
     endif()
 
-    target_link_libraries(tc_common_new DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto Shlwapi.lib Wtsapi32.lib)#libssl64MT.lib libcrypto64MT.lib OpenSSL::SSL OpenSSL::Crypto
-    target_link_libraries(tc_common_new Qt6::Core Qt6::Core5Compat Qt6::Widgets Qt6::Network)
+    target_link_libraries(tc_common_new PRIVATE DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto Shlwapi.lib Wtsapi32.lib)#libssl64MT.lib libcrypto64MT.lib OpenSSL::SSL OpenSSL::Crypto
+    target_link_libraries(tc_common_new PRIVATE Qt6::Core Qt6::Core5Compat Qt6::Widgets Qt6::Network)
     if (DirectXTex_ENABLED)
-        target_link_libraries(tc_common_new DirectXTex)
+        target_link_libraries(tc_common_new PRIVATE DirectXTex)
     endif()
     if (FFTW3_ENABLED)
-        target_link_libraries(tc_common_new FFTW3::fftw3)
+        target_link_libraries(tc_common_new PRIVATE FFTW3::fftw3)
     endif()
     set(BREAKPAD_LIB_PATH ${VCPKG_ROOT}/packages/breakpad_x64-windows-static/lib)
-    target_link_libraries(tc_common_new ${BREAKPAD_LIB_PATH}/libbreakpad.lib ${BREAKPAD_LIB_PATH}/libbreakpad_client.lib)
+    target_link_libraries(tc_common_new PRIVATE ${BREAKPAD_LIB_PATH}/libbreakpad.lib ${BREAKPAD_LIB_PATH}/libbreakpad_client.lib)
 endif ()
 
 if(JEMALLOC_ENABLED)
-    target_link_libraries(tc_common_new jemalloc)
+    target_link_libraries(tc_common_new PRIVATE jemalloc)
 endif ()
 
 ###
 if (ANDROID)
-    target_link_libraries(tc_common_new ${ANDROID_OPENSSL_LIBS})
+    target_link_libraries(tc_common_new PRIVATE ${ANDROID_OPENSSL_LIBS})
 endif ()
 
-target_link_libraries(tc_common_new leveldb cpr::cpr)
+target_link_libraries(tc_common_new PRIVATE leveldb)
+if (WIN32)
+    target_link_libraries(tc_common_new PRIVATE cpr::cpr)
+endif ()
 
 target_include_directories(tc_common_new PUBLIC ${GR_PROJECT_PATH}/tc_3rdparty/eventbus/src)
