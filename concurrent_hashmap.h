@@ -163,6 +163,15 @@ namespace tc
             inner_.clear();
         }
 
+        std::map<K, V> Clone() {
+            std::lock_guard<std::mutex> lock(mtx_);
+            std::map<K,V> cpy;
+            for (const auto& [k, v] : inner_) {
+                cpy.insert({k, v});
+            }
+            return cpy;
+        }
+
     private:
         std::mutex mtx_;
         std::map<K,V> inner_;
