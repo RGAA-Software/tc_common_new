@@ -40,6 +40,9 @@ namespace tc
 
         // Switch the current thread to the specified desktop
         static bool SwitchToDesktop(HDESK desktop);
+
+        // is session locked
+        static bool IsSessionLocked();
     };
 
 }

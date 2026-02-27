@@ -13,6 +13,7 @@
 #include <QProcess>
 #include <QStringList>
 #include <QString>
+#include <WtsApi32.h>
 #include "tc_common_new/string_util.h"
 
 #pragma comment(lib, "Wtsapi32.lib")
@@ -365,6 +366,28 @@ namespace tc
             //
         }
         return true;
+    }
+
+    bool WinHelper::IsSessionLocked() {
+        DWORD sessionId = WTSGetActiveConsoleSessionId();
+        LPTSTR buffer = nullptr;
+        DWORD bytesReturned = 0;
+        if (WTSQuerySessionInformation(
+            WTS_CURRENT_SERVER_HANDLE,
+            sessionId,
+            WTSSessionInfoEx,
+            &buffer,
+            &bytesReturned)) {
+            WTSINFOEX* info = (WTSINFOEX*)buffer;
+            bool locked = false;
+            if (info->Level == 1) {
+                locked = (info->Data.WTSInfoExLevel1.SessionFlags == WTS_SESSIONSTATE_LOCK);
+            }
+            WTSFreeMemory(buffer);
+            return locked;
+        }
+
+        return false;
     }
 
 }

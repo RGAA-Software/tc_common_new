@@ -42,6 +42,15 @@ namespace tc
             }
         }
 
+        std::vector<T> Clone() {
+            std::lock_guard<std::mutex> guard(mtx_);
+            std::vector<T> out;
+            for (const auto& t : inner_) {
+                out.push_back(t);
+            }
+            return out;
+        }
+
         void RemoveFirst() {
             std::lock_guard<std::mutex> guard(mtx_);
             if (!inner_.empty()) {
