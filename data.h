@@ -15,18 +15,18 @@ namespace tc
         Data(const char *data, int64_t size);
         ~Data();
 
-        const char *CStr();
-        char* DataAddr();
-        int Size();
-        char At(int64_t offset);
-        std::string AsString();
-        void ConvertToStr(std::string& out);
-        std::shared_ptr<Data> Dup();
+        [[nodiscard]] const char* CStr() const;
+        [[nodiscard]] char* DataAddr() const;
+        [[nodiscard]] int64_t Size() const;
+        [[nodiscard]] char At(int64_t offset) const;
+        [[nodiscard]] std::string AsString() const;
+        void ConvertToStr(std::string& out) const;
+        [[nodiscard]] std::shared_ptr<Data> Dup() const;
         bool Append(char* data, int64_t size);
-        int64_t Offset();
+        [[nodiscard]] int64_t Offset() const;
         void Reset();
         void Save(const std::string& path);
-        std::shared_ptr<Data> Clone();
+        [[nodiscard]] std::shared_ptr<Data> Clone() const;
 
     private:
         char* data_{nullptr};

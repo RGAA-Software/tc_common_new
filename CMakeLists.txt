@@ -131,9 +131,13 @@ endif ()
 if(JEMALLOC_ENABLED)
     target_link_libraries(tc_common_new jemalloc)
     ###
-    if (ANDROID)
 endif ()
 
+if (MIMALLOC_ENABLED)
+    target_link_libraries(tc_common_new $<IF:$<TARGET_EXISTS:mimalloc-static>,mimalloc-static,mimalloc>)
+endif ()
+
+if (ANDROID)
     target_link_libraries(tc_common_new ${ANDROID_OPENSSL_LIBS})
 endif ()
 

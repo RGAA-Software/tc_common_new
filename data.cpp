@@ -4,6 +4,11 @@
 #if JEMALLOC_ON
 #include "jemalloc/jemalloc.h"
 #endif
+
+#if MIMALLOC_ON
+#include <mimalloc.h>
+#endif
+
 #include "memory_stat.h"
 #include "snowflake/snowflake.h"
 
@@ -12,9 +17,11 @@ namespace tc
 
     Data::Data(const char* src, int64_t size) {
 #if JEMALLOC_ON
-        this->data_ = (char*)je_malloc(size);
+        this->data_ = static_cast<char *>je_malloc(size);
+#elif MIMALLOC_ON
+        this->data_ = static_cast<char *>(mi_malloc(size));
 #else
-        this->data_ = (char *) malloc(size);
+        this->data_ = static_cast<char *>malloc(size);
 #endif
         if (src) {
             memcpy(this->data_, src, size);
@@ -33,13 +40,15 @@ namespace tc
     }
 
     std::shared_ptr<Data> Data::From(const std::string& data) {
-        return std::make_shared<Data>((char*)data.data(), (int)data.size());
+        return std::make_shared<Data>(const_cast<char *>(data.data()), static_cast<int>(data.size()));
     }
 
     Data::~Data() {
         if (this->data_) {
 #if JEMALLOC_ON
             je_free(this->data_);
+#elif MIMALLOC_ON
+            mi_free(this->data_);
 #else
             free(this->data_);
 #endif
@@ -50,23 +59,20 @@ namespace tc
         }
     }
 
-    const char *Data::CStr() {
+    const char *Data::CStr() const {
         return this->data_;
     }
 
-    std::string Data::AsString() {
-        std::string val;
-        val.resize(size_);
-        memcpy(val.data(), this->data_, size_);
-        return val;
+    std::string Data::AsString() const {
+        return std::string(data_, size_);
     }
 
-    void Data::ConvertToStr(std::string& out) {
+    void Data::ConvertToStr(std::string& out) const {
         out.resize(size_);
         memcpy((char*)out.data(), this->data_, size_);
     }
 
-    int Data::Size() {
+    int64_t Data::Size() const {
         return this->size_;
     }
 
@@ -74,15 +80,15 @@ namespace tc
         return std::make_shared<Data>(data_, size);
     }
 
-    char Data::At(int64_t offset) {
+    char Data::At(int64_t offset) const {
         return *(this->data_ + offset);
     }
 
-    char* Data::DataAddr() {
+    char* Data::DataAddr() const {
         return this->data_;
     }
 
-    std::shared_ptr<Data> Data::Dup() {
+    std::shared_ptr<Data> Data::Dup() const {
         return Data::Make(this->data_, this->size_);
     }
 
@@ -95,7 +101,7 @@ namespace tc
         return true;
     }
 
-    int64_t Data::Offset() {
+    int64_t Data::Offset() const {
         return offset_;
     }
 
@@ -109,7 +115,7 @@ namespace tc
 //        file->Close();
     }
 
-    std::shared_ptr<Data> Data::Clone() {
+    std::shared_ptr<Data> Data::Clone() const {
         if (this->data_ && this->size_ > 0) {
             return Data::Make(this->CStr(), this->Size());
         }
