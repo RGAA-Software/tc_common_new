@@ -8,11 +8,17 @@
 namespace tc
 {
 
-    bool ZipUtil::ZipFolder(const std::string& directory_path, const std::string& zip_file_path) {
+    bool ZipUtil::ZipFolder(const std::wstring& directory_path, const std::wstring& zip_file_path_w) {
         namespace fs = std::filesystem;
         // 创建zip归档
-        mz_zip_archive zip_archive;
-        memset(&zip_archive, 0, sizeof(zip_archive));
+        mz_zip_archive zip_archive = {};
+
+        std::filesystem::path p(zip_file_path_w);
+        std::u8string u8 = p.u8string();
+        std::string zip_file_path(
+            reinterpret_cast<const char*>(u8.data()),
+            u8.size()
+        );
 
         // 初始化zip归档
         if (!mz_zip_writer_init_file(&zip_archive, zip_file_path.c_str(), 0)) {
@@ -29,7 +35,16 @@ namespace tc
             for (const auto& entry : fs::recursive_directory_iterator(directory_path)) {
                 if (entry.is_regular_file()) {
                     // 获取文件路径
-                    std::string file_path = entry.path().string();
+                    std::wstring file_path = entry.path().wstring();
+
+                    std::filesystem::path fp(file_path);
+                    std::u8string fpu8 = fp.u8string();
+                    std::string fpath(
+                        reinterpret_cast<const char*>(fpu8.data()),
+                        fpu8.size()
+                    );
+
+                    std::cout << "fpath: " << fpath << std::endl;
 
                     // 计算在zip中的相对路径
                     std::string relative_path = fs::relative(entry.path(), directory_path).string();
@@ -37,15 +52,15 @@ namespace tc
 
                     // 尝试添加文件到zip，忽略任何错误
                     bool added = mz_zip_writer_add_file(&zip_archive, relative_path.c_str(),
-                                                        file_path.c_str(), nullptr, 0,
+                                                        fpath.c_str(), nullptr, 0,
                                                         MZ_BEST_COMPRESSION);
 
                     if (added) {
                         success_count++;
-                        std::cout << "✓ Added: " << relative_path << std::endl;
+                        std::cout << "[^] Added: " << relative_path << std::endl;
                     } else {
                         skip_count++;
-                        std::cout << "✗ Skipped (may be locked): " << relative_path << std::endl;
+                        std::cerr << "[x] Skipped (may be locked): " << relative_path << std::endl;
                         // 继续处理下一个文件，不退出
                     }
                 }
@@ -91,8 +106,7 @@ namespace tc
         std::cout << "Output: " << zip_file_path << std::endl;
 
         // 只要成功创建了zip文件就返回true，即使有些文件被跳过
-        auto w_path = StringUtil::ToWString(zip_file_path);
-        return fs::exists(w_path) && fs::file_size(w_path) > 0;
+        return fs::exists(zip_file_path) && fs::file_size(zip_file_path) > 0;
     }
 
 }

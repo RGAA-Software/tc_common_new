@@ -41,7 +41,7 @@ namespace tc
     class Logger {
     public:
 
-        static bool InitLog(const std::string& path, bool save_to_file = false) {
+        static bool InitLog(const std::wstring& path, bool save_to_file = false) {
 #if defined(WIN32) || defined(__APPLE__) || (defined(__linux__) && !defined(ANDROID))
             if (save_to_file) {
                 try {

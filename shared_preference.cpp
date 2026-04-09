@@ -1,29 +1,42 @@
 #include "shared_preference.h"
 
-
+#include <filesystem>
 #include <iostream>
+
+#include "log.h"
+#include "string_util.h"
 
 namespace tc 
 {
 
-    bool SharedPreference::Init(const std::string& path, const std::string& name) {
+    bool SharedPreference::Init(const std::wstring& path, const std::string& name) {
         leveldb::Options options;
         options.create_if_missing = true;
-        std::string target_path = path;
+        std::wstring target_path = path;
         if (path.empty()) {
-            target_path = ".";
+            target_path = L".";
         }
-        auto status = leveldb::DB::Open(options, target_path + "/" + name, &db_);
+
+        std::filesystem::path p(target_path);
+        p /= name;
+
+        std::u8string u8 = p.u8string();
+        std::string str(
+            reinterpret_cast<const char*>(u8.data()),
+            u8.size()
+        );
+        LOGI("SharedPreference: {}", str);
+        auto status = leveldb::DB::Open(options, str, &db_);
         return status.ok();
     }
     
-    void SharedPreference::Release() {
+    void SharedPreference::Release() const {
         if (db_) {
             delete db_;
         }
     }
     
-    bool SharedPreference::Put(const std::string& key, const std::string& value) {
+    bool SharedPreference::Put(const std::string& key, const std::string& value) const {
         if (!db_) {
             return false;
         }
@@ -31,7 +44,7 @@ namespace tc
         return st.ok();
     }
 
-    bool SharedPreference::PutInt(const std::string& key, int value) {
+    bool SharedPreference::PutInt(const std::string& key, int value) const {
         if (!db_) {
             return false;
         }
@@ -39,7 +52,7 @@ namespace tc
         return st.ok();
     }
 
-    std::string SharedPreference::Get(const std::string& key) {
+    std::string SharedPreference::Get(const std::string& key) const {
         if (!db_) {
             return "";
         }
@@ -48,7 +61,7 @@ namespace tc
         return value;
     }
 
-    std::string SharedPreference::Get(const std::string& key, const std::string& def) {
+    std::string SharedPreference::Get(const std::string& key, const std::string& def) const {
         if (!db_) {
             return def;
         }
@@ -61,7 +74,7 @@ namespace tc
         }
     }
 
-    int SharedPreference::GetInt(const std::string& key, int def) {
+    int SharedPreference::GetInt(const std::string& key, int def) const {
         if (!db_) {
             return 0;
         }
@@ -74,7 +87,7 @@ namespace tc
         }
     }
 
-    bool SharedPreference::Remove(const std::string& key) {
+    bool SharedPreference::Remove(const std::string& key) const {
         if (!db_) {
             return false;
         }
@@ -82,7 +95,7 @@ namespace tc
         return st.ok();
     }
     
-    void SharedPreference::Visit(IVisitListener&& listener) {
+    void SharedPreference::Visit(IVisitListener&& listener) const {
         if (!listener) {
             return;
         }

@@ -143,7 +143,7 @@ namespace tc
     }
 
     std::wstring FolderUtil::GetCurrentFolderPath() {
-        const int maxPath = 4096;
+        constexpr int maxPath = 4096;
         wchar_t szFullPath[maxPath] = { 0 };
         ::GetModuleFileNameW(nullptr, szFullPath, maxPath);
         ::PathRemoveFileSpecW(szFullPath);
@@ -153,12 +153,14 @@ namespace tc
     void FolderUtil::CreateDir(const std::string& path) {
         QDir dir;
         if (!dir.exists(path.c_str())) {
-            dir.mkpath(path.c_str());
+            if (!dir.mkpath(path.c_str())) {
+                LOGE("Create folder failed: {}", path);
+            }
         }
     }
 
     void FolderUtil::OpenDir(const std::string& path) {
-        auto target_path = std::format("file:///{}", path);
+        const auto target_path = std::format("file:///{}", path);
         QDesktopServices::openUrl(QUrl(target_path.c_str()));
     }
 
@@ -166,22 +168,14 @@ namespace tc
 
     std::wstring FolderUtil::GetProgramDataPath(const std::string& app) {
 #ifdef WIN32
-        QString sharedPath;
-        // Windows: 使用ProgramData
-        wchar_t path[MAX_PATH];
-        if (SUCCEEDED(SHGetFolderPathW(nullptr, CSIDL_COMMON_APPDATA, nullptr, 0, path))) {
-            sharedPath = QDir::fromNativeSeparators(QString::fromWCharArray(path));
+        auto sharedPath = QStandardPaths::writableLocation(QStandardPaths::PublicShareLocation);
+        const QString app_path = sharedPath + "/" + app.c_str();
+        if (const QDir dir(app_path); !dir.exists()) {
+            if (!dir.mkpath(app_path)) {
+                LOGE("Create folder failed: {}", app_path.toStdString());
+            }
         }
-        else {
-            sharedPath = "C:/ProgramData";
-        }
-        // 创建应用子目录
-        QString appPath = sharedPath + "/" + app.c_str();
-        QDir dir;
-        if (!dir.exists(appPath)) {
-            dir.mkpath(appPath);
-        }
-        return appPath.toStdWString();
+        return app_path.toStdWString();
 #endif
 
 #ifdef UNIX
@@ -197,7 +191,7 @@ namespace tc
 
     bool FolderUtil::DeleteDir(const std::string& path) {
 #ifdef WIN32
-        auto wp = QString::fromStdString(path).toStdWString();
+        const auto wp = QString::fromStdString(path).toStdWString();
 #else
         auto wp = StringUtil::ToWString(path);
 #endif

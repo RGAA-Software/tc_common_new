@@ -21,17 +21,17 @@ namespace tc
 
         SharedPreference() = default;
 
-        bool Init(const std::string& path, const std::string& name);
-        void Release();
+        bool Init(const std::wstring& path, const std::string& name);
+        void Release() const;
 
-        bool Put(const std::string& key, const std::string& value);
-        bool PutInt(const std::string& key, int value);
-        std::string Get(const std::string& key);
-        std::string Get(const std::string& key, const std::string& def);
-        int GetInt(const std::string& key, int def = 0);
-        bool Remove(const std::string& key);
+        bool Put(const std::string& key, const std::string& value) const;
+        bool PutInt(const std::string& key, int value) const;
+        std::string Get(const std::string& key) const;
+        std::string Get(const std::string& key, const std::string& def) const;
+        int GetInt(const std::string& key, int def = 0) const;
+        bool Remove(const std::string& key) const;
 
-        void Visit(IVisitListener&& listener);
+        void Visit(IVisitListener&& listener) const;
 
     private:
 

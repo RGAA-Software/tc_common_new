@@ -50,7 +50,7 @@ namespace tc
                             std::function<bool(const std::string& path, const std::string& filename)>&& ignore_predicate,
                             bool overwrite = true);
 
-        static std::wstring GetProgramDataPath(const std::string& app = "GammaRay");
+        static std::wstring GetProgramDataPath(const std::string& app = "GoDesk");
 
         static bool DeleteDir(const std::string& path);
 

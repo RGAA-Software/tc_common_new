@@ -9,7 +9,7 @@ namespace tc
 
     class ZipUtil {
     public:
-        static bool ZipFolder(const std::string& directory_path, const std::string& zip_file_path);
+        static bool ZipFolder(const std::wstring& directory_path, const std::wstring& zip_file_path);
     };
 
 }
