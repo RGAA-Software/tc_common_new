@@ -23,6 +23,9 @@ namespace tc
 
         bool Init(const std::wstring& path, const std::string& name);
         void Release() const;
+        bool IsReady() const { return initialized_; }
+        bool IsReadOnly() const { return read_only_; }
+        std::string GetLastError() const { return last_error_; }
 
         bool Put(const std::string& key, const std::string& value) const;
         bool PutInt(const std::string& key, int value) const;
@@ -35,7 +38,10 @@ namespace tc
 
     private:
 
-        leveldb::DB* db_;
+        leveldb::DB* db_ = nullptr;
+        bool initialized_ = false;
+        bool read_only_ = false;
+        std::string last_error_;
 };
 
 }

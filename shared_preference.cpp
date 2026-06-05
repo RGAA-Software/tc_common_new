@@ -10,6 +10,11 @@ namespace tc
 {
 
     bool SharedPreference::Init(const std::wstring& path, const std::string& name) {
+        Release();
+        initialized_ = false;
+        read_only_ = false;
+        last_error_.clear();
+
         leveldb::Options options;
         options.create_if_missing = true;
         std::wstring target_path = path;
@@ -27,13 +32,26 @@ namespace tc
         );
         LOGI("SharedPreference: {}", str);
         auto status = leveldb::DB::Open(options, str, &db_);
-        return status.ok();
+        if (!status.ok()) {
+            db_ = nullptr;
+            read_only_ = true;
+            last_error_ = status.ToString();
+            LOGE("SharedPreference::Init failed, path: {}, error: {}", str, last_error_);
+            return false;
+        }
+
+        initialized_ = true;
+        return true;
     }
     
     void SharedPreference::Release() const {
         if (db_) {
             delete db_;
+            const_cast<SharedPreference*>(this)->db_ = nullptr;
         }
+        const_cast<SharedPreference*>(this)->initialized_ = false;
+        const_cast<SharedPreference*>(this)->read_only_ = false;
+        const_cast<SharedPreference*>(this)->last_error_.clear();
     }
     
     bool SharedPreference::Put(const std::string& key, const std::string& value) const {
@@ -76,7 +94,7 @@ namespace tc
 
     int SharedPreference::GetInt(const std::string& key, int def) const {
         if (!db_) {
-            return 0;
+            return def;
         }
         std::string value;
         auto status = db_->Get(leveldb::ReadOptions(), key, &value);
