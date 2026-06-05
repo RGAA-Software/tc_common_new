@@ -12,8 +12,6 @@
 #include <Wbemidl.h>
 #include <algorithm> 
 #include <cctype>
-#include <locale>
-#include <codecvt>
 #include "tc_common_new/log.h"
 
 namespace tc

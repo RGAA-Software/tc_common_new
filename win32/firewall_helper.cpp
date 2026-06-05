@@ -2,6 +2,7 @@
 #include <Windows.h>
 #include <netfw.h>
 #include "tc_common_new/log.h"
+#include "tc_common_new/string_util.h"
 
 //NET_FW_RULE_DIRECTION_ GetRuleType(int type);
 std::string GetErrorMessage(HRESULT hr);
@@ -46,7 +47,7 @@ namespace tc
         hr = fw_policy2->get_Rules(&fw_rules);
         if (SUCCEEDED(hr)) {
             INetFwRule *fw_rule_item = nullptr;
-            std::wstring name = converter.from_bytes(info.name);
+            std::wstring name = StringUtil::ToWString(info.name);
             hr = fw_rules->Item((wchar_t *) name.c_str(), &fw_rule_item);
             if (SUCCEEDED(hr)) {
                 success = true;
@@ -65,8 +66,8 @@ namespace tc
                     pos = info.program_path.find("/");
                 }
 
-                std::wstring path = converter.from_bytes(info.program_path);
-                std::wstring desc = converter.from_bytes(info.desc);
+                std::wstring path = StringUtil::ToWString(info.program_path);
+                std::wstring desc = StringUtil::ToWString(info.desc);
 
                 fw_rule_item->put_Name((wchar_t *) name.c_str());
                 fw_rule_item->put_ApplicationName((wchar_t *) path.c_str());
@@ -98,7 +99,7 @@ namespace tc
             return success;
         }
         std::lock_guard<std::mutex> lock(lock_mutex);
-        std::wstring name = converter.from_bytes(rule_name);
+        std::wstring name = StringUtil::ToWString(rule_name);
         hr = fw_policy2->get_Rules(&fw_rules);
         if (SUCCEEDED(hr)) {
             INetFwRule *fw_rule_item = nullptr;

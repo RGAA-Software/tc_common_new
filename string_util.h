@@ -7,16 +7,18 @@
 
 #include <vector>
 #include <string>
+#include <string_view>
 #include <sstream>
 #include <algorithm>
-#include <locale>
-#include <codecvt>
 #include <cctype>
 #include <iomanip>
 #include <cstring>
 
 #ifdef WIN32
 #include <Windows.h>
+#else
+#include <cerrno>
+#include <iconv.h>
 #endif
 
 #include "num_formatter.h"
@@ -26,7 +28,6 @@ namespace tc
 
     class StringUtil {
     public:
-
         // 
         static void Split(const std::string &s, std::vector<std::string> &sv, const char delim = ' ') {
             sv.clear();
@@ -78,6 +79,17 @@ namespace tc
             return copy;
         }
 
+        template <size_t N>
+        static bool CopyCStringToArray(char (&dst)[N], std::string_view src) {
+            static_assert(N > 0, "destination buffer must not be empty");
+            const auto copy_size = std::min(src.size(), N - 1);
+            if (copy_size > 0) {
+                memcpy(dst, src.data(), copy_size);
+            }
+            dst[copy_size] = '\0';
+            return src.size() >= N;
+        }
+
         static void Replace(std::string& origin, const std::string& from, const std::string& to) {
             size_t start_pos = 0;
             while ((start_pos = origin.find(from, start_pos)) != std::string::npos) {
@@ -87,13 +99,49 @@ namespace tc
         }
 
         static inline std::wstring ToWString(const std::string& src) {
-            std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-            return converter.from_bytes(src);
+#ifdef WIN32
+            if (src.empty()) {
+                return {};
+            }
+            const int required = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src.data(),
+                                                     static_cast<int>(src.size()), nullptr, 0);
+            if (required <= 0) {
+                return {};
+            }
+            std::wstring result(static_cast<size_t>(required), L'\0');
+            const int written = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src.data(),
+                                                    static_cast<int>(src.size()), result.data(), required);
+            if (written <= 0) {
+                return {};
+            }
+            return result;
+#else
+            return ConvertWithIconv<wchar_t>(src, "WCHAR_T", "UTF-8");
+#endif
         }
 
         static inline std::string ToUTF8(const std::wstring& src) {
-            std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-            return converter.to_bytes(src);
+#ifdef WIN32
+            if (src.empty()) {
+                return {};
+            }
+            const int required = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, src.data(),
+                                                     static_cast<int>(src.size()), nullptr, 0, nullptr, nullptr);
+            if (required <= 0) {
+                return {};
+            }
+            std::string result(static_cast<size_t>(required), '\0');
+            const int written = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, src.data(),
+                                                    static_cast<int>(src.size()), result.data(), required, nullptr, nullptr);
+            if (written <= 0) {
+                return {};
+            }
+            return result;
+#else
+            const auto src_bytes = std::string_view(reinterpret_cast<const char*>(src.data()),
+                                                    src.size() * sizeof(wchar_t));
+            return ConvertWithIconv<char>(src_bytes, "UTF-8", "WCHAR_T");
+#endif
         }
 
 #ifdef WIN32
@@ -152,6 +200,54 @@ namespace tc
         }
 
         static std::string ToHexString(const std::vector<uint8_t>& data);
+
+    private:
+#ifndef WIN32
+        template <typename CharT>
+        static std::basic_string<CharT> ConvertWithIconv(std::string_view src_bytes,
+                                                         const char* to_code,
+                                                         const char* from_code) {
+            if (src_bytes.empty()) {
+                return {};
+            }
+
+            iconv_t cd = iconv_open(to_code, from_code);
+            if (cd == reinterpret_cast<iconv_t>(-1)) {
+                return {};
+            }
+
+            std::basic_string<CharT> result;
+            size_t out_capacity = std::max(static_cast<size_t>(16), src_bytes.size() + 1);
+            result.resize(out_capacity);
+
+            char* in_buf = const_cast<char*>(src_bytes.data());
+            size_t in_bytes_left = src_bytes.size();
+            char* out_buf = reinterpret_cast<char*>(result.data());
+            size_t out_bytes_left = result.size() * sizeof(CharT);
+
+            while (true) {
+                const size_t iconv_result = iconv(cd, &in_buf, &in_bytes_left, &out_buf, &out_bytes_left);
+                if (iconv_result != reinterpret_cast<size_t>(-1)) {
+                    break;
+                }
+
+                if (errno != E2BIG) {
+                    iconv_close(cd);
+                    return {};
+                }
+
+                const auto used_bytes = result.size() * sizeof(CharT) - out_bytes_left;
+                result.resize(result.size() * 2);
+                out_buf = reinterpret_cast<char*>(result.data()) + used_bytes;
+                out_bytes_left = result.size() * sizeof(CharT) - used_bytes;
+            }
+
+            const auto written_bytes = result.size() * sizeof(CharT) - out_bytes_left;
+            result.resize(written_bytes / sizeof(CharT));
+            iconv_close(cd);
+            return result;
+        }
+#endif
     };
 
 }

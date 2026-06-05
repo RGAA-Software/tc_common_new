@@ -3,7 +3,6 @@
 
 #include <string>
 #include <mutex>
-#include <codecvt>
 #include <utility>
 
 struct INetFwPolicy2;
@@ -49,7 +48,6 @@ namespace tc
         INetFwPolicy2 *fw_policy2 = nullptr;
         INetFwRules *fw_rules = nullptr;
         std::mutex lock_mutex;
-        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 
     };
 
