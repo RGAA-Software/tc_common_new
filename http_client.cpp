@@ -13,6 +13,24 @@
 
 namespace tc
 {
+    namespace {
+        cpr::Header ToCprHeader(const std::map<std::string, std::string>& headers) {
+            cpr::Header header;
+            for (const auto& [k, v] : headers) {
+                header.insert({k, v});
+            }
+            return header;
+        }
+
+        HttpResponse ToHttpResponse(const cpr::Response& response) {
+            return HttpResponse{
+                .status = (int)response.status_code,
+                .body = response.text,
+                .error_code = (int)response.error.code,
+                .error_message = response.error.message,
+            };
+        }
+    }
 
     std::shared_ptr<HttpClient> HttpClient::Make(const std::string& host, int port, const std::string& path, int timeout_ms) {
         return std::make_shared<HttpClient>(host, port, path, false, timeout_ms);
@@ -44,6 +62,7 @@ namespace tc
         this->port_ = port;
         this->path = path;
         this->ssl_ = ssl;
+        this->verify_ssl_ = ssl;
         this->timeout_ms_ = timeout_ms;
     }
 
@@ -69,23 +88,16 @@ namespace tc
         cpr::Session session;
         session.SetUrl(url);
         session.SetBody(body);
-        session.SetVerifySsl(false);
+        session.SetVerifySsl(verify_ssl_);
         session.SetTimeout(cpr::Timeout{this->timeout_ms_});
-        session.SetHeader(cpr::Header{{"Authorization", "Bearer token"}});
+        if (!headers_.empty()) {
+            session.SetHeader(ToCprHeader(headers_));
+        }
         session.SetParameters(params);
 
         cpr::Response response = session.Get();
         req_path_ = response.url.str();
-
-        // EXPECT_EQ(expected_text, response.text);
-        // EXPECT_EQ(Url{url + "?key=value&hello=world&test=case"}, response.url);
-        // EXPECT_EQ(std::string{"text/html"}, response.header["content-type"]);
-        // EXPECT_EQ(200, response.status_code);
-        // EXPECT_EQ(cpr::ErrorCode::OK, response.error.code);
-        return HttpResponse {
-            .status = (int)response.status_code,
-            .body = response.text,
-        };
+        return ToHttpResponse(response);
     }
 
     HttpResponse HttpClient::Post() {
@@ -104,28 +116,21 @@ namespace tc
         cpr::Url url{url_path};
         cpr::Session session;
         session.SetUrl(url);
-        session.SetVerifySsl(false);
+        session.SetVerifySsl(verify_ssl_);
         session.SetBody(body);
         session.SetTimeout(cpr::Timeout{this->timeout_ms_});
-        auto header = cpr::Header{ {"Authorization", "Bearer token"} };
+        auto headers = headers_;
         if (!content_type.empty()) {
-            header.insert({ "Content-Type", content_type });
+            headers["Content-Type"] = content_type;
         }
-        session.SetHeader(header);
+        if (!headers.empty()) {
+            session.SetHeader(ToCprHeader(headers));
+        }
         session.SetParameters(params);
 
         cpr::Response response = session.Post();
         req_path_ = response.url.str();
-
-        // EXPECT_EQ(expected_text, response.text);
-        // EXPECT_EQ(Url{url + "?key=value&hello=world&test=case"}, response.url);
-        // EXPECT_EQ(std::string{"text/html"}, response.header["content-type"]);
-        // EXPECT_EQ(200, response.status_code);
-        // EXPECT_EQ(cpr::ErrorCode::OK, response.error.code);
-        return HttpResponse {
-            .status = (int)response.status_code,
-            .body = response.text,
-        };
+        return ToHttpResponse(response);
     }
 
     //auto resp = client.PostMultiPart(
@@ -156,9 +161,11 @@ namespace tc
         cpr::Url url{url_path};
         cpr::Session session;
         session.SetUrl(url);
-        session.SetVerifySsl(false);
+        session.SetVerifySsl(verify_ssl_);
         session.SetTimeout(cpr::Timeout{timeout_ms_});
-        session.SetHeader(cpr::Header{{"Authorization", "Bearer token"}});
+        if (!headers_.empty()) {
+            session.SetHeader(ToCprHeader(headers_));
+        }
 
         // --- URL Query ---
         if (!query.empty()) {
@@ -191,11 +198,7 @@ namespace tc
         // POST
         cpr::Response response = session.Post();
         req_path_ = response.url.str();
-
-        return HttpResponse{
-            .status = (int)response.status_code,
-            .body   = response.text,
-        };
+        return ToHttpResponse(response);
     }
 
     HttpResponse HttpClient::Download(const std::string& path, std::function<void(const std::string& body)>&& download_cbk) {
@@ -204,7 +207,7 @@ namespace tc
         cpr::Session session;
         session.SetHeader(cpr::Header{{"Accept-Encoding", "gzip"}});
         session.SetUrl(url);
-        session.SetVerifySsl(false);
+        session.SetVerifySsl(path.starts_with("https://"));
         session.SetTimeout(cpr::Timeout{5000});
 
         auto fn_cbk = [=](std::string_view data, intptr_t /*userdata*/) -> bool {
@@ -215,11 +218,19 @@ namespace tc
         };
 
         cpr::Response response = session.Download(cpr::WriteCallback{fn_cbk, 0});
+        return ToHttpResponse(response);
+    }
 
-        return HttpResponse{
-            .status = (int)response.status_code,
-            .body   = response.text,
-        };
+    void HttpClient::SetVerifySsl(bool verify_ssl) {
+        verify_ssl_ = verify_ssl;
+    }
+
+    void HttpClient::SetHeader(const std::string& key, const std::string& value) {
+        headers_[key] = value;
+    }
+
+    void HttpClient::ClearHeaders() {
+        headers_.clear();
     }
 
     int HttpClient::HeadFileSize() {

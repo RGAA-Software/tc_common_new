@@ -10,6 +10,7 @@
 #include <functional>
 #include <unordered_map>
 #include <optional>
+#include <vector>
 #include "log.h"
 
 namespace tc
@@ -65,7 +66,12 @@ namespace tc
 
         V Get(const K& k) {
             std::lock_guard<std::mutex> lock(mtx_);
-            return inner_.at(k);
+            auto it = inner_.find(k);
+            if (it == inner_.end()) {
+                LOGE("ConcurrentHashMap::Get missing key");
+                return V{};
+            }
+            return it->second;
         }
 
         std::optional<V> TryGet(const K& k) {
@@ -77,22 +83,28 @@ namespace tc
         }
 
         void Apply(const K& k, std::function<void(const V& v)>&& task) {
-            std::lock_guard<std::mutex> lock(mtx_);
-            if (inner_.find(k) != inner_.end()) {
-                task(inner_.at(k));
+            std::optional<V> value;
+            {
+                std::lock_guard<std::mutex> lock(mtx_);
+                if (inner_.find(k) != inner_.end()) {
+                    value = inner_.at(k);
+                }
+            }
+            if (value.has_value()) {
+                task(value.value());
             }
         }
 
         void ApplyAll(std::function<void(const K&k, const V& v)>&& task) {
-            std::lock_guard<std::mutex> lock(mtx_);
-            for (const auto& [k, v] : inner_) {
+            auto snapshot = Clone();
+            for (const auto& [k, v] : snapshot) {
                 task(k, v);
             }
         }
 
         void ApplyAllCond(std::function<bool(const K& k, const V& v)>&& task) {
-            std::lock_guard<std::mutex> lock(mtx_);
-            for (auto& [k, v] : inner_) {
+            auto snapshot = Clone();
+            for (auto& [k, v] : snapshot) {
                 if (task(k, v)) {
                     break;
                 }
@@ -100,16 +112,49 @@ namespace tc
         }
 
         void VisitAll(std::function<void(K k, V& v)>&& task) {
-            std::lock_guard<std::mutex> lock(mtx_);
-            for (auto& [k, v] : inner_) {
-                task(k, v);
+            auto keys = Keys();
+            for (const auto& k : keys) {
+                std::optional<V> value;
+                {
+                    std::lock_guard<std::mutex> lock(mtx_);
+                    auto it = inner_.find(k);
+                    if (it == inner_.end()) {
+                        continue;
+                    }
+                    value = it->second;
+                }
+                task(k, value.value());
+                {
+                    std::lock_guard<std::mutex> lock(mtx_);
+                    auto it = inner_.find(k);
+                    if (it != inner_.end()) {
+                        it->second = value.value();
+                    }
+                }
             }
         }
 
         void VisitAllCond(std::function<bool(K k, V& v)>&& task) {
-            std::lock_guard<std::mutex> lock(mtx_);
-            for (auto& [k, v] : inner_) {
-                if (task(k, v)) {
+            auto keys = Keys();
+            for (const auto& k : keys) {
+                std::optional<V> value;
+                {
+                    std::lock_guard<std::mutex> lock(mtx_);
+                    auto it = inner_.find(k);
+                    if (it == inner_.end()) {
+                        continue;
+                    }
+                    value = it->second;
+                }
+                bool should_break = task(k, value.value());
+                {
+                    std::lock_guard<std::mutex> lock(mtx_);
+                    auto it = inner_.find(k);
+                    if (it != inner_.end()) {
+                        it->second = value.value();
+                    }
+                }
+                if (should_break) {
                     break;
                 }
             }
@@ -170,6 +215,16 @@ namespace tc
                 cpy.insert({k, v});
             }
             return cpy;
+        }
+
+        std::vector<K> Keys() {
+            std::lock_guard<std::mutex> lock(mtx_);
+            std::vector<K> keys;
+            keys.reserve(inner_.size());
+            for (const auto& [k, _] : inner_) {
+                keys.push_back(k);
+            }
+            return keys;
         }
 
     private:

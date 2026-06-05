@@ -10,7 +10,11 @@ namespace tc
 {
 
     bool SharedPreference::Init(const std::wstring& path, const std::string& name) {
-        Release();
+        std::lock_guard<std::mutex> lock(mtx_);
+        if (db_) {
+            delete db_;
+            db_ = nullptr;
+        }
         initialized_ = false;
         read_only_ = false;
         last_error_.clear();
@@ -45,6 +49,7 @@ namespace tc
     }
     
     void SharedPreference::Release() const {
+        std::lock_guard<std::mutex> lock(mtx_);
         if (db_) {
             delete db_;
             const_cast<SharedPreference*>(this)->db_ = nullptr;
@@ -53,8 +58,24 @@ namespace tc
         const_cast<SharedPreference*>(this)->read_only_ = false;
         const_cast<SharedPreference*>(this)->last_error_.clear();
     }
+
+    bool SharedPreference::IsReady() const {
+        std::lock_guard<std::mutex> lock(mtx_);
+        return initialized_;
+    }
+
+    bool SharedPreference::IsReadOnly() const {
+        std::lock_guard<std::mutex> lock(mtx_);
+        return read_only_;
+    }
+
+    std::string SharedPreference::GetLastError() const {
+        std::lock_guard<std::mutex> lock(mtx_);
+        return last_error_;
+    }
     
     bool SharedPreference::Put(const std::string& key, const std::string& value) const {
+        std::lock_guard<std::mutex> lock(mtx_);
         if (!db_) {
             return false;
         }
@@ -63,6 +84,7 @@ namespace tc
     }
 
     bool SharedPreference::PutInt(const std::string& key, int value) const {
+        std::lock_guard<std::mutex> lock(mtx_);
         if (!db_) {
             return false;
         }
@@ -71,6 +93,7 @@ namespace tc
     }
 
     std::string SharedPreference::Get(const std::string& key) const {
+        std::lock_guard<std::mutex> lock(mtx_);
         if (!db_) {
             return "";
         }
@@ -80,6 +103,7 @@ namespace tc
     }
 
     std::string SharedPreference::Get(const std::string& key, const std::string& def) const {
+        std::lock_guard<std::mutex> lock(mtx_);
         if (!db_) {
             return def;
         }
@@ -93,6 +117,7 @@ namespace tc
     }
 
     int SharedPreference::GetInt(const std::string& key, int def) const {
+        std::lock_guard<std::mutex> lock(mtx_);
         if (!db_) {
             return def;
         }
@@ -106,6 +131,7 @@ namespace tc
     }
 
     bool SharedPreference::Remove(const std::string& key) const {
+        std::lock_guard<std::mutex> lock(mtx_);
         if (!db_) {
             return false;
         }
@@ -115,6 +141,10 @@ namespace tc
     
     void SharedPreference::Visit(IVisitListener&& listener) const {
         if (!listener) {
+            return;
+        }
+        std::lock_guard<std::mutex> lock(mtx_);
+        if (!db_) {
             return;
         }
         leveldb::Iterator* it = db_->NewIterator(leveldb::ReadOptions());

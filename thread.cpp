@@ -8,11 +8,18 @@ namespace tc
 {
 
     ThreadPtr Thread::Make(const std::string& name, int max_task) {
-        return std::make_shared<Thread>(name, max_task);
+        struct MakeSharedEnabler final : public Thread {
+            MakeSharedEnabler(const std::string& name, int max_task) : Thread(name, max_task) {}
+        };
+        return std::make_shared<MakeSharedEnabler>(name, max_task);
     }
 
     std::shared_ptr<Thread> Thread::MakeOnceTask(OnceTask&& task, const std::string& name, bool join) {
-        auto t = std::make_shared<Thread>(std::move(task), name, join);
+        struct MakeSharedEnabler final : public Thread {
+            MakeSharedEnabler(OnceTask&& task, const std::string& name, bool join)
+                : Thread(std::move(task), name, join) {}
+        };
+        auto t = std::make_shared<MakeSharedEnabler>(std::move(task), name, join);
         return t;
     }
 
@@ -22,15 +29,16 @@ namespace tc
 
     Thread::Thread(OnceTask &&task, const std::string &name, bool join) {
         this->name_ = name;
-        thread_ = std::make_shared<std::thread>([=, this]() {
+        thread_ = std::make_shared<std::thread>([task = std::move(task), this]() mutable {
 #ifdef WIN32
             this->tid_ = GetCurrentThreadId();
 #endif
             task();
+            exit_loop_ = true;
         });
         thread_id_ = GetGeneralId();
 
-        if (join) {
+        if (join && thread_->joinable()) {
             thread_->join();
         }
     }
@@ -64,6 +72,7 @@ namespace tc
         for (;;) {
             if (exit_) {
                 LOGI("Ok, thread exit: {}", name_);
+                exit_loop_ = true;
                 return;
             }
             {
@@ -90,8 +99,6 @@ namespace tc
                 task_exec_count_++;
             }
         }
-
-        exit_loop_ = true;
     }
 
 
@@ -154,6 +161,7 @@ namespace tc
     }
 
     std::list<ThreadTaskPtr> Thread::GetTasks() {
+        std::lock_guard<std::mutex> guard(task_mtx_);
         return tasks_;
     }
 
@@ -172,6 +180,7 @@ namespace tc
             thread_->join();
             thread_ = nullptr;
         }
+        exit_loop_ = true;
     }
 
     bool Thread::HasTask() {
@@ -188,7 +197,7 @@ namespace tc
     }
 
     void Thread::Join() {
-        if (thread_) {
+        if (thread_ && thread_->joinable()) {
             thread_->join();
         }
     }

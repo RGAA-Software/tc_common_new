@@ -8,6 +8,7 @@
 #include <list>
 #include <sstream>
 #include <any>
+#include <atomic>
 
 namespace tc
 {
@@ -102,8 +103,6 @@ namespace tc
         static std::shared_ptr<Thread> MakeOnceTask(OnceTask&& task, const std::string& name, bool join = false);
 
         Thread() = delete;
-        explicit Thread(const std::string& name, int max_task = -1);
-        Thread(OnceTask&& task, const std::string& name, bool join = true);
         virtual ~Thread();
 
         void Poll();
@@ -137,6 +136,9 @@ namespace tc
         void SetOnFrontTaskCallback(std::function<void(ThreadTaskPtr task_ptr)> callback) {
             on_front_task_callback_ = callback;
         }
+    protected:
+        explicit Thread(const std::string& name, int max_task = -1);
+        Thread(OnceTask&& task, const std::string& name, bool join = true);
     private:
         void TaskLoop();
 
@@ -152,12 +154,12 @@ namespace tc
 
         std::condition_variable take_var_;
 
-        bool exit_{false};
-        bool exit_loop_{false};
+        std::atomic_bool exit_{false};
+        std::atomic_bool exit_loop_{false};
 
         int max_tasks_ = -1;
-        bool last_task_returned_{false};
-        unsigned long task_exec_count_{0};
+        std::atomic_bool last_task_returned_{false};
+        std::atomic_ulong task_exec_count_{0};
 
         std::string name_;
         uint32_t tid_ = 0;

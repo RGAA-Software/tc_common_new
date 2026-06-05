@@ -8,6 +8,7 @@
 #include "tc_common_new/concurrent_hashmap.h"
 #include "log.h"
 #include "url_helper.h"
+#include <atomic>
 #include <asio2/asio2.hpp>
 
 namespace tc
@@ -43,9 +44,16 @@ namespace tc
 
         template<typename T>
         std::optional<T> GetVar(const std::string& n) {
+            if (!ws_data_) {
+                return std::nullopt;
+            }
             if (ws_data_->vars_.contains(n)) {
-                auto v = ws_data_->vars_[n];
-                return std::any_cast<T>(v);
+                try {
+                    auto v = ws_data_->vars_[n];
+                    return std::any_cast<T>(v);
+                } catch (const std::bad_any_cast& e) {
+                    LOGE("WsSession::GetVar bad_any_cast, name: {}, error: {}", n, e.what());
+                }
             }
             return std::nullopt;
         }
@@ -86,19 +94,29 @@ namespace tc
     public:
         template<typename Session>
         void AddWebsocketRouter(const std::string& path) {
+            auto weak_self = weak_from_this();
             auto fn_get_socket_fd = [](std::shared_ptr<asio2::http_session> &sess_ptr) -> uint64_t {
                 auto& s = sess_ptr->socket();
                 return (uint64_t)s.native_handle();
             };
             http_server_->bind(path, websocket::listener<asio2::http_session>{}
-                .on("message", [=, this](std::shared_ptr<asio2::http_session>& http_sess, std::string_view data) {
+                .on("message", [weak_self, fn_get_socket_fd](std::shared_ptr<asio2::http_session>& http_sess, std::string_view data) {
+                    auto self = weak_self.lock();
+                    if (!self || self->exiting_) {
+                        return;
+                    }
                     auto socket_fd = fn_get_socket_fd(http_sess);
-                    if (sessions_.HasKey(socket_fd)) {
-                        auto sess = sessions_.Get(socket_fd);
-                        sess->OnBinMessage(data);
+                    auto opt_sess = self->sessions_.TryGet(socket_fd);
+                    if (opt_sess.has_value()) {
+                        opt_sess.value()->OnBinMessage(data);
                     }
                 })
-                .on("open", [=, this](std::shared_ptr<asio2::http_session>& http_sess) {
+                .on("open", [weak_self, fn_get_socket_fd, path](std::shared_ptr<asio2::http_session>& http_sess) {
+                    auto self = weak_self.lock();
+                    if (!self || self->exiting_) {
+                        http_sess->stop();
+                        return;
+                    }
                     http_sess->ws_stream().binary(true);
                     http_sess->set_no_delay(true);
                     auto query = http_sess->get_request().get_query();
@@ -106,7 +124,7 @@ namespace tc
                     auto session = std::make_shared<Session>();
                     session->socket_fd_ = socket_fd;
                     session->path_ = path;
-                    session->ws_data_ = ws_data_;
+                    session->ws_data_ = self->ws_data_;
                     session->inner_ = http_sess;
                     session->query_params_ = UrlHelper::ParseQueryString(std::string(query.data(), query.size()));
                     if  (!session->OnConnected()) {
@@ -114,7 +132,7 @@ namespace tc
                         LOGE("OnConnect failed, close socket connection.");
                         return;
                     }
-                    sessions_.Insert(socket_fd, session);
+                    self->sessions_.Insert(socket_fd, session);
 
                     LOGI("App server {} open, query: {}", path, query);
                     for (const auto& [k, v] : session->query_params_) {
@@ -122,12 +140,15 @@ namespace tc
                     }
 
                 })
-                .on("close", [=, this](std::shared_ptr<asio2::http_session>& http_sess) {
+                .on("close", [weak_self, fn_get_socket_fd](std::shared_ptr<asio2::http_session>& http_sess) {
+                    auto self = weak_self.lock();
+                    if (!self) {
+                        return;
+                    }
                     auto socket_fd = fn_get_socket_fd(http_sess);
-                    if (sessions_.HasKey(socket_fd)) {
-                        auto sess = sessions_.Get(socket_fd);
-                        sess->OnDisConnected();
-                        sessions_.Remove(socket_fd);
+                    auto opt_sess = self->sessions_.Remove(socket_fd);
+                    if (opt_sess.has_value()) {
+                        opt_sess.value()->OnDisConnected();
                     }
                 })
             );
@@ -143,6 +164,7 @@ namespace tc
         WsDataPtr ws_data_ = nullptr;
         std::shared_ptr<asio2::http_server> http_server_ = nullptr;
         ConcurrentHashMap<uint64_t, std::shared_ptr<WsSession>> sessions_;
+        std::atomic_bool exiting_{false};
 
     };
 

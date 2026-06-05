@@ -5,7 +5,9 @@
 #ifndef TC_APPLICATION_CONCURRENT_VECTOR_H
 #define TC_APPLICATION_CONCURRENT_VECTOR_H
 
+#include <cstring>
 #include <mutex>
+#include <type_traits>
 #include <vector>
 #include <functional>
 
@@ -81,6 +83,7 @@ namespace tc
         }
 
         bool CopyMemFrom(const std::vector<T>& f) {
+            static_assert(std::is_trivially_copyable_v<T>, "CopyMemFrom requires trivially copyable T");
             std::lock_guard<std::mutex> guard(mtx_);
             if (inner_.size() < f.size()) {
                 inner_.resize(f.size());
@@ -90,6 +93,7 @@ namespace tc
         }
 
         bool CopyMemPartialFrom(const std::vector<T>& f, int size) {
+            static_assert(std::is_trivially_copyable_v<T>, "CopyMemPartialFrom requires trivially copyable T");
             std::lock_guard<std::mutex> guard(mtx_);
             if (f.size() < size) {
                 return false;
@@ -104,6 +108,7 @@ namespace tc
         template<typename From,
                 typename = std::enable_if_t<std::is_same_v<T, typename From::value_type>>>
         bool CopyMemFrom(const From& f) {
+            static_assert(std::is_trivially_copyable_v<T>, "CopyMemFrom requires trivially copyable T");
             std::lock_guard<std::mutex> guard(mtx_);
             if (inner_.size() < f.size()) {
                 return false;
@@ -113,6 +118,7 @@ namespace tc
         }
 
         void CopyMemTo(std::vector<T>& out) {
+            static_assert(std::is_trivially_copyable_v<T>, "CopyMemTo requires trivially copyable T");
             std::lock_guard<std::mutex> guard(mtx_);
             out.resize(inner_.size());
             memcpy(out.data(), inner_.data(), inner_.size() * sizeof(T));

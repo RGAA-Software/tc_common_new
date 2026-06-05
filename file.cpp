@@ -10,6 +10,25 @@
 
 namespace tc 
 {
+    namespace {
+#ifdef WIN32
+        QIODeviceBase::OpenMode ToQtOpenMode(const std::string& mode) {
+            if (mode == "r" || mode == "rb") {
+                return QIODeviceBase::ReadOnly;
+            }
+            if (mode == "w" || mode == "wb") {
+                return QIODeviceBase::WriteOnly | QIODeviceBase::Truncate;
+            }
+            if (mode == "w+" || mode == "wb+") {
+                return QIODeviceBase::ReadWrite | QIODeviceBase::Truncate;
+            }
+            if (mode == "a+" || mode == "ab+") {
+                return QIODeviceBase::ReadWrite | QIODeviceBase::Append;
+            }
+            return QIODeviceBase::NotOpen;
+        }
+#endif
+    }
 
     std::shared_ptr<File> File::OpenForRead(const std::string& path) {
         return std::make_shared<File>(path.c_str(), "r");
@@ -79,31 +98,18 @@ namespace tc
         this->file_path_ = origin_path;
 #ifdef WIN32
         file_ = std::make_shared<QFile>(path.c_str());
-        if (mode == "a+" || mode == "ab+") {
-            if (!file_->open(QIODeviceBase::OpenModeFlag::Append)) {
-                LOGE("Open Append failed: {}", path);
-                return;
-            }
-        } else {
-            if (mode == "rb") {
-                if (!file_->open(QIODeviceBase::OpenModeFlag::ReadOnly)) {
-                    LOGE("Read only failed: {}", path);
-                    return;
-                }
-            }
-            else {
-                if (!file_->open(QIODeviceBase::OpenModeFlag::ReadWrite)) {
-                    LOGE("Open Read-Write failed, try readonly: {}", path);
-                    if (!file_->open(QIODeviceBase::OpenModeFlag::ReadOnly)) {
-                        LOGE("Open Read-Write failed: {}", path);
-                        return;
-                    }
-                }
-            }
+        auto open_mode = ToQtOpenMode(mode);
+        if (open_mode == QIODeviceBase::NotOpen) {
+            LOGE("Unsupported file open mode: {}, file: {}", mode, path);
+            return;
+        }
+        if (!file_->open(open_mode)) {
+            LOGE("Open file failed, mode: {}, file: {}", mode, path);
+            return;
         }
         file_info_ = QFileInfo(path.c_str());
 #else
-        auto r = fopen(path.c_str(), mode.c_str());
+        fp_ = fopen(path.c_str(), mode.c_str());
 #endif
     }
     

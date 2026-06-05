@@ -5,8 +5,9 @@
 #ifndef TC_APPLICATION_CONCURRENT_QUEUE_H
 #define TC_APPLICATION_CONCURRENT_QUEUE_H
 
+#include <deque>
 #include <mutex>
-#include <queue>
+#include <optional>
 #include <vector>
 #include <functional>
 
@@ -17,13 +18,19 @@ namespace tc
     class ConcurrentQueue {
     public:
 
-        const T& Front() {
+        std::optional<T> Front() {
             std::lock_guard<std::mutex> guard(mtx_);
+            if (inner_.empty()) {
+                return std::nullopt;
+            }
             return inner_.front();
         }
 
-        const T& Back() {
+        std::optional<T> Back() {
             std::lock_guard<std::mutex> guard(mtx_);
+            if (inner_.empty()) {
+                return std::nullopt;
+            }
             return inner_.back();
         }
 
@@ -47,14 +54,22 @@ namespace tc
             inner_.push_back(std::move(e));
         }
 
-        void PopFront() {
+        bool PopFront() {
             std::lock_guard<std::mutex> guard(mtx_);
+            if (inner_.empty()) {
+                return false;
+            }
             inner_.pop_front();
+            return true;
         }
 
-        void PopBack() {
+        bool PopBack() {
             std::lock_guard<std::mutex> guard(mtx_);
+            if (inner_.empty()) {
+                return false;
+            }
             inner_.pop_back();
+            return true;
         }
 
         std::vector<T> ToVector() {

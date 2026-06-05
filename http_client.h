@@ -18,6 +18,8 @@ namespace tc
     public:
         int status = -1;
         std::string body;
+        int error_code = 0;
+        std::string error_message;
     };
 
     class HttpClient {
@@ -40,6 +42,9 @@ namespace tc
                                    const std::map<std::string, std::string>& file_parts);
 
         static HttpResponse Download(const std::string& url, std::function<void(const std::string& body)>&& download_cbk);
+        void SetVerifySsl(bool verify_ssl);
+        void SetHeader(const std::string& key, const std::string& value);
+        void ClearHeaders();
         
         int HeadFileSize();
         std::string GetReqPath();
@@ -49,8 +54,10 @@ namespace tc
         int port_ = 0;
         std::string path;
         bool ssl_ = false;
+        bool verify_ssl_ = false;
         int timeout_ms_ = 3000;
         std::string req_path_;
+        std::map<std::string, std::string> headers_;
 
     };
 

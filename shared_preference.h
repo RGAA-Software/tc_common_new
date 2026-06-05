@@ -3,6 +3,7 @@
 
 #include <string>
 #include <functional>
+#include <mutex>
 #include <leveldb/db.h>
 
 namespace tc
@@ -23,9 +24,9 @@ namespace tc
 
         bool Init(const std::wstring& path, const std::string& name);
         void Release() const;
-        bool IsReady() const { return initialized_; }
-        bool IsReadOnly() const { return read_only_; }
-        std::string GetLastError() const { return last_error_; }
+        bool IsReady() const;
+        bool IsReadOnly() const;
+        std::string GetLastError() const;
 
         bool Put(const std::string& key, const std::string& value) const;
         bool PutInt(const std::string& key, int value) const;
@@ -42,6 +43,7 @@ namespace tc
         bool initialized_ = false;
         bool read_only_ = false;
         std::string last_error_;
+        mutable std::mutex mtx_;
 };
 
 }
