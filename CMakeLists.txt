@@ -20,8 +20,6 @@ include_directories(${GR_PROJECT_PATH}/deps/tc_3rdparty/eventbus/src)
 find_package(cpr CONFIG REQUIRED)
 
 if (WIN32)
-    find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Core5Compat Widgets Network)
-    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Core5Compat Widgets Network)
     if (FFTW3_ENABLED)
         find_package(FFTW3 CONFIG REQUIRED)
     endif()
@@ -116,7 +114,12 @@ if (WIN32)
         add_subdirectory(tests)
     endif()
 
-    target_link_libraries(tc_common_new DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto Shlwapi.lib Wtsapi32.lib)#libssl64MT.lib libcrypto64MT.lib OpenSSL::SSL OpenSSL::Crypto
+    target_link_libraries(tc_common_new
+        DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto
+        Shlwapi.lib Wtsapi32.lib shell32.lib
+        iphlpapi.lib advapi32.lib comsuppw.lib
+    )
+    # TODO: Remove Qt dependency after process_util.cpp and image_generator.cpp are de-Qtized
     target_link_libraries(tc_common_new Qt6::Core Qt6::Core5Compat Qt6::Widgets Qt6::Network)
     if (DirectXTex_ENABLED)
         target_link_libraries(tc_common_new DirectXTex)

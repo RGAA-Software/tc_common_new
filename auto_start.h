@@ -5,7 +5,7 @@
 #ifndef GAMMARAYPREMIUM_AUTO_START_H
 #define GAMMARAYPREMIUM_AUTO_START_H
 #ifdef WIN32
-#include <QString>
+#include <string>
 #include <taskschd.h>
 #pragma comment(lib, "taskschd.lib")
 
@@ -15,8 +15,8 @@ namespace tc
     class AutoStart {
     public:
         // reg
-        static void SetAutoStart(const QString& exe_path, bool enabled);
-        static void SetAutoStartAdmin(const QString& exe_path, bool enabled);
+        static void SetAutoStart(const std::wstring& exe_path, bool enabled);
+        static void SetAutoStartAdmin(const std::wstring& exe_path, bool enabled);
 
         AutoStart();
         ~AutoStart();

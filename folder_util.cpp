@@ -5,16 +5,16 @@
 #include "folder_util.h"
 #include <filesystem>
 #include <iostream>
+#include <format>
 #include "log.h"
 #include "file_util.h"
 #include "string_util.h"
 
-#ifdef Q_OS_WIN
-#include <QStandardPaths>
-#include <QDir>
-#include <QCoreApplication>
+#ifdef WIN32
 #include <windows.h>
 #include <shlobj.h>
+#include <Shlwapi.h>
+#include <shellapi.h>
 #endif
 
 namespace fs = std::filesystem;
@@ -123,16 +123,27 @@ namespace tc
 
 #ifdef WIN32
     void FolderUtil::VisitAllByQt(const std::string& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
-        QDirIterator it(QString::fromStdString(path), QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot ,QDirIterator::Subdirectories);
-        while (it.hasNext()) {
-            it.next();
-            auto file_info = it.fileInfo();
-            if (file_info.isFile()) {
-                cbk(VisitResult{
-                    .name_ = file_info.fileName().toStdWString(),
-                    .path_ = file_info.absoluteFilePath().toStdWString(),
-                });
+        auto current_path = std::filesystem::u8path(path);
+        if (!fs::is_directory(current_path)) {
+            return;
+        }
+        for (const auto& entry : fs::recursive_directory_iterator(current_path, fs::directory_options::skip_permission_denied)) {
+            if (!entry.is_regular_file()) {
+                continue;
             }
+            auto p = entry.path();
+            if (!filter_suffix.empty()) {
+                auto u8path = StringUtil::ToUTF8(p.wstring());
+                auto suffix = FileUtil::GetFileSuffix(u8path);
+                StringUtil::ToLower(suffix);
+                if (filter_suffix != suffix) {
+                    continue;
+                }
+            }
+            cbk(VisitResult{
+                .name_ = p.filename().wstring(),
+                .path_ = p.wstring(),
+            });
         }
     }
 
@@ -151,71 +162,69 @@ namespace tc
     }
 
     void FolderUtil::CreateDir(const std::string& path) {
-        QDir dir;
-        if (!dir.exists(path.c_str())) {
-            if (!dir.mkpath(path.c_str())) {
-                LOGE("Create folder failed: {}", path);
+        try {
+            auto p = std::filesystem::u8path(path);
+            if (!fs::exists(p)) {
+                if (!fs::create_directories(p)) {
+                    LOGE("Create folder failed: {}", path);
+                }
             }
+        } catch (const fs::filesystem_error& ex) {
+            LOGE("Create folder failed: {}, {}", path, ex.what());
         }
     }
 
     void FolderUtil::OpenDir(const std::string& path) {
-        const auto target_path = std::format("file:///{}", path);
-        QDesktopServices::openUrl(QUrl(target_path.c_str()));
+        std::wstring wpath = StringUtil::ToWString(path);
+        std::wstring args = std::format(L"\"{}\"", wpath);
+        ShellExecuteW(nullptr, L"open", L"explorer.exe", args.c_str(), nullptr, SW_SHOWNORMAL);
     }
 
 #endif
 
     std::wstring FolderUtil::GetProgramDataPath(const std::string& app) {
 #ifdef WIN32
-        auto sharedPath = QStandardPaths::writableLocation(QStandardPaths::PublicShareLocation);
-        const QString app_path = sharedPath + "/" + app.c_str();
-        if (const QDir dir(app_path); !dir.exists()) {
-            if (!dir.mkpath(app_path)) {
-                LOGE("Create folder failed: {}", app_path.toStdString());
+        PWSTR publicPath = nullptr;
+        if (SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Public, 0, nullptr, &publicPath))) {
+            std::filesystem::path app_path = std::filesystem::path(publicPath) / app;
+            CoTaskMemFree(publicPath);
+            try {
+                if (!fs::exists(app_path)) {
+                    if (!fs::create_directories(app_path)) {
+                        LOGE("Create folder failed: {}", app_path.string());
+                    }
+                }
+            } catch (const fs::filesystem_error& ex) {
+                LOGE("Create folder failed: {}, {}", app_path.string(), ex.what());
             }
+            return app_path.wstring();
         }
-        return app_path.toStdWString();
-#endif
-
-#ifdef UNIX
-        sharedPath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation);
-#endif
-
-#ifdef ANDROID
+        return L"";
+#else
         return L"";
 #endif
-
-        return L"";
     }
 
     bool FolderUtil::DeleteDir(const std::string& path) {
-#ifdef WIN32
-        const auto wp = QString::fromStdString(path).toStdWString();
-#else
         auto wp = StringUtil::ToWString(path);
-#endif
         return FolderUtil::DeleteDir(wp);
     }
 
     bool FolderUtil::DeleteDir(const std::wstring& path) {
-#ifdef WIN32
-        QDir dir(QString::fromStdWString(path));
-        if (dir.exists()) {
-            return dir.removeRecursively();
-        }
-        return true;
-#else
-        fs::path dir = path;
-        std::error_code ec;
-        fs::remove_all(dir, ec);
-
-        if (ec) {
-            return false;
-        } else {
+        try {
+            fs::path dir = path;
+            std::error_code ec;
+            auto removed = fs::remove_all(dir, ec);
+            (void)removed;
+            if (ec) {
+                LOGE("DeleteDir failed: {}, {}", StringUtil::ToUTF8(path), ec.message());
+                return false;
+            }
             return true;
+        } catch (const std::exception& ex) {
+            LOGE("DeleteDir failed: {}, {}", StringUtil::ToUTF8(path), ex.what());
+            return false;
         }
-#endif
     }
 
     bool FolderUtil::CopyDir(const fs::path& source, const fs::path& destination, const std::vector<std::string>& ignore_suffix, bool overwrite) {
@@ -224,7 +233,11 @@ namespace tc
             suffix = StringUtil::ToLowerCpy(suffix);
             bool need_ignore_it = false;
             for (const auto& sf : ignore_suffix) {
-                if (suffix.find(sf) != std::string::npos) {
+                auto cmp = sf;
+                if (!cmp.empty() && cmp.front() == '.') {
+                    cmp = cmp.substr(1);
+                }
+                if (suffix.find(cmp) != std::string::npos) {
                     need_ignore_it = true;
                     break;
                 }
@@ -239,13 +252,13 @@ namespace tc
                              bool overwrite) {
         try {
             if (!fs::exists(source) || !fs::is_directory(source)) {
-                std::cerr << "Source directory does not exist or is not a directory: " << source << std::endl;
+                LOGE("Source directory does not exist or is not a directory: {}", source.string());
                 return false;
             }
 
             if (!fs::exists(destination)) {
                 fs::create_directories(destination);
-                std::cout << "Created destination directory: " << destination << std::endl;
+                LOGI("Created destination directory: {}", destination.string());
             }
 
             for (const auto& entry : fs::recursive_directory_iterator(
@@ -273,7 +286,7 @@ namespace tc
                                 fs::remove(target_path);
                             }
                             else {
-                                std::cout << "Skipped (already exists): " << relative_path << std::endl;
+                                LOGI("Skipped (already exists): {}", relative_path.string());
                                 continue;
                             }
                         }
@@ -288,7 +301,7 @@ namespace tc
                 }
             }
 
-            std::cout << "Directory copy completed: " << source << " -> " << destination << std::endl;
+            LOGI("Directory copy completed: {} -> {}", source.string(), destination.string());
             return true;
 
         }

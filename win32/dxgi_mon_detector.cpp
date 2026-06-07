@@ -1,8 +1,7 @@
 #include "dxgi_mon_detector.h"
 #include "tc_common_new/log.h"
 #include "tc_common_new/string_util.h"
-#include <QScreen>
-#include <QApplication>
+#include <Windows.h>
 
 #pragma comment(lib, "DXGI.lib")
 #pragma comment(lib, "D3D11.lib")
@@ -13,10 +12,16 @@ namespace tc
     void DxgiMonitorDetector::DetectAdapters() {
         infos_.clear();
 
-        auto primary_screen = QGuiApplication::primaryScreen();
-        auto primary_geometry = primary_screen->geometry();
-        //LOGI("Primary screen: ({},{}), {}x{}",
-        //     primary_geometry.left(), primary_geometry.top(), primary_geometry.width(), primary_geometry.height());
+        // Get primary monitor info using Win32 API
+        POINT pt = {0, 0};
+        HMONITOR hPrimary = MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY);
+        MONITORINFO primaryMi = { sizeof(MONITORINFO) };
+        RECT primaryRect = {};
+        if (hPrimary && GetMonitorInfoW(hPrimary, &primaryMi)) {
+            primaryRect = primaryMi.rcMonitor;
+        } else {
+            LOGE("Get primary monitor info failed.");
+        }
 
         CComPtr<IDXGIFactory1> pFactory;
         HRESULT hr = CreateDXGIFactory1(__uuidof(IDXGIFactory1), (void **) (&pFactory));
@@ -51,8 +56,9 @@ namespace tc
                     info.height = info.rect.bottom - info.rect.top;
                     //LOGI("Monitor detect: {} => {} , primary screen: {}", j, info.display_name, primary_screen->name().toStdString());
                     //LOGI("Monitor position: ({},{}), {}x{}", info.rect.left, info.rect.top, info.width, info.height);
-                    if (info.rect.left == primary_geometry.left() && info.rect.top == primary_geometry.top()
-                        && info.width == primary_geometry.width() && info.height == primary_geometry.height()) {
+                    if (info.rect.left == primaryRect.left && info.rect.top == primaryRect.top
+                        && info.width == (primaryRect.right - primaryRect.left)
+                        && info.height == (primaryRect.bottom - primaryRect.top)) {
                         info.primary = true;
                         //LOGI("Bingo...Primary monitor is : {}", info.display_name);
                     }

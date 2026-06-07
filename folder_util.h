@@ -9,16 +9,6 @@
 #include <functional>
 #include <filesystem>
 
-#ifdef WIN32
-#include <QFile>
-#include <QDir>
-#include <QFileInfo>
-#include <QDirIterator>
-#include <Shlwapi.h>
-#include <QDesktopServices>
-#include <QUrl>
-#endif
-
 namespace fs = std::filesystem;
 
 namespace tc

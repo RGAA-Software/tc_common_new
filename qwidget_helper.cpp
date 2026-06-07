@@ -1,13 +1,11 @@
 #include "qwidget_helper.h"
 #ifdef WIN32
-#include <QWidget>
 #include <dwmapi.h>
 #pragma comment(lib, "dwmapi.lib")
 
 namespace tc {
-   void QWidgetHelper::SetBorderInFullScreen(QWidget* window, bool hasBorder) {
+   void QWidgetHelper::SetBorderInFullScreen(HWND hwnd, bool hasBorder) {
 #ifdef WIN32
-        HWND hwnd = GetHWND(window);
         if (!hwnd) return;
         LONG_PTR style = GetWindowLongPtr(hwnd, GWL_STYLE);
         if (hasBorder) {
@@ -21,15 +19,5 @@ namespace tc {
         SetWindowLongPtr(hwnd, GWL_STYLE, style);
 #endif
     }
-
-
-    HWND QWidgetHelper::GetHWND(QWidget* window) {
-#ifdef WIN32
-        if (!window) return nullptr;
-        return (HWND)window->winId();
-#endif
-        return nullptr;
-    }
 }
-
 #endif // WIN32

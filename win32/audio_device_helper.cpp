@@ -7,7 +7,6 @@
 #include <Mmdeviceapi.h>
 #include <Functiondiscoverykeys_devpkey.h>
 #include "tc_common_new/string_util.h"
-#include <QString>
 
 namespace tc
 {
@@ -72,7 +71,7 @@ namespace tc
                 continue;
             }
 
-            audio_device.id_ = QString::fromStdWString(deviceId).toStdString();
+            audio_device.id_ = StringUtil::ToUTF8(deviceId);
 
             IPropertyStore *pPropertyStore = nullptr;
             hr = pDevice->OpenPropertyStore(STGM_READ, &pPropertyStore);
@@ -88,7 +87,7 @@ namespace tc
                 deviceName = varName.pwszVal;
                 wprintf(L"Device Name: %s\n", deviceName);
             }
-            audio_device.name_ = QString::fromStdWString(deviceName).toStdString();
+            audio_device.name_ = StringUtil::ToUTF8(deviceName);
 
             PropVariantClear(&varName);
             pPropertyStore->Release();
@@ -108,7 +107,7 @@ namespace tc
             pDefaultDevice->Release();
 
             for (auto& device : audio_devices) {
-                if (device.id_ == QString::fromStdWString(defaultDeviceId).toStdString()) {
+                if (device.id_ == StringUtil::ToUTF8(defaultDeviceId)) {
                     device.default_device_ = true;
                 }
             }

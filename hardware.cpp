@@ -5,17 +5,19 @@
 #include "hardware.h"
 
 #include <iostream>
+#include <format>
 #include <Windows.h>
 #include <wbemidl.h>
 #include <comdef.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
 #include "tc_common_new/log.h"
 #include "tc_common_new/string_util.h"
 #include "tc_common_new/num_formatter.h"
 #include "tc_common_new/shared_preference.h"
-#include <QList>
-#include <QtNetwork/QNetworkInterface>
 
 #pragma comment(lib, "wbemuuid.lib")
+#pragma comment(lib, "IPHLPAPI.lib")
 
 namespace tc
 {
@@ -587,7 +589,7 @@ namespace tc
         pEnumerator->Release();
         CoUninitialize();
 
-        //DetectMac();
+        DetectMac();
 
         return 0;
     }
@@ -616,7 +618,7 @@ namespace tc
             LOGI("  name: {}", gpu.size_str_);
             LOGI("  name: {}", gpu.pnp_device_id_);
         }
-        //LOGI("Mac address: {}", mac_address_);
+        LOGI("Mac address: {}", mac_address_);
     }
 
     std::string Hardware::GetHardwareDescription() {
@@ -624,25 +626,44 @@ namespace tc
         for (auto &disk: hw_disks_) {
             ss << disk.serial_number_;
         }
-        //ss << mac_address_;
+        ss << mac_address_;
         std::string res = ss.str();
         StringUtil::Replace(res, " ", "");
         return res;
     }
 
     void Hardware::DetectMac() {
-        QList<QNetworkInterface> nets = QNetworkInterface::allInterfaces();// 获取所有网络接口列表
-        int nCnt = nets.count();
-        QString strMacAddr = "";
-        for(int i = 0; i < nCnt; i ++) {
-            if(nets[i].flags().testFlag(QNetworkInterface::IsUp)
-                && nets[i].flags().testFlag(QNetworkInterface::IsRunning)
-                && !nets[i].flags().testFlag(QNetworkInterface::IsLoopBack))
-            {
-                strMacAddr = nets[i].hardwareAddress();
-                mac_address_ = strMacAddr.toStdString();
-                LOGI("Net adapter name: {}, MAC: {}", nets[i].name().toStdString(), mac_address_);
-                //break;
+        ULONG bufLen = 0;
+        DWORD ret = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, nullptr, nullptr, &bufLen);
+        if (ret != ERROR_BUFFER_OVERFLOW) {
+            LOGE("GetAdaptersAddresses failed to get buffer size");
+            return;
+        }
+
+        std::vector<uint8_t> buffer(bufLen);
+        auto* adapter = reinterpret_cast<PIP_ADAPTER_ADDRESSES>(buffer.data());
+        ret = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, nullptr, adapter, &bufLen);
+        if (ret != ERROR_SUCCESS) {
+            LOGE("GetAdaptersAddresses failed: {}", ret);
+            return;
+        }
+
+        for (auto* curr = adapter; curr != nullptr; curr = curr->Next) {
+            if (curr->OperStatus != IfOperStatusUp) {
+                continue;
+            }
+            if (curr->IfType == IF_TYPE_SOFTWARE_LOOPBACK) {
+                continue;
+            }
+
+            if (curr->PhysicalAddressLength > 0) {
+                std::string mac;
+                for (DWORD i = 0; i < curr->PhysicalAddressLength; i++) {
+                    if (i > 0) mac.push_back(':');
+                    mac += std::format("{:02X}", static_cast<int>(curr->PhysicalAddress[i]));
+                }
+                mac_address_ = mac;
+                LOGI("Net adapter name: {}, MAC: {}", StringUtil::ToUTF8(curr->FriendlyName), mac_address_);
             }
         }
     }

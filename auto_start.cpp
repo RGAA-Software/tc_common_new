@@ -3,45 +3,60 @@
 //
 #ifdef WIN32
 #include "auto_start.h"
-#include <QSettings>
-#include <QFileInfo>
-#include <QDir>
+#include <windows.h>
+#include <filesystem>
+#include <algorithm>
 #include <comutil.h>
 #include <atlcomcli.h>
 #include "tc_common_new/log.h"
-
-#define AUTO_RUN "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"
-#define AUTO_RUN_ADMIN "HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Run"
+#include "tc_common_new/string_util.h"
 
 namespace tc
 {
 
-    static void SetAutoStartInternal(const QString& reg_path, const QString& exe_path, bool enabled) {
-        QSettings settings(reg_path, QSettings::NativeFormat);
+    static void SetAutoStartInternal(HKEY hRootKey, const wchar_t* subKey, const std::wstring& exe_path, bool enabled) {
+        HKEY hKey = nullptr;
+        LONG result = RegCreateKeyExW(hRootKey, subKey, 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_WRITE, nullptr, &hKey, nullptr);
+        if (result != ERROR_SUCCESS) {
+            LOGE("RegCreateKeyExW failed: {}", result);
+            return;
+        }
 
-        //以程序名称作为注册表中的键,根据键获取对应的值（程序路径）
-        QFileInfo fInfo(exe_path);
-        QString name = fInfo.baseName();    //键-名称
+        std::filesystem::path fs_path(exe_path);
+        std::wstring name = fs_path.stem().wstring();
+        std::wstring newPath = exe_path;
+        std::replace(newPath.begin(), newPath.end(), L'/', L'\\');
 
-        //如果注册表中的路径和当前程序路径不一样，则表示没有设置自启动或本自启动程序已经更换了路径
-        QString oldPath = settings.value(name).toString(); //获取目前的值-绝对路劲
-        QString newPath = QDir::toNativeSeparators(exe_path);    //toNativeSeparators函数将"/"替换为"\"
-        if(enabled) {
+        if (enabled) {
+            wchar_t oldPathBuf[4096] = {0};
+            DWORD oldSize = sizeof(oldPathBuf);
+            DWORD type = 0;
+            result = RegQueryValueExW(hKey, name.c_str(), nullptr, &type, (LPBYTE)oldPathBuf, &oldSize);
+            std::wstring oldPath = (result == ERROR_SUCCESS && type == REG_SZ) ? oldPathBuf : L"";
+
             if (oldPath != newPath) {
-                settings.setValue(name, newPath);
+                result = RegSetValueExW(hKey, name.c_str(), 0, REG_SZ, (const BYTE*)newPath.c_str(),
+                                        static_cast<DWORD>((newPath.length() + 1) * sizeof(wchar_t)));
+                if (result != ERROR_SUCCESS) {
+                    LOGE("RegSetValueExW failed: {}", result);
+                }
+            }
+        } else {
+            result = RegDeleteValueW(hKey, name.c_str());
+            if (result != ERROR_SUCCESS && result != ERROR_FILE_NOT_FOUND) {
+                LOGE("RegDeleteValueW failed: {}", result);
             }
         }
-        else {
-            settings.remove(name);
-        }
+
+        RegCloseKey(hKey);
     }
 
-    void AutoStart::SetAutoStart(const QString& exe_path, bool enabled) {
-        SetAutoStartInternal(AUTO_RUN, exe_path, enabled);
+    void AutoStart::SetAutoStart(const std::wstring& exe_path, bool enabled) {
+        SetAutoStartInternal(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Run", exe_path, enabled);
     }
 
-    void AutoStart::SetAutoStartAdmin(const QString& exe_path, bool enabled) {
-        SetAutoStartInternal(AUTO_RUN_ADMIN, exe_path, enabled);
+    void AutoStart::SetAutoStartAdmin(const std::wstring& exe_path, bool enabled) {
+        SetAutoStartInternal(HKEY_LOCAL_MACHINE, L"SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Run", exe_path, enabled);
     }
 
     AutoStart::AutoStart() {
@@ -426,7 +441,7 @@ namespace tc
             swprintf_s(wszStartTime, L"%04d-%02d-%02dT%02d:%02d:%02d",
                        st.wYear, st.wMonth, st.wDay,
                        st.wHour, st.wMinute, st.wSecond);
-            LOGI("AutoStart, start time: {}", QString::fromStdWString(wszStartTime).toStdString());
+            LOGI("AutoStart, start time: {}", StringUtil::ToUTF8(wszStartTime));
 
             // 设置触发器开始时间
             hr = pTimeTrigger->put_StartBoundary(_bstr_t(wszStartTime));
@@ -452,7 +467,7 @@ namespace tc
             swprintf_s(wszStartTime, L"%04d-%02d-%02dT%02d:%02d:%02d",
                        st.wYear, st.wMonth, st.wDay,
                        st.wHour, st.wMinute, st.wSecond);
-            LOGI("AutoStart, end time: {}", QString::fromStdWString(wszStartTime).toStdString());
+            LOGI("AutoStart, end time: {}", StringUtil::ToUTF8(wszStartTime));
 
             // 设置触发器开始时间
             hr = pTimeTrigger->put_EndBoundary(_bstr_t(wszStartTime));
@@ -506,7 +521,7 @@ namespace tc
         }
 
         //  Set the path of the executable to notepad.exe.
-        hr = pExecAction->put_Path( _bstr_t( QString::fromStdString(lpszProgramPath).toStdWString().c_str() ) );
+        hr = pExecAction->put_Path( _bstr_t( StringUtil::ToWString(lpszProgramPath).c_str() ) );
         pExecAction->Release();
         if( FAILED(hr) )
         {

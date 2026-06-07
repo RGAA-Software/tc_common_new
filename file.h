@@ -2,13 +2,8 @@
 #define FILE_H
 
 #include <functional>
+#include <filesystem>
 #include "data.h"
-#ifdef WIN32
-#include <io.h>
-#include <QFile>
-#include <QFileInfo>
-#include <QDir>
-#endif
 
 namespace tc 
 {
@@ -52,13 +47,9 @@ namespace tc
         int64_t Append(const char* data, uint64_t size);
 
     private:
-        std::string file_path_;
+        std::filesystem::path file_path_;
         FILE* fp_ = nullptr;
         int64_t current_offset_ = 0;
-#ifdef WIN32
-        std::shared_ptr<QFile> file_ = nullptr;
-        QFileInfo file_info_;
-#endif
     };
     
     typedef std::shared_ptr<File> FilePtr;

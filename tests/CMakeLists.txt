@@ -1,20 +1,26 @@
 cmake_minimum_required(VERSION 3.22)
-#message("=-=-=-=--= ${Boost_LIBRARIES}")
 find_package(GTest CONFIG REQUIRED)
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core Core5Compat)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core Core5Compat)
+
+function(add_tc_test name source)
+    add_executable(${name} ${source})
+    target_link_libraries(${name} PRIVATE tc_common_new GTest::gtest GTest::gtest_main)
+endfunction()
+
+add_tc_test(test_string_util test_string_util.cpp)
+add_tc_test(test_file_util test_file_util.cpp)
+add_tc_test(test_folder_util test_folder_util.cpp)
+add_tc_test(test_file test_file.cpp)
+add_tc_test(test_auto_start test_auto_start.cpp)
+add_tc_test(test_win_helper test_win_helper.cpp)
+add_tc_test(test_dxgi_mon_detector test_dxgi_mon_detector.cpp)
+add_tc_test(test_network_adapter test_network_adapter.cpp)
+add_tc_test(test_qr_generator test_qr_generator.cpp)
 
 add_executable(test_common test.cpp)
-target_link_libraries(test_common PRIVATE tc_common_new ${Boost_LIBRARIES} GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main Qt6::Core Qt6::Core5Compat)
-add_custom_command(TARGET test_common POST_BUILD
-        COMMAND ${QT_ROOT}/bin/windeployqt.exe $<TARGET_FILE:test_common> --no-translations --release
-)
+target_link_libraries(test_common PRIVATE tc_common_new ${Boost_LIBRARIES} GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
 
 add_executable(test_http test_http.cpp)
-target_link_libraries(test_http PRIVATE tc_common_new ${Boost_LIBRARIES} GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main Qt6::Core Qt6::Core5Compat)
-#add_custom_command(TARGET test_http POST_BUILD
-#    COMMAND ${QT_ROOT}/bin/windeployqt.exe $<TARGET_FILE:test_common> --no-translations --release
-#)
+target_link_libraries(test_http PRIVATE tc_common_new ${Boost_LIBRARIES} GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
 
 add_executable(test_cpu test_cpu.cpp)
-target_link_libraries(test_cpu PRIVATE tc_common_new ${Boost_LIBRARIES} GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main Qt6::Core Qt6::Core5Compat)
+target_link_libraries(test_cpu PRIVATE tc_common_new ${Boost_LIBRARIES} GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)

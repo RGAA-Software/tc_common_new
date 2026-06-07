@@ -10,9 +10,8 @@
 #include <tchar.h>
 #include <winternl.h>
 #include <filesystem>
-#include <QProcess>
-#include <QStringList>
-#include <QString>
+#include <format>
+#include <vector>
 #include <WtsApi32.h>
 #include "tc_common_new/string_util.h"
 
@@ -55,12 +54,12 @@ namespace tc
                 if (GetModuleBaseNameA(hnd_process, h_modules[i], name, sizeof(name) / sizeof(WCHAR))) {
                     //_strlwr(name);
                     if (x86) {
-                        if (QString::compare(QString::fromStdString(x86_dll_name), QString::fromStdString(name), Qt::CaseInsensitive) == 0) {
+                        if (::_stricmp(x86_dll_name.c_str(), name) == 0) {
                             ret_val = true;
                             break;
                         }
                     } else {
-                        if (QString::compare(QString::fromStdString(x64_dll_name), QString::fromStdString(name), Qt::CaseInsensitive) == 0) {
+                        if (::_stricmp(x64_dll_name.c_str(), name) == 0) {
                             ret_val = true;
                             break;
                         }
@@ -92,17 +91,21 @@ namespace tc
         std::string target_dll = is_x86.value_ ? x86_dll_name : x64_dll_name;
         std::string injector = is_x86.value_ ? kInjector32 : kInjector64;
         std::string cheat_anti = "0";
-        std::string pid_str = std::to_string(pid);
         // todo: Test it.
-        QStringList injector_args;
-        injector_args << target_dll.c_str() << cheat_anti.c_str() << QString::number(pid);
-        QProcess process;
-        process.start(injector.c_str(), injector_args);
-        process.waitForFinished();
-        if (process.exitCode() == 0) {
+        std::wstring cmd_line = std::format(L"\"{}\" \"{}\" \"{}\" {}",
+                                            StringUtil::ToWString(injector),
+                                            StringUtil::ToWString(target_dll),
+                                            StringUtil::ToWString(cheat_anti),
+                                            pid);
 
+        STARTUPINFOW si = { sizeof(si) };
+        PROCESS_INFORMATION pi = {};
+        if (CreateProcessW(nullptr, &cmd_line[0], nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) {
+            WaitForSingleObject(pi.hProcess, INFINITE);
+            CloseHandle(pi.hProcess);
+            CloseHandle(pi.hThread);
         } else {
-
+            LOGE("CreateProcessW failed: {}", GetLastError());
         }
 #if 0
         try {

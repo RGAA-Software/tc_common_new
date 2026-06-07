@@ -1,4 +1,4 @@
-﻿#pragma execution_character_set("utf-8")
+#pragma execution_character_set("utf-8")
 
 #include "file.h"
 
@@ -10,23 +10,11 @@
 
 namespace tc 
 {
-    namespace {
+    static std::filesystem::path U8Path(const std::string& s) {
 #ifdef WIN32
-        QIODeviceBase::OpenMode ToQtOpenMode(const std::string& mode) {
-            if (mode == "r" || mode == "rb") {
-                return QIODeviceBase::ReadOnly;
-            }
-            if (mode == "w" || mode == "wb") {
-                return QIODeviceBase::WriteOnly | QIODeviceBase::Truncate;
-            }
-            if (mode == "w+" || mode == "wb+") {
-                return QIODeviceBase::ReadWrite | QIODeviceBase::Truncate;
-            }
-            if (mode == "a+" || mode == "ab+") {
-                return QIODeviceBase::ReadWrite | QIODeviceBase::Append;
-            }
-            return QIODeviceBase::NotOpen;
-        }
+        return std::filesystem::path(StringUtil::ToWString(s));
+#else
+        return std::filesystem::path(s);
 #endif
     }
 
@@ -63,54 +51,38 @@ namespace tc
     }
 
     bool File::IsFolder(const std::string& path) {
-#ifdef WIN32
-        QFileInfo file_info(path.c_str());
-        return file_info.isDir();
-#else
-      return false;
-#endif
+        std::error_code ec;
+        return std::filesystem::is_directory(U8Path(path), ec);
     }
 
     bool File::Exists(const std::string& path) {
-#ifdef WIN32
-        return QFile::exists(path.c_str());
-#else
-        return std::filesystem::exists(path);
-#endif
+        std::error_code ec;
+        return std::filesystem::exists(U8Path(path), ec);
     }
 
     int64_t File::Size(const std::string& path) {
-#ifdef WIN32
-        QFileInfo fi(path.c_str());
-        if (!fi.exists()) {
+        auto p = U8Path(path);
+        std::error_code ec;
+        if (!std::filesystem::exists(p, ec)) {
             return -1;
         }
-        return (int64_t)fi.size();
-#else
-        uintmax_t size = std::filesystem::file_size(path);
-        return (int64_t)size;
-#endif
+        return static_cast<int64_t>(std::filesystem::file_size(p, ec));
     }
 
     File::File(const std::string& path, const std::string& mode) {
         auto origin_path = path;
         StringUtil::Replace(origin_path, "\\", "/");
-        this->file_path_ = origin_path;
+        this->file_path_ = U8Path(origin_path);
 #ifdef WIN32
-        file_ = std::make_shared<QFile>(path.c_str());
-        auto open_mode = ToQtOpenMode(mode);
-        if (open_mode == QIODeviceBase::NotOpen) {
-            LOGE("Unsupported file open mode: {}, file: {}", mode, path);
-            return;
-        }
-        if (!file_->open(open_mode)) {
-            LOGE("Open file failed, mode: {}, file: {}", mode, path);
-            return;
-        }
-        file_info_ = QFileInfo(path.c_str());
+        auto wmode = StringUtil::ToWString(mode);
+        fp_ = _wfopen(this->file_path_.wstring().c_str(), wmode.c_str());
 #else
         fp_ = fopen(path.c_str(), mode.c_str());
 #endif
+        if (!fp_) {
+            LOGE("Open file failed, mode: {}, file: {}", mode, path);
+            return;
+        }
     }
     
     File::~File() {
@@ -118,67 +90,37 @@ namespace tc
     }
 
     bool File::Delete(const std::string& path) {
-#ifdef WIN32
-        return QFile::remove(path.c_str());
-#else
-        return false;
-#endif
+        std::error_code ec;
+        return std::filesystem::remove(U8Path(path), ec);
     }
 
     bool File::Exists() {
-#ifdef WIN32
-        return QFile::exists(this->file_path_.c_str());
-#else
-       return std::filesystem::exists(this->file_path_);
-#endif
+        std::error_code ec;
+        return std::filesystem::exists(this->file_path_, ec);
     }
     
     bool File::IsOpen() {
-#ifdef WIN32
-        return this->file_ && this->file_->isOpen();
-#else
         return fp_ != nullptr;
-#endif
     }
 
     std::string File::FileName() {
-#ifdef WIN32
-        return file_info_.fileName().toStdString();
-#else
-        return "";
-#endif
+        return StringUtil::ToUTF8(file_path_.filename().wstring());
     }
 
     DataPtr File::Read(uint64_t offset, uint64_t size, uint64_t& read_size) {
         if (!IsOpen()) {
             return nullptr;
         }
-#ifdef WIN32
-        if (!file_->seek((qint64)offset)) {
-            LOGE("file seek failed, offset: {}, file: {}", offset, this->file_path_);
+        if (fseek(fp_, static_cast<long>(offset), SEEK_SET) != 0) {
+            LOGE("file seek failed, offset: {}, file: {}", offset, StringUtil::ToUTF8(this->file_path_.wstring()));
             return nullptr;
         }
-        auto bytes = file_->read((qint64)size);
-        read_size = bytes.size();
+        auto read_data = std::make_unique<char[]>(size);
+        read_size = fread(read_data.get(), 1, size, fp_);
         if (read_size <= 0) {
             return nullptr;
         }
-        return Data::Make(bytes.data(), (int)bytes.size());
-#else
-        rewind(fp_);
-    
-        char* read_data = (char*)malloc(size);
-        fseek(fp_, (long)offset, SEEK_SET);
-        read_size = fread(read_data, 1, size, fp_);
-        if (read_size <= 0) {
-            free(read_data);
-            return nullptr;
-        }
-    
-        auto data = Data::Make(read_data, read_size);
-        free(read_data);
-        return data;
-#endif
+        return Data::Make(read_data.get(), static_cast<int>(read_size));
     }
     
     DataPtr File::ReadAll() {
@@ -214,14 +156,11 @@ namespace tc
         if (!IsOpen()) {
             return 0;
         }
-#ifdef WIN32
-        return file_info_.size();
-#else
+        auto current = ftell(fp_);
         fseek(fp_, 0, SEEK_END);
         auto size = ftell(fp_);
-        fseek(fp_, 0, SEEK_SET);
-        return size;
-#endif
+        fseek(fp_, current, SEEK_SET);
+        return static_cast<uint64_t>(size);
     }
     
     int64_t File::Write(uint64_t offset, const DataPtr& data) {
@@ -242,17 +181,11 @@ namespace tc
         if (!IsOpen()) {
             return -1;
         }
-#ifdef WIN32
-        if (!file_->seek((qint64)offset)) {
-            LOGE("seek failed for writing data, offset: {}, file: {}", offset, file_path_);
+        if (fseek(fp_, static_cast<long>(offset), SEEK_SET) != 0) {
+            LOGE("seek failed for writing data, offset: {}, file: {}", offset, StringUtil::ToUTF8(file_path_.wstring()));
             return -1;
         }
-        return file_->write(data, (qint64)size);
-#else
-        rewind(fp_);
-        fseek(fp_, offset, SEEK_SET);
-        return (int64_t)fwrite(data, 1, size, fp_);
-#endif
+        return static_cast<int64_t>(fwrite(data, 1, size, fp_));
     }
 
     int64_t File::Append(const DataPtr& data) {
@@ -267,43 +200,14 @@ namespace tc
         if (!IsOpen()) {
             return -1;
         }
-#ifdef WIN32
-        return file_->write(data, (qint64)size);
-#else
-        return (int64_t)fwrite(data, 1, size, fp_);
-#endif
+        return static_cast<int64_t>(fwrite(data, 1, size, fp_));
     }
 
     void File::Close() {
-#ifdef WIN32
-        if (file_) {
-            file_->close();
-            file_ = nullptr;
-        }
-#else
         if (fp_) {
             fflush(fp_);
             fclose(fp_);
             fp_ = nullptr;
         }
-#endif
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
