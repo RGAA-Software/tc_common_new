@@ -78,6 +78,7 @@ namespace tc
         static RespBoolBool IsProcessX86Arch(uint32_t pid);
         static std::vector<std::shared_ptr<ProcessInfo>> GetProcessList(bool icon = false);
         static bool CloseProcess(DWORD pid);
+        static void CloseProcessesByName(const std::string& process_name, uint32_t exclude_pid = 0);
         static Response<bool, uint32_t> GetParentPid(uint32_t pid);
         static bool isChildOf(uint32_t child, uint32_t parent);
         static std::vector<uint32_t> FindAllChildProcess(uint32_t pid, const std::string& excludeProcessName = "");

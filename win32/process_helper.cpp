@@ -154,6 +154,20 @@ namespace tc
         }
     }
 
+    void ProcessHelper::CloseProcessesByName(const std::string& process_name, uint32_t exclude_pid) {
+        auto processes = ProcessHelper::GetProcessList(false);
+        for (const auto& process : processes) {
+            if (process->exe_name_ != process_name) {
+                continue;
+            }
+            if (exclude_pid != 0 && process->pid_ == exclude_pid) {
+                continue;
+            }
+            LOGI("Force close process: {}, pid={}", process_name, process->pid_);
+            ProcessHelper::CloseProcess(process->pid_);
+        }
+    }
+
     Response<bool, uint32_t> ProcessHelper::GetParentPid(uint32_t pid) {
         LONG status;
         DWORD dwParentPID = 0;
