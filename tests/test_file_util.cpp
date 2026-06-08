@@ -73,18 +73,18 @@ TEST_F(FileUtilTest, CopyFileExt) {
     }
     ASSERT_TRUE(std::filesystem::exists(src));
 
-    EXPECT_TRUE(FileUtil::CopyFileExt(PathToUTF8(src), PathToUTF8(dst), false));
+    EXPECT_TRUE(FileUtil::CopyFileExt(src, dst, false));
     EXPECT_TRUE(std::filesystem::exists(dst));
 
     // Copy again without force should return true (existing file, not force)
-    EXPECT_TRUE(FileUtil::CopyFileExt(PathToUTF8(src), PathToUTF8(dst), false));
+    EXPECT_TRUE(FileUtil::CopyFileExt(src, dst, false));
 
     // Copy with force should replace
     {
         std::ofstream ofs(src);
         ofs << "world";
     }
-    EXPECT_TRUE(FileUtil::CopyFileExt(PathToUTF8(src), PathToUTF8(dst), true));
+    EXPECT_TRUE(FileUtil::CopyFileExt(src, dst, true));
     std::ifstream ifs(dst);
     std::string content((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
     EXPECT_EQ(content, "world");
@@ -99,12 +99,12 @@ TEST_F(FileUtilTest, ReName) {
     }
     ASSERT_TRUE(std::filesystem::exists(old_path));
 
-    EXPECT_TRUE(FileUtil::ReName(PathToUTF8(old_path), PathToUTF8(new_path)));
+    EXPECT_TRUE(FileUtil::ReName(old_path, new_path));
     EXPECT_FALSE(std::filesystem::exists(old_path));
     EXPECT_TRUE(std::filesystem::exists(new_path));
 
     // Rename non-existing should fail
-    EXPECT_FALSE(FileUtil::ReName(PathToUTF8(old_path), PathToUTF8(new_path)));
+    EXPECT_FALSE(FileUtil::ReName(old_path, new_path));
 }
 
 TEST_F(FileUtilTest, CopyFileExtChinese) {
@@ -116,7 +116,7 @@ TEST_F(FileUtilTest, CopyFileExtChinese) {
     }
     ASSERT_TRUE(std::filesystem::exists(src));
 
-    EXPECT_TRUE(FileUtil::CopyFileExt(PathToUTF8(src), PathToUTF8(dst), false));
+    EXPECT_TRUE(FileUtil::CopyFileExt(src, dst, false));
     EXPECT_TRUE(std::filesystem::exists(dst));
 
     {
@@ -130,7 +130,7 @@ TEST_F(FileUtilTest, CopyFileExtChinese) {
         std::ofstream ofs(src);
         ofs << "replaced";
     }
-    EXPECT_TRUE(FileUtil::CopyFileExt(PathToUTF8(src), PathToUTF8(dst), true));
+    EXPECT_TRUE(FileUtil::CopyFileExt(src, dst, true));
     {
         std::ifstream ifs2(dst);
         std::string content2((std::istreambuf_iterator<char>(ifs2)), std::istreambuf_iterator<char>());
@@ -147,7 +147,7 @@ TEST_F(FileUtilTest, ReNameChinese) {
     }
     ASSERT_TRUE(std::filesystem::exists(old_path));
 
-    EXPECT_TRUE(FileUtil::ReName(PathToUTF8(old_path), PathToUTF8(new_path)));
+    EXPECT_TRUE(FileUtil::ReName(old_path, new_path));
     EXPECT_FALSE(std::filesystem::exists(old_path));
     EXPECT_TRUE(std::filesystem::exists(new_path));
 }

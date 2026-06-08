@@ -40,12 +40,12 @@ protected:
 TEST_F(FolderUtilTest, CreateDir) {
     auto dir = temp_dir_ / "new_folder";
     ASSERT_FALSE(std::filesystem::exists(dir));
-    FolderUtil::CreateDir(PathToUTF8(dir));
+    FolderUtil::CreateDir(dir);
     EXPECT_TRUE(std::filesystem::exists(dir));
     EXPECT_TRUE(std::filesystem::is_directory(dir));
 
     // Creating again should be fine
-    FolderUtil::CreateDir(PathToUTF8(dir));
+    FolderUtil::CreateDir(dir);
     EXPECT_TRUE(std::filesystem::exists(dir));
 }
 
@@ -59,11 +59,11 @@ TEST_F(FolderUtilTest, DeleteDir) {
     }
     ASSERT_TRUE(std::filesystem::exists(dir));
 
-    EXPECT_TRUE(FolderUtil::DeleteDir(PathToUTF8(dir)));
+    EXPECT_TRUE(FolderUtil::DeleteDir(dir));
     EXPECT_FALSE(std::filesystem::exists(dir));
 
     // Deleting non-existing should return true (matches original behaviour)
-    EXPECT_TRUE(FolderUtil::DeleteDir(PathToUTF8(dir)));
+    EXPECT_TRUE(FolderUtil::DeleteDir(dir));
 }
 
 TEST_F(FolderUtilTest, VisitFiles) {
@@ -75,7 +75,7 @@ TEST_F(FolderUtilTest, VisitFiles) {
 
     int count = 0;
     int txt_count = 0;
-    FolderUtil::VisitFiles(PathToUTF8(dir), [&](VisitResult&& result) {
+    FolderUtil::VisitFiles(dir, [&](VisitResult&& result) {
         count++;
         auto u8name = StringUtil::ToUTF8(result.name_);
         if (FileUtil::GetFileSuffix(u8name) == "txt") {
@@ -87,7 +87,7 @@ TEST_F(FolderUtilTest, VisitFiles) {
 
     // With filter
     count = 0;
-    FolderUtil::VisitFiles(PathToUTF8(dir), [&](VisitResult&& result) {
+    FolderUtil::VisitFiles(dir, [&](VisitResult&& result) {
         count++;
     }, "cpp");
     EXPECT_EQ(count, 1);
@@ -139,7 +139,7 @@ TEST_F(FolderUtilTest, VisitRecursiveFiles) {
 TEST_F(FolderUtilTest, CreateDirChinese) {
     auto dir = temp_dir_ / U8Path(U8S(u8"中文目录"));
     ASSERT_FALSE(std::filesystem::exists(dir));
-    FolderUtil::CreateDir(PathToUTF8(dir));
+    FolderUtil::CreateDir(dir);
     EXPECT_TRUE(std::filesystem::exists(dir));
     EXPECT_TRUE(std::filesystem::is_directory(dir));
 
@@ -159,7 +159,7 @@ TEST_F(FolderUtilTest, DeleteDirChinese) {
     }
     ASSERT_TRUE(std::filesystem::exists(dir));
 
-    EXPECT_TRUE(FolderUtil::DeleteDir(PathToUTF8(dir)));
+    EXPECT_TRUE(FolderUtil::DeleteDir(dir));
     EXPECT_FALSE(std::filesystem::exists(dir));
 }
 
@@ -170,13 +170,13 @@ TEST_F(FolderUtilTest, VisitFilesChinese) {
     std::ofstream(dir / U8Path(U8S(u8"文件乙.cpp"))) << "b";
 
     int count = 0;
-    FolderUtil::VisitFiles(PathToUTF8(dir), [&](VisitResult&& result) {
+    FolderUtil::VisitFiles(dir, [&](VisitResult&& result) {
         count++;
     });
     EXPECT_EQ(count, 2);
 
     count = 0;
-    FolderUtil::VisitFiles(PathToUTF8(dir), [&](VisitResult&& result) {
+    FolderUtil::VisitFiles(dir, [&](VisitResult&& result) {
         auto u8name = StringUtil::ToUTF8(result.name_);
         if (FileUtil::GetFileSuffix(u8name) == "txt") {
             count++;

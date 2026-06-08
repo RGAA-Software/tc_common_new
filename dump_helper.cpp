@@ -104,7 +104,7 @@ namespace tc
             std::wstring new_dmp_name = std::wstring(dump_path) + L"/" + exe_name + L"_" + exe_version + L".dmp";
             LOGE("ORIGIN: {}", StringUtil::ToUTF8(original_dmp));
             LOGE("TARGET: {}", StringUtil::ToUTF8(new_dmp_name));
-            FileUtil::ReName(StringUtil::ToUTF8(original_dmp), StringUtil::ToUTF8(new_dmp_name));
+            FileUtil::ReName(original_dmp, new_dmp_name);
             LOGE("!!!--DUMP Generated--!!");
         } else {
             LOGE("!!!--Can't Generate DUMP--!!");
@@ -117,8 +117,7 @@ namespace tc
 
     void CaptureDumpByBreakpad(BreakpadContext* bc) {
         auto dump_path = FolderUtil::GetProgramDataPath() + L"/gr_dumps";
-        auto dir_path = StringUtil::ToUTF8(dump_path);
-        FolderUtil::CreateDir(dir_path);
+        FolderUtil::CreateDir(dump_path);
 
         exception_handler = new google_breakpad::ExceptionHandler(
             dump_path,

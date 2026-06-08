@@ -11,23 +11,23 @@ namespace tc
     class File {
     public:
     
-        static std::shared_ptr<File> OpenForRead(const std::string& path);
-        static std::shared_ptr<File> OpenForWrite(const std::string& path);
-        static std::shared_ptr<File> OpenForRW(const std::string& path);
-        static std::shared_ptr<File> OpenForAppend(const std::string& path);
+        static std::shared_ptr<File> OpenForRead(const std::filesystem::path& path);
+        static std::shared_ptr<File> OpenForWrite(const std::filesystem::path& path);
+        static std::shared_ptr<File> OpenForRW(const std::filesystem::path& path);
+        static std::shared_ptr<File> OpenForAppend(const std::filesystem::path& path);
     
-        static std::shared_ptr<File> OpenForReadB(const std::string& path);
-        static std::shared_ptr<File> OpenForWriteB(const std::string& path);
-        static std::shared_ptr<File> OpenForRWB(const std::string& path);
-        static std::shared_ptr<File> OpenForAppendB(const std::string& path);
+        static std::shared_ptr<File> OpenForReadB(const std::filesystem::path& path);
+        static std::shared_ptr<File> OpenForWriteB(const std::filesystem::path& path);
+        static std::shared_ptr<File> OpenForRWB(const std::filesystem::path& path);
+        static std::shared_ptr<File> OpenForAppendB(const std::filesystem::path& path);
 
-        static bool IsFolder(const std::string& path);
-        static bool Exists(const std::string& path);
-        static int64_t Size(const std::string& path);
+        static bool IsFolder(const std::filesystem::path& path);
+        static bool Exists(const std::filesystem::path& path);
+        static int64_t Size(const std::filesystem::path& path);
 
-        File(const std::string& path, const std::string& mode);
+        File(const std::filesystem::path& path, const std::string& mode);
         ~File();
-        static bool Delete(const std::string& path);
+        static bool Delete(const std::filesystem::path& path);
         uint64_t Size();
         bool Exists();
         bool IsOpen();

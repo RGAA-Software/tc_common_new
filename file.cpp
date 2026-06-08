@@ -10,69 +10,58 @@
 
 namespace tc 
 {
-    static std::filesystem::path U8Path(const std::string& s) {
-#ifdef WIN32
-        return std::filesystem::path(StringUtil::ToWString(s));
-#else
-        return std::filesystem::path(s);
-#endif
+    std::shared_ptr<File> File::OpenForRead(const std::filesystem::path& path) {
+        return std::make_shared<File>(path, "r");
+    }
+    
+    std::shared_ptr<File> File::OpenForWrite(const std::filesystem::path& path) {
+        return std::make_shared<File>(path, "w");
+    }
+    
+    std::shared_ptr<File> File::OpenForRW(const std::filesystem::path& path) {
+        return std::make_shared<File>(path, "w+");
+    }
+    
+    std::shared_ptr<File> File::OpenForAppend(const std::filesystem::path& path) {
+        return std::make_shared<File>(path, "a+");
+    }
+    
+    std::shared_ptr<File> File::OpenForReadB(const std::filesystem::path& path) {
+        return std::make_shared<File>(path, "rb");
+    }
+    
+    std::shared_ptr<File> File::OpenForWriteB(const std::filesystem::path& path) {
+        return std::make_shared<File>(path, "wb");
+    }
+    
+    std::shared_ptr<File> File::OpenForRWB(const std::filesystem::path& path) {
+        return std::make_shared<File>(path, "wb+");
+    }
+    
+    std::shared_ptr<File> File::OpenForAppendB(const std::filesystem::path& path) {
+        return std::make_shared<File>(path, "ab+");
     }
 
-    std::shared_ptr<File> File::OpenForRead(const std::string& path) {
-        return std::make_shared<File>(path.c_str(), "r");
-    }
-    
-    std::shared_ptr<File> File::OpenForWrite(const std::string& path) {
-        return std::make_shared<File>(path.c_str(), "w");
-    }
-    
-    std::shared_ptr<File> File::OpenForRW(const std::string& path) {
-        return std::make_shared<File>(path.c_str(), "w+");
-    }
-    
-    std::shared_ptr<File> File::OpenForAppend(const std::string& path) {
-        return std::make_shared<File>(path.c_str(), "a+");
-    }
-    
-    std::shared_ptr<File> File::OpenForReadB(const std::string& path) {
-        return std::make_shared<File>(path.c_str(), "rb");
-    }
-    
-    std::shared_ptr<File> File::OpenForWriteB(const std::string& path) {
-        return std::make_shared<File>(path.c_str(), "wb");
-    }
-    
-    std::shared_ptr<File> File::OpenForRWB(const std::string& path) {
-        return std::make_shared<File>(path.c_str(), "wb+");
-    }
-    
-    std::shared_ptr<File> File::OpenForAppendB(const std::string& path) {
-        return std::make_shared<File>(path.c_str(), "ab+");
-    }
-
-    bool File::IsFolder(const std::string& path) {
+    bool File::IsFolder(const std::filesystem::path& path) {
         std::error_code ec;
-        return std::filesystem::is_directory(U8Path(path), ec);
+        return std::filesystem::is_directory(path, ec);
     }
 
-    bool File::Exists(const std::string& path) {
+    bool File::Exists(const std::filesystem::path& path) {
         std::error_code ec;
-        return std::filesystem::exists(U8Path(path), ec);
+        return std::filesystem::exists(path, ec);
     }
 
-    int64_t File::Size(const std::string& path) {
-        auto p = U8Path(path);
+    int64_t File::Size(const std::filesystem::path& path) {
         std::error_code ec;
-        if (!std::filesystem::exists(p, ec)) {
+        if (!std::filesystem::exists(path, ec)) {
             return -1;
         }
-        return static_cast<int64_t>(std::filesystem::file_size(p, ec));
+        return static_cast<int64_t>(std::filesystem::file_size(path, ec));
     }
 
-    File::File(const std::string& path, const std::string& mode) {
-        auto origin_path = path;
-        StringUtil::Replace(origin_path, "\\", "/");
-        this->file_path_ = U8Path(origin_path);
+    File::File(const std::filesystem::path& path, const std::string& mode) {
+        this->file_path_ = path;
 #ifdef WIN32
         auto wmode = StringUtil::ToWString(mode);
         fp_ = _wfopen(this->file_path_.wstring().c_str(), wmode.c_str());
@@ -80,7 +69,7 @@ namespace tc
         fp_ = fopen(path.c_str(), mode.c_str());
 #endif
         if (!fp_) {
-            LOGE("Open file failed, mode: {}, file: {}", mode, path);
+            LOGE("Open file failed, mode: {}, file: {}", mode, StringUtil::ToUTF8(path.wstring()));
             return;
         }
     }
@@ -89,9 +78,9 @@ namespace tc
         Close();
     }
 
-    bool File::Delete(const std::string& path) {
+    bool File::Delete(const std::filesystem::path& path) {
         std::error_code ec;
-        return std::filesystem::remove(U8Path(path), ec);
+        return std::filesystem::remove(path, ec);
     }
 
     bool File::Exists() {

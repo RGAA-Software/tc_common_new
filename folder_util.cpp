@@ -22,14 +22,13 @@ namespace fs = std::filesystem;
 namespace tc
 {
 
-    void FolderUtil::VisitFiles(const std::string& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
-        auto current_path = std::filesystem::u8path(path);
-        if (fs::is_directory(current_path)) {
-            for (const auto& entry : fs::directory_iterator(current_path)) {
-                auto path = entry.path();
+    void FolderUtil::VisitFiles(const std::filesystem::path& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
+        if (fs::is_directory(path)) {
+            for (const auto& entry : fs::directory_iterator(path)) {
+                auto entry_path = entry.path();
                 if (entry.is_regular_file()) {
                     if (!filter_suffix.empty()) {
-                        auto u8path = StringUtil::ToUTF8(path.wstring());
+                        auto u8path = StringUtil::ToUTF8(entry_path.wstring());
                         auto suffix = FileUtil::GetFileSuffix(u8path);
                         StringUtil::ToLower(suffix);
                         if (filter_suffix != suffix) {
@@ -37,8 +36,8 @@ namespace tc
                         }
                     }
                     VisitResult result{
-                        .name_ = path.filename().wstring(),
-                        .path_ = path.wstring(),
+                        .name_ = entry_path.filename().wstring(),
+                        .path_ = entry_path.wstring(),
                     };
                     cbk(std::move(result));
                 }
@@ -46,15 +45,22 @@ namespace tc
         }
     }
 
-    void FolderUtil::VisitFolders(const std::string& path, std::function<void(VisitResult&&)>&& cbk) {
-        auto current_path = std::filesystem::u8path(path);
-        if (fs::is_directory(current_path)) {
-            for (const auto& entry : fs::directory_iterator(current_path)) {
-                auto path = entry.path();
+    void FolderUtil::VisitFolders(const std::filesystem::path& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
+        if (fs::is_directory(path)) {
+            for (const auto& entry : fs::directory_iterator(path)) {
+                auto entry_path = entry.path();
                 if (entry.is_directory()) {
+                    if (!filter_suffix.empty()) {
+                        auto u8path = StringUtil::ToUTF8(entry_path.wstring());
+                        auto suffix = FileUtil::GetFileSuffix(u8path);
+                        StringUtil::ToLower(suffix);
+                        if (filter_suffix != suffix) {
+                            continue;
+                        }
+                    }
                     VisitResult result{
-                            .name_ = path.filename().wstring(),
-                            .path_ = path.wstring(),
+                            .name_ = entry_path.filename().wstring(),
+                            .path_ = entry_path.wstring(),
                     };
                     cbk(std::move(result));
                 }
@@ -62,13 +68,12 @@ namespace tc
         }
     }
 
-    void FolderUtil::VisitAll(const std::string& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
-        auto current_path = std::filesystem::u8path(path);
-        if (fs::is_directory(current_path)) {
-            for (const auto& entry : fs::directory_iterator(current_path)) {
-                auto path = entry.path();
+    void FolderUtil::VisitAll(const std::filesystem::path& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
+        if (fs::is_directory(path)) {
+            for (const auto& entry : fs::directory_iterator(path)) {
+                auto entry_path = entry.path();
                 if (!filter_suffix.empty()) {
-                    auto u8path = StringUtil::ToUTF8(path.wstring());
+                    auto u8path = StringUtil::ToUTF8(entry_path.wstring());
                     auto suffix = FileUtil::GetFileSuffix(u8path);
                     StringUtil::ToLower(suffix);
                     if (filter_suffix != suffix) {
@@ -76,8 +81,8 @@ namespace tc
                     }
                 }
                 VisitResult result{
-                        .name_ = path.filename().wstring(),
-                        .path_ = path.wstring(),
+                        .name_ = entry_path.filename().wstring(),
+                        .path_ = entry_path.wstring(),
                 };
                 cbk(std::move(result));
             }
@@ -122,12 +127,11 @@ namespace tc
     }
 
 #ifdef WIN32
-    void FolderUtil::VisitAllByQt(const std::string& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
-        auto current_path = std::filesystem::u8path(path);
-        if (!fs::is_directory(current_path)) {
+    void FolderUtil::VisitAllByQt(const std::filesystem::path& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
+        if (!fs::is_directory(path)) {
             return;
         }
-        for (const auto& entry : fs::recursive_directory_iterator(current_path, fs::directory_options::skip_permission_denied)) {
+        for (const auto& entry : fs::recursive_directory_iterator(path, fs::directory_options::skip_permission_denied)) {
             if (!entry.is_regular_file()) {
                 continue;
             }
@@ -161,21 +165,20 @@ namespace tc
         return {szFullPath};
     }
 
-    void FolderUtil::CreateDir(const std::string& path) {
+    void FolderUtil::CreateDir(const std::filesystem::path& path) {
         try {
-            auto p = std::filesystem::u8path(path);
-            if (!fs::exists(p)) {
-                if (!fs::create_directories(p)) {
-                    LOGE("Create folder failed: {}", path);
+            if (!fs::exists(path)) {
+                if (!fs::create_directories(path)) {
+                    LOGE("Create folder failed: {}", StringUtil::ToUTF8(path.wstring()));
                 }
             }
         } catch (const fs::filesystem_error& ex) {
-            LOGE("Create folder failed: {}, {}", path, ex.what());
+            LOGE("Create folder failed: {}, {}", StringUtil::ToUTF8(path.wstring()), ex.what());
         }
     }
 
-    void FolderUtil::OpenDir(const std::string& path) {
-        std::wstring wpath = StringUtil::ToWString(path);
+    void FolderUtil::OpenDir(const std::filesystem::path& path) {
+        std::wstring wpath = path.wstring();
         std::wstring args = std::format(L"\"{}\"", wpath);
         ShellExecuteW(nullptr, L"open", L"explorer.exe", args.c_str(), nullptr, SW_SHOWNORMAL);
     }
@@ -191,11 +194,11 @@ namespace tc
             try {
                 if (!fs::exists(app_path)) {
                     if (!fs::create_directories(app_path)) {
-                        LOGE("Create folder failed: {}", app_path.string());
+                        LOGE("Create folder failed: {}", StringUtil::ToUTF8(app_path.wstring()));
                     }
                 }
             } catch (const fs::filesystem_error& ex) {
-                LOGE("Create folder failed: {}, {}", app_path.string(), ex.what());
+                LOGE("Create folder failed: {}, {}", StringUtil::ToUTF8(app_path.wstring()), ex.what());
             }
             return app_path.wstring();
         }
@@ -205,24 +208,18 @@ namespace tc
 #endif
     }
 
-    bool FolderUtil::DeleteDir(const std::string& path) {
-        auto wp = StringUtil::ToWString(path);
-        return FolderUtil::DeleteDir(wp);
-    }
-
-    bool FolderUtil::DeleteDir(const std::wstring& path) {
+    bool FolderUtil::DeleteDir(const std::filesystem::path& path) {
         try {
-            fs::path dir = path;
             std::error_code ec;
-            auto removed = fs::remove_all(dir, ec);
+            auto removed = fs::remove_all(path, ec);
             (void)removed;
             if (ec) {
-                LOGE("DeleteDir failed: {}, {}", StringUtil::ToUTF8(path), ec.message());
+                LOGE("DeleteDir failed: {}, {}", StringUtil::ToUTF8(path.wstring()), ec.message());
                 return false;
             }
             return true;
         } catch (const std::exception& ex) {
-            LOGE("DeleteDir failed: {}, {}", StringUtil::ToUTF8(path), ex.what());
+            LOGE("DeleteDir failed: {}, {}", StringUtil::ToUTF8(path.wstring()), ex.what());
             return false;
         }
     }
@@ -252,13 +249,13 @@ namespace tc
                              bool overwrite) {
         try {
             if (!fs::exists(source) || !fs::is_directory(source)) {
-                LOGE("Source directory does not exist or is not a directory: {}", source.string());
+                LOGE("Source directory does not exist or is not a directory: {}", StringUtil::ToUTF8(source.wstring()));
                 return false;
             }
 
             if (!fs::exists(destination)) {
                 fs::create_directories(destination);
-                LOGI("Created destination directory: {}", destination.string());
+                LOGI("Created destination directory: {}", StringUtil::ToUTF8(destination.wstring()));
             }
 
             for (const auto& entry : fs::recursive_directory_iterator(
@@ -301,7 +298,7 @@ namespace tc
                 }
             }
 
-            LOGI("Directory copy completed: {} -> {}", source.string(), destination.string());
+            LOGI("Directory copy completed: {} -> {}", StringUtil::ToUTF8(source.wstring()), StringUtil::ToUTF8(destination.wstring()));
             return true;
 
         }

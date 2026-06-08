@@ -196,9 +196,9 @@ namespace tc
             return ret;
         }
 
-        std::filesystem::path file_path(upath);
+        std::filesystem::path file_path(StringUtil::ToWString(upath));
         ret.ok_ = true;
-        ret.value_ = file_path.filename().string();
+        ret.value_ = StringUtil::ToUTF8(file_path.filename().wstring());
         return ret;
     }
 

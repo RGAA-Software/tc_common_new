@@ -8,11 +8,13 @@
 #include <string>
 #include <functional>
 #include <filesystem>
+#include "string_util.h"
 
 namespace fs = std::filesystem;
 
 namespace tc
 {
+
     class VisitResult {
     public:
         std::wstring name_;
@@ -22,9 +24,9 @@ namespace tc
     class FolderUtil {
     public:
 
-        static void VisitFiles(const std::string& path, std::function<void(VisitResult&&)>&&, const std::string& filter_suffix = "");
-        static void VisitFolders(const std::string& path, std::function<void(VisitResult&&)>&&);
-        static void VisitAll(const std::string& path, std::function<void(VisitResult&&)>&&, const std::string& filter_suffix = "");
+        static void VisitFiles(const std::filesystem::path& path, std::function<void(VisitResult&&)>&&, const std::string& filter_suffix = "");
+        static void VisitFolders(const std::filesystem::path& path, std::function<void(VisitResult&&)>&&, const std::string& filter_suffix = "");
+        static void VisitAll(const std::filesystem::path& path, std::function<void(VisitResult&&)>&&, const std::string& filter_suffix = "");
         static void VisitRecursiveFiles(const std::filesystem::path& path, int depth, int max_depth, const std::function<void(VisitResult&&)>&, const std::string& filter_suffix = "");
         // source:
         // destination:
@@ -42,15 +44,14 @@ namespace tc
 
         static std::wstring GetProgramDataPath(const std::string& app = "GoDesk");
 
-        static bool DeleteDir(const std::string& path);
+        static bool DeleteDir(const std::filesystem::path& path);
 
-        static bool DeleteDir(const std::wstring& path);
 #ifdef WIN32
-        static void VisitAllByQt(const std::string& path, std::function<void(VisitResult&&)>&&, const std::string& filter_suffix = "");
+        static void VisitAllByQt(const std::filesystem::path& path, std::function<void(VisitResult&&)>&&, const std::string& filter_suffix = "");
         static std::wstring GetCurrentFilePath();
         static std::wstring GetCurrentFolderPath();
-        static void CreateDir(const std::string& path);
-        static void OpenDir(const std::string& path);
+        static void CreateDir(const std::filesystem::path& path);
+        static void OpenDir(const std::filesystem::path& path);
 #endif
     };
 }

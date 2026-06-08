@@ -16,14 +16,6 @@
 namespace tc
 {
 
-    static std::filesystem::path U8Path(const std::string& s) {
-#ifdef WIN32
-        return std::filesystem::path(StringUtil::ToWString(s));
-#else
-        return std::filesystem::path(s);
-#endif
-    }
-
     std::string FileUtil::GetFileNameFromPath(const std::string& path) {
         std::string target_path = path;
         StringUtil::Replace(target_path, R"(\\)", "/");
@@ -71,27 +63,29 @@ namespace tc
         return target_path.substr(idx + 1);
     }
 
-    bool FileUtil::CopyFileExt(const std::string& from, const std::string& to, bool force_replace) {
+    bool FileUtil::CopyFileExt(const std::filesystem::path& from, const std::filesystem::path& to, bool force_replace) {
         try {
-            auto to_path = U8Path(to);
-            if (std::filesystem::exists(to_path)) {
+            if (std::filesystem::exists(to)) {
                 if (force_replace) {
-                    std::filesystem::remove(to_path);
+                    std::filesystem::remove(to);
                 } else {
                     return true;
                 }
             }
-            std::filesystem::copy_file(U8Path(from), to_path, std::filesystem::copy_options::overwrite_existing);
+            std::filesystem::copy_file(from, to, std::filesystem::copy_options::overwrite_existing);
             return true;
         } catch (const std::filesystem::filesystem_error& ex) {
-            LOGE("CopyFileExt failed: {} -> {}, {}", from, to, ex.what());
+            LOGE("CopyFileExt failed: {} -> {}, {}",
+                 StringUtil::ToUTF8(from.wstring()),
+                 StringUtil::ToUTF8(to.wstring()),
+                 ex.what());
             return false;
         }
     }
 
-    void FileUtil::SelectFileInExplorer(const std::string& p) {
+    void FileUtil::SelectFileInExplorer(const std::filesystem::path& p) {
 #ifdef WIN32
-        std::wstring wpath = StringUtil::ToWString(p);
+        std::wstring wpath = p.wstring();
         for (auto& ch : wpath) {
             if (ch == L'/') ch = L'\\';
         }
@@ -100,16 +94,18 @@ namespace tc
 #endif
     }
 
-    bool FileUtil::ReName(const std::string& old_path, const std::string& new_path) {
+    bool FileUtil::ReName(const std::filesystem::path& old_path, const std::filesystem::path& new_path) {
         try {
-            auto old_p = U8Path(old_path);
-            if (!std::filesystem::exists(old_p)) {
+            if (!std::filesystem::exists(old_path)) {
                 return false;
             }
-            std::filesystem::rename(old_p, U8Path(new_path));
+            std::filesystem::rename(old_path, new_path);
             return true;
         } catch (const std::filesystem::filesystem_error& ex) {
-            LOGE("ReName failed: {} -> {}, {}", old_path, new_path, ex.what());
+            LOGE("ReName failed: {} -> {}, {}",
+                 StringUtil::ToUTF8(old_path.wstring()),
+                 StringUtil::ToUTF8(new_path.wstring()),
+                 ex.what());
             return false;
         }
     }

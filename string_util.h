@@ -13,6 +13,7 @@
 #include <cctype>
 #include <iomanip>
 #include <cstring>
+#include <filesystem>
 
 #ifdef WIN32
 #include <Windows.h>
@@ -249,6 +250,15 @@ namespace tc
         }
 #endif
     };
+
+    // Helper: create std::filesystem::path from UTF-8 encoded std::string
+    inline std::filesystem::path PathFromUTF8(const std::string& s) {
+#ifdef WIN32
+        return std::filesystem::path(StringUtil::ToWString(s));
+#else
+        return std::filesystem::path(s);
+#endif
+    }
 
 }
 

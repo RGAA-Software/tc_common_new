@@ -47,7 +47,7 @@ namespace tc
                     std::cout << "fpath: " << fpath << std::endl;
 
                     // 计算在zip中的相对路径
-                    std::string relative_path = fs::relative(entry.path(), directory_path).string();
+                    std::string relative_path = StringUtil::ToUTF8(fs::relative(entry.path(), directory_path).wstring());
                     std::replace(relative_path.begin(), relative_path.end(), '\\', '/');
 
                     // 尝试添加文件到zip，忽略任何错误
@@ -66,7 +66,7 @@ namespace tc
                 }
                 else if (entry.is_directory()) {
                     // 对于目录，需要在zip中创建对应的目录条目
-                    std::string dir_path = fs::relative(entry.path(), directory_path).string();
+                    std::string dir_path = StringUtil::ToUTF8(fs::relative(entry.path(), directory_path).wstring());
                     std::replace(dir_path.begin(), dir_path.end(), '\\', '/');
 
                     // 确保目录路径以斜杠结尾

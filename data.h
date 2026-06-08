@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <filesystem>
 
 namespace tc
 {
@@ -25,7 +26,7 @@ namespace tc
         bool Append(char* data, int64_t size);
         [[nodiscard]] int64_t Offset() const;
         void Reset();
-        void Save(const std::string& path);
+        void Save(const std::filesystem::path& path);
         [[nodiscard]] std::shared_ptr<Data> Clone() const;
 
     private:

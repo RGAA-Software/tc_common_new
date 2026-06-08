@@ -101,7 +101,7 @@ TEST(TestUncovered, DataAtOutOfBounds) {
 TEST(TestUncovered, DataSaveAndLoad) {
     std::string payload = "save me";
     auto data = Data::Make(payload.data(), payload.size());
-    auto tmp_path = (std::filesystem::temp_directory_path() / "tc_data_save_test.bin").string();
+    auto tmp_path = std::filesystem::temp_directory_path() / "tc_data_save_test.bin";
     data->Save(tmp_path);
 
     auto file = File::OpenForReadB(tmp_path);

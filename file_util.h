@@ -6,6 +6,8 @@
 #define TC_APPLICATION_FILE_EXT_H
 
 #include <string>
+#include <filesystem>
+#include "string_util.h"
 
 namespace tc
 {
@@ -18,9 +20,9 @@ namespace tc
         static std::string GetFileSuffix(const std::string& path);
         static std::string GetFileFolder(const std::string& path);
         static std::string GetFolderNameFormAbsFolderPath(const std::string& path);
-        static bool CopyFileExt(const std::string& from, const std::string& to, bool force_replace);
-        static void SelectFileInExplorer(const std::string& path);
-        static bool ReName(const std::string& old_path, const std::string& new_path);
+        static bool CopyFileExt(const std::filesystem::path& from, const std::filesystem::path& to, bool force_replace);
+        static void SelectFileInExplorer(const std::filesystem::path& path);
+        static bool ReName(const std::filesystem::path& old_path, const std::filesystem::path& new_path);
     };
 
 }
