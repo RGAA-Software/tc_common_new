@@ -127,6 +127,16 @@ namespace tc
         return resp;
     }
 
+    std::string WinHelper::GetExeFolderPath() {
+        char file_path[MAX_PATH + 1] = {0};
+        GetModuleFileNameA(nullptr, file_path, MAX_PATH);
+        char* last_slash = strrchr(file_path, '\\');
+        if (last_slash) {
+            *last_slash = '\0';
+        }
+        return file_path;
+    }
+
     Response<bool, std::string> WinHelper::GetPathByHwnd(HWND hwnd) {
         auto ret = Response<bool, std::string>::Make(false, "");
         DWORD dwPid = -1;

@@ -77,6 +77,7 @@ if(WIN32)
     list(APPEND SRCS
         win32/process_helper.cpp
         win32/win_helper.cpp
+        win32/dynamic_library.cpp
         win32/audio_device_helper.cpp
         win32/firewall_helper.cpp
         qrcode/qr_generator.cpp

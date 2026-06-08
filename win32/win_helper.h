@@ -30,6 +30,7 @@ namespace tc
         static Response<bool, std::string> Win32GetClassName(HWND hwnd);
         static Response<bool, std::string> Win32GetWindowTitle(HWND hwnd);
         static Response<bool, HWND> FindHwndByPid(uint32_t pid);
+        static std::string GetExeFolderPath();
         static bool DontCareDPI();
 
         // Determine whether the thread's current desktop is the input one
