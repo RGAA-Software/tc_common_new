@@ -70,7 +70,6 @@ set(SRCS
     tc_aes.cpp
     memory_stat.cpp
     cpu_frequency.cpp
-    image_generator.cpp
     gd_md5.cpp
     zip_util.cpp
     ../tc_3rdparty/miniz/miniz.c
@@ -119,7 +118,7 @@ if (WIN32)
         Shlwapi.lib Wtsapi32.lib shell32.lib
         iphlpapi.lib advapi32.lib comsuppw.lib
     )
-    # TODO: Remove Qt dependency after process_util.cpp and image_generator.cpp are de-Qtized
+    # TODO: Remove Qt dependency after process_util.cpp is de-Qtized
     target_link_libraries(tc_common_new Qt6::Core Qt6::Core5Compat Qt6::Widgets Qt6::Network)
     if (DirectXTex_ENABLED)
         target_link_libraries(tc_common_new DirectXTex)
