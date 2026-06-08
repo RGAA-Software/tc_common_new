@@ -4,6 +4,7 @@
 #include <functional>
 #include <filesystem>
 #include "data.h"
+#include "string_util.h"
 
 namespace tc 
 {
@@ -11,23 +12,23 @@ namespace tc
     class File {
     public:
     
-        static std::shared_ptr<File> OpenForRead(const std::filesystem::path& path);
-        static std::shared_ptr<File> OpenForWrite(const std::filesystem::path& path);
-        static std::shared_ptr<File> OpenForRW(const std::filesystem::path& path);
-        static std::shared_ptr<File> OpenForAppend(const std::filesystem::path& path);
+        static std::shared_ptr<File> OpenForRead(const U8Path& path);
+        static std::shared_ptr<File> OpenForWrite(const U8Path& path);
+        static std::shared_ptr<File> OpenForRW(const U8Path& path);
+        static std::shared_ptr<File> OpenForAppend(const U8Path& path);
     
-        static std::shared_ptr<File> OpenForReadB(const std::filesystem::path& path);
-        static std::shared_ptr<File> OpenForWriteB(const std::filesystem::path& path);
-        static std::shared_ptr<File> OpenForRWB(const std::filesystem::path& path);
-        static std::shared_ptr<File> OpenForAppendB(const std::filesystem::path& path);
+        static std::shared_ptr<File> OpenForReadB(const U8Path& path);
+        static std::shared_ptr<File> OpenForWriteB(const U8Path& path);
+        static std::shared_ptr<File> OpenForRWB(const U8Path& path);
+        static std::shared_ptr<File> OpenForAppendB(const U8Path& path);
 
-        static bool IsFolder(const std::filesystem::path& path);
-        static bool Exists(const std::filesystem::path& path);
-        static int64_t Size(const std::filesystem::path& path);
+        static bool IsFolder(const U8Path& path);
+        static bool Exists(const U8Path& path);
+        static int64_t Size(const U8Path& path);
 
-        File(const std::filesystem::path& path, const std::string& mode);
+        File(const U8Path& path, const std::string& mode);
         ~File();
-        static bool Delete(const std::filesystem::path& path);
+        static bool Delete(const U8Path& path);
         uint64_t Size();
         bool Exists();
         bool IsOpen();

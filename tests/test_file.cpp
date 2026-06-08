@@ -10,14 +10,6 @@
 
 using namespace tc;
 
-static std::string PathToUTF8(const std::filesystem::path& p) {
-    auto u8 = p.u8string();
-    return std::string(reinterpret_cast<const char*>(u8.data()), u8.size());
-}
-
-static std::filesystem::path U8Path(const std::string& s) {
-    return std::filesystem::path(StringUtil::ToWString(s));
-}
 
 class FileTest : public ::testing::Test {
 protected:
@@ -33,8 +25,8 @@ protected:
         std::filesystem::remove_all(temp_dir_, ec);
     }
 
-    std::string TempPath(const std::string& name) {
-        return PathToUTF8(temp_dir_ / U8Path(name));
+    std::filesystem::path TempPath(const std::string& name) {
+        return temp_dir_ / U8Path(name);
     }
 };
 

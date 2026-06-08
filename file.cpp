@@ -10,49 +10,49 @@
 
 namespace tc 
 {
-    std::shared_ptr<File> File::OpenForRead(const std::filesystem::path& path) {
+    std::shared_ptr<File> File::OpenForRead(const U8Path& path) {
         return std::make_shared<File>(path, "r");
     }
     
-    std::shared_ptr<File> File::OpenForWrite(const std::filesystem::path& path) {
+    std::shared_ptr<File> File::OpenForWrite(const U8Path& path) {
         return std::make_shared<File>(path, "w");
     }
     
-    std::shared_ptr<File> File::OpenForRW(const std::filesystem::path& path) {
+    std::shared_ptr<File> File::OpenForRW(const U8Path& path) {
         return std::make_shared<File>(path, "w+");
     }
     
-    std::shared_ptr<File> File::OpenForAppend(const std::filesystem::path& path) {
+    std::shared_ptr<File> File::OpenForAppend(const U8Path& path) {
         return std::make_shared<File>(path, "a+");
     }
     
-    std::shared_ptr<File> File::OpenForReadB(const std::filesystem::path& path) {
+    std::shared_ptr<File> File::OpenForReadB(const U8Path& path) {
         return std::make_shared<File>(path, "rb");
     }
     
-    std::shared_ptr<File> File::OpenForWriteB(const std::filesystem::path& path) {
+    std::shared_ptr<File> File::OpenForWriteB(const U8Path& path) {
         return std::make_shared<File>(path, "wb");
     }
     
-    std::shared_ptr<File> File::OpenForRWB(const std::filesystem::path& path) {
+    std::shared_ptr<File> File::OpenForRWB(const U8Path& path) {
         return std::make_shared<File>(path, "wb+");
     }
     
-    std::shared_ptr<File> File::OpenForAppendB(const std::filesystem::path& path) {
+    std::shared_ptr<File> File::OpenForAppendB(const U8Path& path) {
         return std::make_shared<File>(path, "ab+");
     }
 
-    bool File::IsFolder(const std::filesystem::path& path) {
+    bool File::IsFolder(const U8Path& path) {
         std::error_code ec;
         return std::filesystem::is_directory(path, ec);
     }
 
-    bool File::Exists(const std::filesystem::path& path) {
+    bool File::Exists(const U8Path& path) {
         std::error_code ec;
         return std::filesystem::exists(path, ec);
     }
 
-    int64_t File::Size(const std::filesystem::path& path) {
+    int64_t File::Size(const U8Path& path) {
         std::error_code ec;
         if (!std::filesystem::exists(path, ec)) {
             return -1;
@@ -60,7 +60,7 @@ namespace tc
         return static_cast<int64_t>(std::filesystem::file_size(path, ec));
     }
 
-    File::File(const std::filesystem::path& path, const std::string& mode) {
+    File::File(const U8Path& path, const std::string& mode) {
         this->file_path_ = path;
 #ifdef WIN32
         auto wmode = StringUtil::ToWString(mode);
@@ -78,7 +78,7 @@ namespace tc
         Close();
     }
 
-    bool File::Delete(const std::filesystem::path& path) {
+    bool File::Delete(const U8Path& path) {
         std::error_code ec;
         return std::filesystem::remove(path, ec);
     }

@@ -22,7 +22,7 @@ namespace fs = std::filesystem;
 namespace tc
 {
 
-    void FolderUtil::VisitFiles(const std::filesystem::path& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
+    void FolderUtil::VisitFiles(const U8Path& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
         if (fs::is_directory(path)) {
             for (const auto& entry : fs::directory_iterator(path)) {
                 auto entry_path = entry.path();
@@ -45,7 +45,7 @@ namespace tc
         }
     }
 
-    void FolderUtil::VisitFolders(const std::filesystem::path& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
+    void FolderUtil::VisitFolders(const U8Path& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
         if (fs::is_directory(path)) {
             for (const auto& entry : fs::directory_iterator(path)) {
                 auto entry_path = entry.path();
@@ -68,7 +68,7 @@ namespace tc
         }
     }
 
-    void FolderUtil::VisitAll(const std::filesystem::path& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
+    void FolderUtil::VisitAll(const U8Path& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
         if (fs::is_directory(path)) {
             for (const auto& entry : fs::directory_iterator(path)) {
                 auto entry_path = entry.path();
@@ -89,7 +89,7 @@ namespace tc
         }
     }
 
-    void FolderUtil::VisitRecursiveFiles(const std::filesystem::path &path, int depth, int max_depth, const std::function<void(VisitResult&&)>& cbk, const std::string& filter_suffix) {
+    void FolderUtil::VisitRecursiveFiles(const U8Path& path, int depth, int max_depth, const std::function<void(VisitResult&&)>& cbk, const std::string& filter_suffix) {
         // 如果达到最大深度，停止递归
         if (depth > max_depth) return;
 
@@ -127,7 +127,7 @@ namespace tc
     }
 
 #ifdef WIN32
-    void FolderUtil::VisitAllByQt(const std::filesystem::path& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
+    void FolderUtil::VisitAllByQt(const U8Path& path, std::function<void(VisitResult&&)>&& cbk, const std::string& filter_suffix) {
         if (!fs::is_directory(path)) {
             return;
         }
@@ -165,7 +165,7 @@ namespace tc
         return {szFullPath};
     }
 
-    void FolderUtil::CreateDir(const std::filesystem::path& path) {
+    void FolderUtil::CreateDir(const U8Path& path) {
         try {
             if (!fs::exists(path)) {
                 if (!fs::create_directories(path)) {
@@ -177,7 +177,7 @@ namespace tc
         }
     }
 
-    void FolderUtil::OpenDir(const std::filesystem::path& path) {
+    void FolderUtil::OpenDir(const U8Path& path) {
         std::wstring wpath = path.wstring();
         std::wstring args = std::format(L"\"{}\"", wpath);
         ShellExecuteW(nullptr, L"open", L"explorer.exe", args.c_str(), nullptr, SW_SHOWNORMAL);
@@ -208,7 +208,7 @@ namespace tc
 #endif
     }
 
-    bool FolderUtil::DeleteDir(const std::filesystem::path& path) {
+    bool FolderUtil::DeleteDir(const U8Path& path) {
         try {
             std::error_code ec;
             auto removed = fs::remove_all(path, ec);
@@ -224,7 +224,7 @@ namespace tc
         }
     }
 
-    bool FolderUtil::CopyDir(const fs::path& source, const fs::path& destination, const std::vector<std::string>& ignore_suffix, bool overwrite) {
+    bool FolderUtil::CopyDir(const U8Path& source, const U8Path& destination, const std::vector<std::string>& ignore_suffix, bool overwrite) {
         return CopyDir(source, destination, [&](const std::string& path, const std::string& filename) -> bool {
             auto suffix = FileUtil::GetFileSuffix(filename);
             suffix = StringUtil::ToLowerCpy(suffix);
@@ -243,8 +243,8 @@ namespace tc
         }, overwrite);
     }
 
-    bool FolderUtil::CopyDir(const fs::path& source,
-                             const fs::path& destination,
+    bool FolderUtil::CopyDir(const U8Path& source,
+                             const U8Path& destination,
                              std::function<bool(const std::string& path, const std::string& filename)>&& ignore_predicate,
                              bool overwrite) {
         try {
@@ -264,7 +264,7 @@ namespace tc
 
                 try {
                     auto relative_path = fs::relative(entry.path(), source);
-                    auto target_path = destination / relative_path;
+                    auto target_path = destination.path() / relative_path;
 
                     if (fs::is_directory(entry.status())) {
                         fs::create_directories(target_path);

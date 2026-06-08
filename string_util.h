@@ -260,6 +260,40 @@ namespace tc
 #endif
     }
 
+    // Helper: convert std::filesystem::path to UTF-8 encoded std::string
+    inline std::string PathToUTF8(const std::filesystem::path& p) {
+#ifdef WIN32
+        return StringUtil::ToUTF8(p.wstring());
+#else
+        return p.string();
+#endif
+    }
+
+    // U8Path: A wrapper around std::filesystem::path that prevents implicit
+    // conversion from std::string (which would use ANSI codepage on Windows).
+    // Always use this when constructing a path from a UTF-8 encoded std::string.
+    class U8Path {
+        std::filesystem::path path_;
+    public:
+        U8Path() = default;
+        explicit U8Path(const std::string& s) : path_(PathFromUTF8(s)) {}
+        explicit U8Path(const char* s) : path_(PathFromUTF8(s)) {}
+        U8Path(const std::filesystem::path& p) : path_(p) {}
+        U8Path(std::wstring s) : path_(std::move(s)) {}
+
+        operator const std::filesystem::path&() const { return path_; }
+        const std::filesystem::path& path() const { return path_; }
+
+        const std::wstring wstring() const { return path_.wstring(); }
+        std::string string() const { return StringUtil::ToUTF8(path_.wstring()); }
+
+        U8Path parent_path() const { return path_.parent_path(); }
+        U8Path filename() const { return path_.filename(); }
+        bool empty() const { return path_.empty(); }
+
+        // Note: Use .path() for path concatenation with std::filesystem::path operators.
+    };
+
 }
 
 #endif //TC_APPLICATION_STRINGEXT_H

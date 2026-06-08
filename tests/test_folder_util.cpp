@@ -13,14 +13,6 @@ using namespace tc;
 
 static std::string U8S(const char8_t* s) { return reinterpret_cast<const char*>(s); }
 
-static std::string PathToUTF8(const std::filesystem::path& p) {
-    auto u8 = p.u8string();
-    return std::string(reinterpret_cast<const char*>(u8.data()), u8.size());
-}
-
-static std::filesystem::path U8Path(const std::string& s) {
-    return std::filesystem::path(StringUtil::ToWString(s));
-}
 
 class FolderUtilTest : public ::testing::Test {
 protected:
@@ -145,7 +137,7 @@ TEST_F(FolderUtilTest, CreateDirChinese) {
 
     // Nested chinese dir
     auto nested = dir / U8Path(U8S(u8"嵌套目录"));
-    FolderUtil::CreateDir(PathToUTF8(nested));
+    FolderUtil::CreateDir(nested);
     EXPECT_TRUE(std::filesystem::exists(nested));
 }
 

@@ -113,7 +113,7 @@ namespace tc
         offset_ = 0;
     }
 
-    void Data::Save(const std::filesystem::path& path) {
+    void Data::Save(const U8Path& path) {
         auto file = File::OpenForWriteB(path);
         if (file) {
             file->Write(0, data_, size_);

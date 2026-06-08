@@ -101,32 +101,32 @@ TEST(Test_b64, enc_dec) {
 }
 
 TEST(Test_file, create) {
-    auto file = File::OpenForWrite("jack_test.txt");
+    auto file = File::OpenForWrite(U8Path("jack_test.txt"));
     file->Write(0, "hello...");
 }
 
 TEST(Test_file, read) {
-    auto file = File::OpenForRead("jack_test.txt");
+    auto file = File::OpenForRead(U8Path("jack_test.txt"));
     LOGI("file exists: {}", file->Exists());
     auto data = file->ReadAllAsString();
     LOGI("data : {}", data);
 }
 
 TEST(Test_file, append) {
-    File::Delete("jack_test.txt");
-    auto file = File::OpenForAppendB("jack_test.txt");
+    File::Delete(U8Path("jack_test.txt"));
+    auto file = File::OpenForAppendB(U8Path("jack_test.txt"));
     file->Append("1111111111111111111");
     file->Append("3333333333333333333");
     file->Close();
     LOGI("After write");
 
-    file = File::OpenForRead("jack_test.txt");
+    file = File::OpenForRead(U8Path("jack_test.txt"));
     LOGI("Data: {}", file->ReadAll()->AsString());
 }
 
 TEST(Test_file, read_all) {
-    auto file = File::OpenForReadB("vc_redist.x64.exe");
-    auto file_cpy = File::OpenForWriteB("vc_redist.x64_cpy.exe");
+    auto file = File::OpenForReadB(U8Path("vc_redist.x64.exe"));
+    auto file_cpy = File::OpenForWriteB(U8Path("vc_redist.x64_cpy.exe"));
     file->ReadAll([=](auto offset, DataPtr&& data)->bool {
         //LOGI("offset: {}, data size: {}", offset, data->Size());
         file_cpy->Write(offset, data);

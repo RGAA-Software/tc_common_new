@@ -17,9 +17,6 @@ static std::string PathToUTF8(const std::filesystem::path& p) {
     return std::string(reinterpret_cast<const char*>(u8.data()), u8.size());
 }
 
-static std::filesystem::path U8Path(const std::string& s) {
-    return std::filesystem::path(StringUtil::ToWString(s));
-}
 
 class FileUtilTest : public ::testing::Test {
 protected:
