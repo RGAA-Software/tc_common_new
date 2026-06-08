@@ -128,13 +128,13 @@ namespace tc
     }
 
     std::string WinHelper::GetExeFolderPath() {
-        char file_path[MAX_PATH + 1] = {0};
-        GetModuleFileNameA(nullptr, file_path, MAX_PATH);
-        char* last_slash = strrchr(file_path, '\\');
+        wchar_t file_path[MAX_PATH + 1] = {0};
+        GetModuleFileNameW(nullptr, file_path, MAX_PATH);
+        wchar_t* last_slash = wcsrchr(file_path, L'\\');
         if (last_slash) {
-            *last_slash = '\0';
+            *last_slash = L'\0';
         }
-        return file_path;
+        return StringUtil::ToUTF8(file_path);
     }
 
     Response<bool, std::string> WinHelper::GetPathByHwnd(HWND hwnd) {
@@ -204,15 +204,15 @@ namespace tc
 
     Response<bool, std::string> WinHelper::GetModuleName(HMODULE hModule) {
         const int maxPath = 4096;
-        char szFullPath[maxPath] = { 0 };
-        ::GetModuleFileNameA(hModule, szFullPath, maxPath);
+        wchar_t szFullPath[maxPath] = { 0 };
+        ::GetModuleFileNameW(hModule, szFullPath, maxPath);
         std::filesystem::path file_path(szFullPath);
         auto ret = Response<bool, std::string>::Make(false, "");
         if (file_path.filename().string().empty()) {
             return ret;
         }
         ret.ok_ = true;
-        ret.value_ = file_path.filename().string();
+        ret.value_ = StringUtil::ToUTF8(file_path.filename().wstring());
         return ret;
     }
 

@@ -46,19 +46,19 @@ namespace tc
     LONG __stdcall UnhandledExceptionFilter(PEXCEPTION_POINTERS pExceptionInfo) {
         MINIDUMP_EXCEPTION_INFORMATION ExpParam;
         HANDLE hCurrentProcess = GetCurrentProcess();
-        TCHAR szFileName[MAX_PATH] = {0};
-        GetModuleFileNameEx(hCurrentProcess, NULL, szFileName, _countof(szFileName));
-        LPTSTR szDumpFileName = PathFindFileName(szFileName);
-        PathRemoveExtension(szDumpFileName);
-        PathAddExtension(szDumpFileName, L".dmp");
-        TCHAR szPath[MAX_PATH] = {0};
-        GetModuleFileNameEx(hCurrentProcess, NULL, szPath, _countof(szPath));
-        PathRemoveFileSpec(szPath);
-        PathAppend(szPath, L"dmp");
-        SHCreateDirectoryEx(NULL, szPath, NULL);
-        PathAppend(szPath, szDumpFileName);
+        wchar_t szFileName[MAX_PATH] = {0};
+        GetModuleFileNameExW(hCurrentProcess, NULL, szFileName, _countof(szFileName));
+        wchar_t* szDumpFileName = PathFindFileNameW(szFileName);
+        PathRemoveExtensionW(szDumpFileName);
+        PathAddExtensionW(szDumpFileName, L".dmp");
+        wchar_t szPath[MAX_PATH] = {0};
+        GetModuleFileNameExW(hCurrentProcess, NULL, szPath, _countof(szPath));
+        PathRemoveFileSpecW(szPath);
+        PathAppendW(szPath, L"dmp");
+        SHCreateDirectoryExW(NULL, szPath, NULL);
+        PathAppendW(szPath, szDumpFileName);
 
-        HANDLE hFile = CreateFile(szPath, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ, 0,
+        HANDLE hFile = CreateFileW(szPath, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ, 0,
                                   CREATE_ALWAYS, 0, 0);
         if (hFile != INVALID_HANDLE_VALUE) {
             ExpParam.ThreadId = GetCurrentThreadId();
@@ -157,13 +157,13 @@ namespace tc
             return;
         }
 
-        //°´Ê±¼äÅÅÐò£¨ÐÂ ¡ú ¾É£©
+        //æŒ‰æ—¶é—´æŽ’åºï¼ˆæ–° â†’ æ—§ï¼‰
         std::sort(files.begin(), files.end(),
             [](const FileInfo& a, const FileInfo& b) {
                 return a.time > b.time;
             });
 
-        // É¾³ý¶àÓàµÄ
+        // åˆ é™¤å¤šä½™çš„
         for (std::size_t i = keep_count; i < files.size(); ++i) {
             try {
                 fs::remove(files[i].path);
