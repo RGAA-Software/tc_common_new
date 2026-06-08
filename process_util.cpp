@@ -79,7 +79,7 @@ namespace tc
         auto cmdline = BuildCommandLine(exe_path, args);
         STARTUPINFOW si = { sizeof(si) };
         PROCESS_INFORMATION pi = {};
-        if (!CreateProcessW(nullptr, cmdline.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) {
+        if (!CreateProcessW(nullptr, cmdline.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi)) {
             LOGE("StartProcessAndWait failed: {}, err: {}", exe_path, GetLastError());
             return false;
         }
@@ -99,9 +99,9 @@ namespace tc
         auto cmdline = BuildCommandLine(exe_path, args);
         STARTUPINFOW si = { sizeof(si) };
         PROCESS_INFORMATION pi = {};
-        DWORD creationFlags = 0;
+        DWORD creationFlags = CREATE_NO_WINDOW;
         if (detach) {
-            creationFlags |= CREATE_NEW_CONSOLE;
+            creationFlags = CREATE_NEW_CONSOLE;
         }
         if (!CreateProcessW(nullptr, cmdline.data(), nullptr, nullptr, FALSE, creationFlags, nullptr, nullptr, &si, &pi)) {
             LOGE("StartProcess failed: {}, err: {}", exe_path, GetLastError());
@@ -142,7 +142,7 @@ namespace tc
         si.hStdError = hStdOutWrite;
         PROCESS_INFORMATION pi = {};
 
-        if (!CreateProcessW(nullptr, cmdline.data(), nullptr, nullptr, TRUE, 0, nullptr, nullptr, &si, &pi)) {
+        if (!CreateProcessW(nullptr, cmdline.data(), nullptr, nullptr, TRUE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi)) {
             LOGE("StartProcessAndOutput failed: {}, err: {}", exe_path, GetLastError());
             CloseHandle(hStdOutRead);
             CloseHandle(hStdOutWrite);
@@ -271,7 +271,7 @@ namespace tc
             LOGI("IsUserAnAdmin，create process with token.");
 
             bool suspend = false;
-            DWORD create_flag = suspend ? CREATE_SUSPENDED : 0;
+            DWORD create_flag = suspend ? CREATE_SUSPENDED : CREATE_NO_WINDOW;
             create_flag |= ABOVE_NORMAL_PRIORITY_CLASS;
 
             void *lpEnvironment = NULL;
@@ -290,7 +290,7 @@ namespace tc
                     NULL,
                     NULL,
                     FALSE,
-                    0,
+                    CREATE_NO_WINDOW,
                     NULL,
                     (wchar_t *) w_work_dir.c_str(),
                     &si,
