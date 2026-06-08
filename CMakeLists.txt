@@ -117,6 +117,7 @@ if (WIN32)
         DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto
         Shlwapi.lib Wtsapi32.lib shell32.lib
         iphlpapi.lib advapi32.lib comsuppw.lib
+        UserEnv.lib
     )
     if (DirectXTex_ENABLED)
         target_link_libraries(tc_common_new PUBLIC DirectXTex)
@@ -127,7 +128,8 @@ if (WIN32)
     set(BREAKPAD_LIB_PATH ${VCPKG_ROOT}/packages/breakpad_x64-windows-static/lib)
     target_link_libraries(tc_common_new PUBLIC ${BREAKPAD_LIB_PATH}/libbreakpad.lib ${BREAKPAD_LIB_PATH}/libbreakpad_client.lib)
     # TODO: Remove Qt INTERFACE link after all dependent modules explicitly link Qt themselves
-    target_link_libraries(tc_common_new INTERFACE Qt6::Core Qt6::Core5Compat Qt6::Widgets Qt6::Network)
+    # Qt dependencies have been fully removed from tc_common_new source.
+    # All downstream targets that use Qt must link it explicitly.
 endif ()
 
 if(JEMALLOC_ENABLED)
