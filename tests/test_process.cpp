@@ -16,13 +16,23 @@
 
 using namespace tc;
 
+static std::string GetHelperExePath() {
+    wchar_t path[MAX_PATH] = {};
+    GetModuleFileNameW(nullptr, path, MAX_PATH);
+    auto exe_path = std::filesystem::path(path);
+    auto helper = exe_path.parent_path() / "test_process_helper.exe";
+    return StringUtil::ToUTF8(helper.wstring());
+}
+
 TEST(TestProcess, StartProcessAndWait_Success) {
-    auto ret = ProcessUtil::StartProcessAndWait("cmd.exe", {"/c", "exit", "/b", "0"});
+    auto helper = GetHelperExePath();
+    auto ret = ProcessUtil::StartProcessAndWait(helper, {"exit-code", "0"});
     EXPECT_TRUE(ret);
 }
 
 TEST(TestProcess, StartProcessAndWait_Failure) {
-    auto ret = ProcessUtil::StartProcessAndWait("cmd.exe", {"/c", "exit", "/b", "1"});
+    auto helper = GetHelperExePath();
+    auto ret = ProcessUtil::StartProcessAndWait(helper, {"exit-code", "1"});
     EXPECT_FALSE(ret);
 }
 
@@ -32,10 +42,10 @@ TEST(TestProcess, StartProcessAndWait_NotExists) {
 }
 
 TEST(TestProcess, StartProcess_Detach) {
-    auto pid = ProcessUtil::StartProcess("cmd.exe", {"/c", "timeout", "/t", "1"}, true, false);
+    auto helper = GetHelperExePath();
+    auto pid = ProcessUtil::StartProcess(helper, {"sleep", "10000"}, true, false);
     EXPECT_GT(pid, 0);
     if (pid > 0) {
-        // Give it a moment to start, then kill it
         Sleep(100);
         auto killed = ProcessUtil::KillProcess(pid);
         EXPECT_TRUE(killed);
@@ -43,12 +53,14 @@ TEST(TestProcess, StartProcess_Detach) {
 }
 
 TEST(TestProcess, StartProcess_Wait) {
-    auto ret = ProcessUtil::StartProcess("cmd.exe", {"/c", "exit", "/b", "0"}, false, true);
+    auto helper = GetHelperExePath();
+    auto ret = ProcessUtil::StartProcess(helper, {"exit-code", "0"}, false, true);
     EXPECT_EQ(ret, 0);
 }
 
 TEST(TestProcess, StartProcess_NoDetachNoWait) {
-    auto pid = ProcessUtil::StartProcess("cmd.exe", {"/c", "timeout", "/t", "1"}, false, false);
+    auto helper = GetHelperExePath();
+    auto pid = ProcessUtil::StartProcess(helper, {"sleep", "10000"}, false, false);
     EXPECT_GT(pid, 0);
     if (pid > 0) {
         Sleep(100);
@@ -57,7 +69,8 @@ TEST(TestProcess, StartProcess_NoDetachNoWait) {
 }
 
 TEST(TestProcess, StartProcessAndOutput_CaptureStdout) {
-    auto output = ProcessUtil::StartProcessAndOutput("cmd.exe", {"/c", "echo", "hello_world_test"});
+    auto helper = GetHelperExePath();
+    auto output = ProcessUtil::StartProcessAndOutput(helper, {"echo", "hello_world_test"});
     EXPECT_FALSE(output.empty());
     bool found = false;
     for (const auto& line : output) {
@@ -70,8 +83,9 @@ TEST(TestProcess, StartProcessAndOutput_CaptureStdout) {
 }
 
 TEST(TestProcess, StartProcessAndOutput_MultipleLines) {
-    auto output = ProcessUtil::StartProcessAndOutput("cmd.exe", {"/c", "echo", "line1", "&&", "echo", "line2"});
-    EXPECT_GE(output.size(), 1);
+    auto helper = GetHelperExePath();
+    auto output = ProcessUtil::StartProcessAndOutput(helper, {"echo-lines", "line1", "line2"});
+    EXPECT_GE(output.size(), 2);
     bool found_line1 = false;
     bool found_line2 = false;
     for (const auto& line : output) {
@@ -83,7 +97,8 @@ TEST(TestProcess, StartProcessAndOutput_MultipleLines) {
 }
 
 TEST(TestProcess, KillProcess_ValidPid) {
-    auto pid = ProcessUtil::StartProcess("cmd.exe", {"/c", "timeout", "/t", "10"}, true, false);
+    auto helper = GetHelperExePath();
+    auto pid = ProcessUtil::StartProcess(helper, {"sleep", "10000"}, true, false);
     ASSERT_GT(pid, 0);
     auto killed = ProcessUtil::KillProcess(pid);
     EXPECT_TRUE(killed);
@@ -125,24 +140,24 @@ TEST(TestProcess, GetThreadCount) {
 }
 
 TEST(TestProcess, SetProcessInHighLevel) {
-    // Just verify it doesn't crash
     EXPECT_NO_THROW(ProcessUtil::SetProcessInHighLevel());
 }
 
 TEST(TestProcess, RunAsAdminWithShell_Notepad) {
-    // This test requires user interaction (UAC dialog), so we skip it in automated runs.
     GTEST_SKIP() << "RunAsAdminWithShell requires UAC interaction, skip automated test.";
 }
 
 TEST(TestProcess, StartProcessInWorkDir_Cmd) {
+    auto helper = GetHelperExePath();
     auto temp_dir = std::filesystem::temp_directory_path().string();
-    auto ret = ProcessUtil::StartProcessInWorkDir(temp_dir, "cmd.exe /c exit /b 0", {});
+    auto cmdline = std::string("\"") + helper + "\" cwd";
+    auto ret = ProcessUtil::StartProcessInWorkDir(temp_dir, cmdline, {});
     EXPECT_TRUE(ret);
 }
 
 TEST(TestProcess, StartProcessAndOutput_ChineseOutput) {
-    // chcp 65001 切换到 UTF-8 代码页，确保 echo 输出 UTF-8 编码
-    auto output = ProcessUtil::StartProcessAndOutput("cmd.exe", {"/c", "chcp 65001 && echo 你好世界_测试"});
+    auto helper = GetHelperExePath();
+    auto output = ProcessUtil::StartProcessAndOutput(helper, {"echo", "你好世界_测试"});
     EXPECT_FALSE(output.empty());
     bool found = false;
     for (const auto& line : output) {
@@ -155,43 +170,40 @@ TEST(TestProcess, StartProcessAndOutput_ChineseOutput) {
 }
 
 TEST(TestProcess, StartProcessAndWait_ChinesePath) {
+    auto helper = GetHelperExePath();
     auto temp_dir = std::filesystem::temp_directory_path() / "测试目录_中文_path";
     std::filesystem::create_directories(temp_dir);
     auto test_file = temp_dir / "中文文件.txt";
-    auto cmd = std::string("cmd.exe /c echo hello > \"") + StringUtil::ToUTF8(test_file.wstring()) + "\"";
-    auto ret = ProcessUtil::StartProcessAndWait("cmd.exe", {"/c", "echo", "hello", ">", StringUtil::ToUTF8(test_file.wstring())});
+    auto ret = ProcessUtil::StartProcessAndWait(helper, {"create-file", StringUtil::ToUTF8(test_file.wstring()), "hello"});
     EXPECT_TRUE(ret);
     EXPECT_TRUE(std::filesystem::exists(test_file)) << "Chinese path file should be created";
     std::filesystem::remove_all(temp_dir);
 }
 
 TEST(TestProcess, StartProcessInWorkDir_ChinesePath) {
+    auto helper = GetHelperExePath();
     auto temp_dir = std::filesystem::temp_directory_path() / "中文工作目录_work_dir";
     std::filesystem::create_directories(temp_dir);
-    // 在工作目录下创建标记文件，通过 cmd 验证工作目录是否生效
-    auto marker = temp_dir / "marker.txt";
-    {
-        std::ofstream ofs(marker);
-        ofs << "test";
-    }
+    // Use relative path to verify lpCurrentDirectory is effective
+    auto cmdline = std::string("\"") + helper + "\" create-file marker.txt ok";
     auto ret = ProcessUtil::StartProcessInWorkDir(
         StringUtil::ToUTF8(temp_dir.wstring()),
-        "cmd.exe /c if exist marker.txt (exit /b 0) else (exit /b 1)",
+        cmdline,
         {});
     EXPECT_TRUE(ret) << "Process should succeed in Chinese workdir";
+    EXPECT_TRUE(std::filesystem::exists(temp_dir / "marker.txt")) << "Relative path file should be created in workdir";
     std::filesystem::remove_all(temp_dir);
 }
 
 TEST(TestProcess, StartProcess_ChineseExeName) {
+    auto helper = GetHelperExePath();
     auto temp_dir = std::filesystem::temp_directory_path() / "中文exe测试目录";
     std::filesystem::create_directories(temp_dir);
-    auto bat_file = temp_dir / "中文脚本_测试.bat";
-    {
-        std::ofstream ofs(bat_file, std::ios::binary);
-        ofs << "@echo off\r\necho 中文脚本执行成功\r\n";
-    }
-    auto bat_path = StringUtil::ToUTF8(bat_file.wstring());
-    auto output = ProcessUtil::StartProcessAndOutput("cmd.exe", {"/c", bat_path});
+    auto chinese_helper = temp_dir / "中文助手.exe";
+    std::filesystem::copy_file(helper, chinese_helper);
+    auto output = ProcessUtil::StartProcessAndOutput(
+        StringUtil::ToUTF8(chinese_helper.wstring()),
+        {"echo", "中文脚本执行成功"});
     bool found = false;
     for (const auto& line : output) {
         if (line.find("中文脚本执行成功") != std::string::npos) {
@@ -199,6 +211,6 @@ TEST(TestProcess, StartProcess_ChineseExeName) {
             break;
         }
     }
-    EXPECT_TRUE(found) << "Chinese batch script should execute and produce expected output";
+    EXPECT_TRUE(found) << "Chinese exe should execute and produce expected output";
     std::filesystem::remove_all(temp_dir);
 }

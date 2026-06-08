@@ -16,6 +16,7 @@ add_tc_test(test_dxgi_mon_detector test_dxgi_mon_detector.cpp)
 add_tc_test(test_network_adapter test_network_adapter.cpp)
 add_tc_test(test_qr_generator test_qr_generator.cpp)
 add_tc_test(test_process test_process.cpp)
+add_executable(test_process_helper test_process_helper.cpp)
 
 add_executable(test_common test.cpp)
 target_link_libraries(test_common PRIVATE tc_common_new ${Boost_LIBRARIES} GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main)
