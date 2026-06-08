@@ -9,6 +9,7 @@
 #include <mimalloc.h>
 #endif
 
+#include "file.h"
 #include "memory_stat.h"
 #include "snowflake/snowflake.h"
 
@@ -40,7 +41,7 @@ namespace tc
     }
 
     std::shared_ptr<Data> Data::From(const std::string& data) {
-        return std::make_shared<Data>(const_cast<char *>(data.data()), static_cast<int>(data.size()));
+        return std::make_shared<Data>(data.data(), static_cast<int64_t>(data.size()));
     }
 
     Data::~Data() {
@@ -81,6 +82,9 @@ namespace tc
     }
 
     char Data::At(int64_t offset) const {
+        if (!this->data_ || offset < 0 || offset >= this->size_) {
+            return 0;
+        }
         return *(this->data_ + offset);
     }
 
@@ -110,9 +114,11 @@ namespace tc
     }
 
     void Data::Save(const std::string& path) {
-//        auto file = File::OpenForWriteB(path);
-//        file->Write(0, data_, size_);
-//        file->Close();
+        auto file = File::OpenForWriteB(path);
+        if (file) {
+            file->Write(0, data_, size_);
+            file->Close();
+        }
     }
 
     std::shared_ptr<Data> Data::Clone() const {

@@ -33,10 +33,11 @@ link_directories(VCPKG_STATIC_LIB_PATH)
 
 message("==--== " ${GR_PROJECT_PATH}/tc_3rdparty/eventbus/src)
 
-add_definitions("-DUNICODE" "-D_UNICODE")
 add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
-if (ANDROID)
+if (WIN32)
+    add_definitions("-DUNICODE" "-D_UNICODE")
+elseif (ANDROID)
     add_compile_options(-Wno-error=deprecated-declarations)
 endif ()
 
@@ -50,8 +51,6 @@ set(SRCS
     base64.cpp
     file.cpp
     image.cpp
-    ipc_shm.cpp
-    ipc_msg_queue.cpp
     message_notifier.cpp
     http_client.cpp
     file_util.cpp
@@ -65,7 +64,6 @@ set(SRCS
     message_looper.cpp
     base_handler.cpp
     http_base_op.cpp
-    qwidget_helper.cpp
     math_helper.cpp
     tc_aes.cpp
     memory_stat.cpp
@@ -90,6 +88,7 @@ if(WIN32)
         ip_util.cpp
         auto_start.cpp
         process_util.cpp
+        qwidget_helper.cpp
     )
 endif()
 

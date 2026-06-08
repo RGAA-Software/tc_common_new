@@ -107,21 +107,6 @@ namespace tc
         } else {
             LOGE("CreateProcessW failed: {}", GetLastError());
         }
-#if 0
-        try {
-            bp::child child_process(injector, target_dll, cheat_anti, pid_str, bp::std_out > stdout);
-            child_process.wait();
-            if (child_process.exit_code() == 0) {
-                LOGI("Inject exit success!");
-            } else {
-                LOGE("Inject exit failed!");
-            }
-        } catch (const std::exception &e) {
-            LOGE("Create process for injecing failed: {}", e.what());
-            return resp;
-        }
-#endif
-
         return resp;
     }
 

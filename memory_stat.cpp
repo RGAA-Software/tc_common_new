@@ -33,7 +33,10 @@ namespace tc
     }
 
     void MemoryStat::RemoveMemInfo(uint64_t id) {
-        mem_info_.Remove(id);
+        auto removed = mem_info_.Remove(id);
+        if (removed) {
+            alloc_size_ -= (*removed)->size_;
+        }
     }
 
     void MemoryStat::AddThread(uint32_t id, const std::shared_ptr<Thread>& thread) {

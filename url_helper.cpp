@@ -10,19 +10,20 @@ namespace tc
     // 解码 URL 编码的特殊字符
     static std::string UrlDecode(const std::string& str) {
         std::string result;
-        char ch;
-        int i = 0;
-        while (i < str.length()) {
-            if (str[i] == '%') {
-                sscanf(str.substr(i + 1, 2).c_str(), "%x", (unsigned int*)&ch);
-                result += ch;
-                i += 3;
+        result.reserve(str.length());
+        for (size_t i = 0; i < str.length(); ++i) {
+            if (str[i] == '%' && i + 2 < str.length()) {
+                unsigned int hex = 0;
+                if (sscanf(str.substr(i + 1, 2).c_str(), "%2x", &hex) == 1) {
+                    result += static_cast<char>(hex);
+                    i += 2;
+                } else {
+                    result += str[i];
+                }
             } else if (str[i] == '+') {
                 result += ' ';
-                i++;
             } else {
                 result += str[i];
-                i++;
             }
         }
         return result;

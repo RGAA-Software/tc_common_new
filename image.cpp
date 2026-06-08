@@ -18,7 +18,11 @@ namespace tc
     }
 
     std::shared_ptr<Image> Image::Make(const DataPtr& data, int width, int height) {
-        return std::make_shared<Image>(data, width, height, data ? data->Size()/width/height : 0);
+        int channels = 0;
+        if (data && width > 0 && height > 0) {
+            channels = static_cast<int>(data->Size() / width / height);
+        }
+        return std::make_shared<Image>(data, width, height, channels);
     }
 
     std::shared_ptr<Image> Image::Make(const DataPtr& data, int width, int height, const RawImageType& rt) {
@@ -49,26 +53,12 @@ namespace tc
 
 #ifdef WIN32
     Image::Image(const DataPtr& img_data) {
-        // Use OpenCV
-#if 0
-        std::vector<char> buffer;
-        buffer.resize(img_data->Size());
-        memcpy(buffer.data(), img_data->DataAddr(), img_data->Size());
-        //CV_LOAD_IMAGE_COLOR , this flag no alpha ??
-        //auto img = cv::imdecode(buffer, -1);
-        //this->width = img.cols;
-        //this->height = img.rows;
-        //this->channels = img.channels();
-        //this->data = Data::Make((char*)img.data, img.rows * img.cols * img.channels());
-#else
-    // Use stb image
         auto buffer = stbi_load_from_memory((stbi_uc*)img_data->DataAddr(), img_data->Size(), &this->width, &this->height, &this->channels, 0);
         if (buffer == nullptr) {
             LOGE("stbi load image failed !");
             return;
         }
         this->data = Data::Make((char*)buffer, this->width * this->height * this->channels);
-#endif
     }
 #endif
 
