@@ -6,11 +6,6 @@
 #ifdef WIN32
 #include "tc_common_new/log.h"
 #include "tc_common_new/string_util.h"
-#include <QString>
-#include <QStringList>
-#include <QProcess>
-#include <QFile>
-#include <QApplication>
 #include <UserEnv.h>
 #include <TlHelp32.h>
 #include <wtsapi32.h>
@@ -19,9 +14,50 @@
 #include <shlwapi.h>
 #include <objbase.h>
 #include <shellapi.h>
+#include <sstream>
+#include <filesystem>
 
 namespace tc
 {
+
+    namespace {
+        std::wstring EscapeArg(const std::wstring& arg) {
+            if (arg.find_first_of(L" \t\n\v\"") == std::wstring::npos) {
+                return arg;
+            }
+            std::wstring escaped = L"\"";
+            for (size_t i = 0; i < arg.size(); ++i) {
+                size_t backslashCount = 0;
+                while (i < arg.size() && arg[i] == L'\\') {
+                    backslashCount++;
+                    i++;
+                }
+                if (i == arg.size()) {
+                    escaped.append(backslashCount * 2, L'\\');
+                    break;
+                } else if (arg[i] == L'"') {
+                    escaped.append(backslashCount * 2 + 1, L'\\');
+                    escaped += L'"';
+                } else {
+                    escaped.append(backslashCount, L'\\');
+                    escaped += arg[i];
+                }
+            }
+            escaped += L'"';
+            return escaped;
+        }
+
+        std::wstring BuildCommandLine(const std::string& exe_path, const std::vector<std::string>& args) {
+            std::wstring cmdline;
+            auto wexe = StringUtil::ToWString(exe_path);
+            cmdline += EscapeArg(wexe);
+            for (const auto& arg : args) {
+                cmdline += L' ';
+                cmdline += EscapeArg(StringUtil::ToWString(arg));
+            }
+            return cmdline;
+        }
+    }
 
     bool SetDpiAwarenessContext(DPI_AWARENESS_CONTEXT context) {
         typedef BOOL(__stdcall* SetProcessDpiAwarenessFunc)(DPI_AWARENESS_CONTEXT);
@@ -40,74 +76,107 @@ namespace tc
     }
 
     bool ProcessUtil::StartProcessAndWait(const std::string& exe_path, const std::vector<std::string>& args) {
-        QProcess process;
-        QStringList exe_args;
-        for (const auto& arg : args) {
-            exe_args << QString::fromStdString(arg);
+        auto cmdline = BuildCommandLine(exe_path, args);
+        STARTUPINFOW si = { sizeof(si) };
+        PROCESS_INFORMATION pi = {};
+        if (!CreateProcessW(nullptr, cmdline.data(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi)) {
+            LOGE("StartProcessAndWait failed: {}, err: {}", exe_path, GetLastError());
+            return false;
         }
-        process.start(QString::fromStdString(exe_path), exe_args);
-        process.waitForFinished();
-        if (process.exitCode() != 0) {
-            LOGE("Start process: {}, exit code: {}", exe_path, process.exitCode());
+        WaitForSingleObject(pi.hProcess, INFINITE);
+        DWORD exitCode = 0;
+        GetExitCodeProcess(pi.hProcess, &exitCode);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+        if (exitCode != 0) {
+            LOGE("Start process: {}, exit code: {}", exe_path, exitCode);
             return false;
         }
         return true;
     }
 
     uint32_t ProcessUtil::StartProcess(const std::string& exe_path, const std::vector<std::string>& args, bool detach, bool wait) {
-        QStringList exe_args;
-        for (const auto& arg : args) {
-            exe_args << QString::fromStdString(arg);
-        }
-        qint64 pid;
+        auto cmdline = BuildCommandLine(exe_path, args);
+        STARTUPINFOW si = { sizeof(si) };
+        PROCESS_INFORMATION pi = {};
+        DWORD creationFlags = 0;
         if (detach) {
-            QProcess::startDetached(QString::fromStdString(exe_path), exe_args, "", &pid);
+            creationFlags |= CREATE_NEW_CONSOLE;
         }
-        else {
-            QProcess* process = new QProcess();
-            process->start(QString::fromStdString(exe_path), exe_args);
-        }
-        if (wait) {
-            QProcess process;
-            process.start(QString::fromStdString(exe_path), exe_args);
-            process.waitForFinished();
+        if (!CreateProcessW(nullptr, cmdline.data(), nullptr, nullptr, FALSE, creationFlags, nullptr, nullptr, &si, &pi)) {
+            LOGE("StartProcess failed: {}, err: {}", exe_path, GetLastError());
             return 0;
         }
+        if (wait) {
+            WaitForSingleObject(pi.hProcess, INFINITE);
+            CloseHandle(pi.hProcess);
+            CloseHandle(pi.hThread);
+            return 0;
+        }
+        DWORD pid = pi.dwProcessId;
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
         return pid;
     }
 
     std::vector<std::string> ProcessUtil::StartProcessAndOutput(const std::string& exe_path, const std::vector<std::string>& args) {
-//        if(!QFile::exists(exe_path.c_str())) {
-//            LOGE("StartProcessAndOutput exe_path is {}, but not exists.", exe_path);
-//            return {};
-//        }
         std::vector<std::string> output;
 
-//        bp::ipstream out_stream, err_stream;
-//        bp::child c(exe_path, bp::args(args), bp::std_out > out_stream, bp::std_err > err_stream);
-//
-//        std::string line;
-//        while (out_stream && std::getline(out_stream, line) && !line.empty()) {
-//            output.push_back(line);
-//            LOGE("StartProcess info: {}", line);
-//        }
-//        while (err_stream && std::getline(err_stream, line) && !line.empty()) {
-//            LOGE("StartProcess error: {}", line);
-//        }
-//        c.wait();
-
-        QProcess process;
-        QObject::connect(&process, &QProcess::readyReadStandardOutput, [&]() {
-            QByteArray info = process.readAllStandardOutput();
-            output.push_back(info.toStdString());
-        });
-
-        QStringList exe_args;
-        for (const auto& arg : args) {
-            exe_args << QString::fromStdString(arg);
+        SECURITY_ATTRIBUTES sa = { sizeof(sa), nullptr, TRUE };
+        HANDLE hStdOutRead = nullptr, hStdOutWrite = nullptr;
+        if (!CreatePipe(&hStdOutRead, &hStdOutWrite, &sa, 0)) {
+            LOGE("CreatePipe failed: {}", GetLastError());
+            return output;
         }
-        process.start(QString::fromStdString(exe_path), exe_args);
-        process.waitForFinished();
+        if (!SetHandleInformation(hStdOutRead, HANDLE_FLAG_INHERIT, 0)) {
+            LOGE("SetHandleInformation failed: {}", GetLastError());
+            CloseHandle(hStdOutRead);
+            CloseHandle(hStdOutWrite);
+            return output;
+        }
+
+        auto cmdline = BuildCommandLine(exe_path, args);
+        STARTUPINFOW si = { sizeof(si) };
+        si.dwFlags = STARTF_USESTDHANDLES;
+        si.hStdOutput = hStdOutWrite;
+        si.hStdError = hStdOutWrite;
+        PROCESS_INFORMATION pi = {};
+
+        if (!CreateProcessW(nullptr, cmdline.data(), nullptr, nullptr, TRUE, 0, nullptr, nullptr, &si, &pi)) {
+            LOGE("StartProcessAndOutput failed: {}, err: {}", exe_path, GetLastError());
+            CloseHandle(hStdOutRead);
+            CloseHandle(hStdOutWrite);
+            return output;
+        }
+
+        CloseHandle(hStdOutWrite);
+
+        char buffer[4096];
+        DWORD bytesRead;
+        std::string output_str;
+        while (true) {
+            BOOL success = ReadFile(hStdOutRead, buffer, sizeof(buffer) - 1, &bytesRead, nullptr);
+            if (!success || bytesRead == 0) {
+                break;
+            }
+            output_str.append(buffer, bytesRead);
+        }
+
+        std::istringstream iss(output_str);
+        std::string line;
+        while (std::getline(iss, line)) {
+            if (!line.empty() && line.back() == '\r') {
+                line.pop_back();
+            }
+            if (!line.empty()) {
+                output.push_back(line);
+            }
+        }
+
+        WaitForSingleObject(pi.hProcess, INFINITE);
+        CloseHandle(hStdOutRead);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
         return output;
     }
 
@@ -131,12 +200,15 @@ namespace tc
             return 0;
         }
         int cur_ses_id = GetCurrentSessionId();
-        if(cur_ses_id == -1)
+        if(cur_ses_id == -1) {
+            CloseHandle(hProcessSnap);
             return 0;
+        }
+        std::wstring wname = StringUtil::ToWString(exe_name);
         BOOL bResult = Process32FirstW(hProcessSnap, &pe32);
         while (bResult) {
             bResult = Process32NextW(hProcessSnap, &pe32);
-            if (QString::fromStdWString(pe32.szExeFile) == QString::fromStdString(exe_name)) {
+            if (_wcsicmp(pe32.szExeFile, wname.c_str()) == 0) {
                 int ses_id = GetProcessSessionId(pe32.th32ProcessID);
                 if(ses_id == cur_ses_id) {
                     find_pid = pe32.th32ProcessID;
@@ -166,7 +238,7 @@ namespace tc
             if (!ret) {
                 break;
             }
-            ret = DuplicateTokenEx(hToken, MAXIMUM_ALLOWED, NULL, SecurityIdentification, TokenPrimary, &hDuplicatedToken);//复制令牌
+            ret = DuplicateTokenEx(hToken, MAXIMUM_ALLOWED, NULL, SecurityIdentification, TokenPrimary, &hDuplicatedToken);
             if (!ret) {
                 break;
             }
@@ -187,8 +259,8 @@ namespace tc
         PROCESS_INFORMATION pi;
         ZeroMemory(&pi, sizeof(pi));
 
-        auto w_cmdline = QString::fromStdString(cmdline).toStdWString();
-        auto w_work_dir = QString::fromStdString(work_dir).toStdWString();
+        auto w_cmdline = StringUtil::ToWString(cmdline);
+        auto w_work_dir = StringUtil::ToWString(work_dir);
 
         if (IsUserAnAdmin()) {
             HANDLE user_token = DupAdminToken();
@@ -203,7 +275,7 @@ namespace tc
             create_flag |= ABOVE_NORMAL_PRIORITY_CLASS;
 
             void *lpEnvironment = NULL;
-            CreateEnvironmentBlock(&lpEnvironment, user_token, TRUE);//创建用户环境
+            CreateEnvironmentBlock(&lpEnvironment, user_token, TRUE);
             auto ret = CreateProcessWithTokenW(user_token, 0, NULL, (wchar_t*)w_cmdline.c_str(),
                                           create_flag | CREATE_UNICODE_ENVIRONMENT, lpEnvironment, w_work_dir.c_str(),
                                           &si, &pi);
@@ -213,16 +285,16 @@ namespace tc
         }
         else {
             if (!CreateProcessW(
-                    NULL,           // 模块名，NULL意味着使用命令行
-                    (wchar_t *) w_cmdline.c_str(),    // 命令行
-                    NULL,           // 进程安全属性
-                    NULL,           // 线程安全属性
-                    FALSE,          // 句柄继承选项
-                    0,              // 创建标志
-                    NULL,           // 使用父进程的环境块
-                    (wchar_t *) w_work_dir.c_str(), // 设置子进程的工作目录
-                    &si,            // 指向 STARTUPINFO 结构体
-                    &pi             // 指向 PROCESS_INFORMATION 结构体
+                    NULL,
+                    (wchar_t *) w_cmdline.c_str(),
+                    NULL,
+                    NULL,
+                    FALSE,
+                    0,
+                    NULL,
+                    (wchar_t *) w_work_dir.c_str(),
+                    &si,
+                    &pi
             )) {
                 LOGE("CreateProcessW failed: {}", GetLastError());
                 return false;
@@ -233,10 +305,8 @@ namespace tc
 
         std::cout << "pid:" << pi.dwProcessId << " tid:" << pi.dwThreadId << std::endl;
 
-        // 等待子进程结束
         WaitForSingleObject(pi.hProcess, INFINITE);
         LOGI("==> process exit....");
-        // 关闭进程和线程句柄
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
         return true;
@@ -259,11 +329,10 @@ namespace tc
 
         DWORD dwSessionId = WTSGetActiveConsoleSessionId();
 
-        if (0xFFFFFFFF == dwSessionId) { //如果物理控制台会话正在附加或分离
+        if (0xFFFFFFFF == dwSessionId) {
             return false;
         }
 
-        //把服务hToken的SessionId替换成当前活动的Session(即替换到可与用户交互的winsta0下)
         if (!SetTokenInformation(hTokenDup, TokenSessionId, &dwSessionId, sizeof(DWORD))) {
             DWORD nErr = GetLastError();
             CloseHandle(hTokenDup);
@@ -278,9 +347,8 @@ namespace tc
         si.cb = sizeof(STARTUPINFOW);
         si.lpDesktop = (wchar_t*)L"WinSta0\\Default";
         si.wShowWindow = SW_SHOW;
-        si.dwFlags = STARTF_USESHOWWINDOW /*|STARTF_USESTDHANDLES*/;
+        si.dwFlags = STARTF_USESHOWWINDOW;
 
-        //创建进程环境块
         LPVOID pEnv = NULL;
         bRet = CreateEnvironmentBlock(&pEnv, hTokenDup, FALSE);
         if (!bRet) {
@@ -297,7 +365,6 @@ namespace tc
             return false;
         }
 
-        //在活动的Session下创建进程
         PROCESS_INFORMATION processInfo;
         ZeroMemory(&processInfo, sizeof(PROCESS_INFORMATION));
         DWORD dwCreationFlag = NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE | CREATE_UNICODE_ENVIRONMENT;
@@ -313,7 +380,6 @@ namespace tc
             return false;
         }
         if (wait) {
-            // Wait until child process exits.
             auto wait_result = ::WaitForSingleObject(processInfo.hProcess, INFINITE);
             LOGI("wait result: {:x}, last error: {:x}", wait_result, GetLastError());
         }
@@ -339,9 +405,9 @@ namespace tc
 
         if (Process32First(hProcessSnap, &pe32)) {
             do {
-                auto exe_file = QString::fromStdWString(pe32.szExeFile).toUpper();
-                auto lpname = QString::fromStdString(lpName).toUpper();
-                if(exe_file == lpname) {
+                std::wstring exe_file(pe32.szExeFile);
+                std::wstring lpname = StringUtil::ToWString(lpName);
+                if(CompareStringOrdinal(exe_file.c_str(), -1, lpname.c_str(), -1, TRUE) == CSTR_EQUAL) {
                     HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE,pe32.th32ProcessID);
                     bRet = OpenProcessToken(hProcess,TOKEN_ALL_ACCESS,&hToken);
                     CloseHandle (hProcessSnap);
@@ -364,38 +430,14 @@ namespace tc
         DWORD dwSessionId = WTSGetActiveConsoleSessionId();
         if (dwSessionId == 0xFFFFFFFF) {
             LOGE("StartProcessInCurrentUser, WTSGetActiveConsoleSessionId failed");
-            return FALSE; // 没有用户登录
+            return FALSE;
         }
 
         HANDLE hUserToken = NULL;
         if (!WTSQueryUserToken(dwSessionId, &hUserToken)) {
             LOGE("StartProcessInCurrentUser, WTSQueryUserToken failed");
-            return FALSE; // 获取用户 Token 失败
+            return FALSE;
         }
-//
-//        // 复制 Token（避免权限问题）
-//        HANDLE hDuplicatedToken = NULL;
-//        if (!DuplicateTokenEx(
-//                hUserToken,
-//                TOKEN_ALL_ACCESS,
-//                NULL,
-//                SecurityImpersonation,
-//                TokenPrimary,
-//                &hDuplicatedToken
-//        )) {
-//            CloseHandle(hUserToken);
-//            LOGE("StartProcessInCurrentUser, DuplicateTokenEx failed");
-//            return FALSE;
-//        }
-//
-//        // 设置环境变量（可选）
-//        LPVOID lpEnvironment = NULL;
-//        if (!CreateEnvironmentBlock(&lpEnvironment, hDuplicatedToken, FALSE)) {
-//            CloseHandle(hDuplicatedToken);
-//            CloseHandle(hUserToken);
-//            LOGE("StartProcessInCurrentUser, CreateEnvironmentBlock failed");
-//            return FALSE;
-//        }
 
         HANDLE token;
         auto r = GetTokenByName(token, "EXPLORER.EXE");
@@ -404,36 +446,25 @@ namespace tc
             return FALSE;
         }
 
-        // 启动进程
         STARTUPINFOW si = { sizeof(si) };
         PROCESS_INFORMATION pi = { 0 };
         BOOL bSuccess = CreateProcessAsUserW(
                 token,
-                NULL,         // 应用程序路径
-                (LPWSTR)cmdline.c_str(),     // 命令行参数
-                NULL,                      // 进程安全属性
-                NULL,                      // 线程安全属性
-                FALSE,                     // 不继承句柄
-                CREATE_UNICODE_ENVIRONMENT | NORMAL_PRIORITY_CLASS, // 标志
-                NULL/*lpEnvironment*/,             // 环境变量
-                (LPWSTR)work_dir.c_str(),                      // 当前目录（NULL 表示使用父进程目录）
-                &si,                       // 启动信息
-                &pi                        // 进程信息
+                NULL,
+                (LPWSTR)cmdline.c_str(),
+                NULL,
+                NULL,
+                FALSE,
+                CREATE_UNICODE_ENVIRONMENT | NORMAL_PRIORITY_CLASS,
+                NULL,
+                (LPWSTR)work_dir.c_str(),
+                &si,
+                &pi
         );
         if (!bSuccess) {
             LOGE("**CreateProcessAsUser failed, error: {:x}", GetLastError());
         }
 
-        // 清理资源
-//        if (lpEnvironment) {
-//            DestroyEnvironmentBlock(lpEnvironment);
-//        }
-//        if (hDuplicatedToken) {
-//            CloseHandle(hDuplicatedToken);
-//        }
-//        if (hUserToken) {
-//            CloseHandle(hUserToken);
-//        }
         if (token) {
             CloseHandle(token);
         }
@@ -443,43 +474,6 @@ namespace tc
         }
         return bSuccess;
     }
-
-    /// TEST ///
-    void LaunchProcess(const QString& cmd)
-    {
-        HANDLE hToken = NULL;
-        //创建进程快照
-        PROCESSENTRY32 pe32 = { 0 };
-        pe32.dwSize = sizeof(pe32);
-        HANDLE hSnapShot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-        if (hSnapShot != 0 && hSnapShot != INVALID_HANDLE_VALUE)
-        {
-            BOOL bRet = Process32First(hSnapShot, &pe32);
-            while (bRet)
-            {
-                auto exe_file = QString::fromStdWString(pe32.szExeFile).toUpper();
-                auto lpname = QString::fromStdString("EXPLORER.EXE").toUpper();
-                if(exe_file == lpname) {
-                    HANDLE hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, pe32.th32ProcessID);
-
-                    if (hProcess != NULL)
-                    {
-                        BOOL flag = OpenProcessToken(hProcess, TOKEN_ALL_ACCESS, &hToken);
-                        CloseHandle(hProcess);
-                    }
-                    break;
-                }
-                bRet = Process32Next(hSnapShot, &pe32);
-            }
-            CloseHandle(hSnapShot);
-        }
-
-        STARTUPINFO si = { sizeof(si) };
-        PROCESS_INFORMATION pi;
-        BOOL bSuccess = CreateProcessAsUserW(hToken, L"C:\\Windows\\notepad.exe", NULL, NULL, NULL, FALSE, NULL,NULL, NULL, &si, &pi);
-        LOGI("Start : {}, ret: {}", cmd.toStdString(), bSuccess);
-    }
-    /// TEST ...
 
     uint32_t ProcessUtil::GetCurrentSessionId() {
         return GetProcessSessionId(GetCurrentProcessId());
@@ -494,7 +488,7 @@ namespace tc
     }
 
     int ProcessUtil::GetThreadCount() {
-#ifdef Q_OS_WIN
+#ifdef WIN32
         DWORD threadCount = 0;
         HANDLE hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
         if (hSnapshot == INVALID_HANDLE_VALUE) {
@@ -504,10 +498,11 @@ namespace tc
 
         THREADENTRY32 te32;
         te32.dwSize = sizeof(THREADENTRY32);
+        DWORD currentPid = GetCurrentProcessId();
 
         if (Thread32First(hSnapshot, &te32)) {
             do {
-                if (te32.th32OwnerProcessID == QCoreApplication::applicationPid()) {
+                if (te32.th32OwnerProcessID == currentPid) {
                     threadCount++;
                 }
             } while (Thread32Next(hSnapshot, &te32));
@@ -516,8 +511,16 @@ namespace tc
         CloseHandle(hSnapshot);
         return threadCount;
 #else
-        QDir dir(QString("/proc/%1/task").arg(QCoreApplication::applicationPid()));
-        return dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot).size();
+        int count = 0;
+        for (const auto& entry : std::filesystem::directory_iterator("/proc/self/task")) {
+            if (entry.is_directory()) {
+                auto name = entry.path().filename().string();
+                if (name != "." && name != "..") {
+                    count++;
+                }
+            }
+        }
+        return count;
 #endif
     }
 
@@ -544,7 +547,6 @@ namespace tc
         if (!ShellExecuteEx(&sei)) {
             DWORD err = GetLastError();
             if (err == ERROR_CANCELLED) {
-                // 用户取消了UAC弹窗
                 LOGE("UAC denied");
             } else {
                 LOGE("UAC error: {}", err);

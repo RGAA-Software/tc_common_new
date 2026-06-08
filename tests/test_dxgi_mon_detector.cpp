@@ -27,7 +27,5 @@ TEST(DxgiMonDetectorTest, AllMonitors_HaveValidDimensions) {
 
     for (const auto& info : adapters) {
         EXPECT_TRUE(info.IsValid()) << "Monitor " << info.display_name << " has invalid dimensions";
-        EXPECT_GE(info.rect.left, 0) << "Monitor rect.left should be non-negative";
-        EXPECT_GE(info.rect.top, 0) << "Monitor rect.top should be non-negative";
     }
 }

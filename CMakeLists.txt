@@ -107,45 +107,45 @@ if(FFTW3_ENABLED)
 endif()
 
 add_library(tc_common_new ${SRCS})
-target_link_libraries(tc_common_new Dexode::EventBus)
+target_link_libraries(tc_common_new PUBLIC Dexode::EventBus)
 if (WIN32)
     if(TESTS_ENABLED)
         add_subdirectory(tests)
     endif()
 
-    target_link_libraries(tc_common_new
+    target_link_libraries(tc_common_new PUBLIC
         DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto
         Shlwapi.lib Wtsapi32.lib shell32.lib
         iphlpapi.lib advapi32.lib comsuppw.lib
     )
-    # TODO: Remove Qt dependency after process_util.cpp is de-Qtized
-    target_link_libraries(tc_common_new Qt6::Core Qt6::Core5Compat Qt6::Widgets Qt6::Network)
     if (DirectXTex_ENABLED)
-        target_link_libraries(tc_common_new DirectXTex)
+        target_link_libraries(tc_common_new PUBLIC DirectXTex)
     endif()
     if (FFTW3_ENABLED)
-        target_link_libraries(tc_common_new FFTW3::fftw3)
+        target_link_libraries(tc_common_new PUBLIC FFTW3::fftw3)
     endif()
     set(BREAKPAD_LIB_PATH ${VCPKG_ROOT}/packages/breakpad_x64-windows-static/lib)
-    target_link_libraries(tc_common_new ${BREAKPAD_LIB_PATH}/libbreakpad.lib ${BREAKPAD_LIB_PATH}/libbreakpad_client.lib)
+    target_link_libraries(tc_common_new PUBLIC ${BREAKPAD_LIB_PATH}/libbreakpad.lib ${BREAKPAD_LIB_PATH}/libbreakpad_client.lib)
+    # TODO: Remove Qt INTERFACE link after all dependent modules explicitly link Qt themselves
+    target_link_libraries(tc_common_new INTERFACE Qt6::Core Qt6::Core5Compat Qt6::Widgets Qt6::Network)
 endif ()
 
 if(JEMALLOC_ENABLED)
-    target_link_libraries(tc_common_new jemalloc)
+    target_link_libraries(tc_common_new PUBLIC jemalloc)
     ###
 endif ()
 
 if (MIMALLOC_ENABLED)
-    target_link_libraries(tc_common_new $<IF:$<TARGET_EXISTS:mimalloc-static>,mimalloc-static,mimalloc>)
+    target_link_libraries(tc_common_new PUBLIC $<IF:$<TARGET_EXISTS:mimalloc-static>,mimalloc-static,mimalloc>)
 endif ()
 
 if (ANDROID)
-    target_link_libraries(tc_common_new ${ANDROID_OPENSSL_LIBS})
+    target_link_libraries(tc_common_new PUBLIC ${ANDROID_OPENSSL_LIBS})
 endif ()
 
-target_link_libraries(tc_common_new leveldb)
+target_link_libraries(tc_common_new PUBLIC leveldb)
 if (WIN32)
-    target_link_libraries(tc_common_new cpr::cpr)
+    target_link_libraries(tc_common_new PUBLIC cpr::cpr)
 endif ()
 
 target_include_directories(tc_common_new PUBLIC ${GR_PROJECT_PATH}/tc_3rdparty/eventbus/src)
