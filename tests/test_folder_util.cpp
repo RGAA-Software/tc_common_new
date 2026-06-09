@@ -11,7 +11,6 @@
 
 using namespace tc;
 
-static std::string U8S(const char8_t* s) { return reinterpret_cast<const char*>(s); }
 
 
 class FolderUtilTest : public ::testing::Test {

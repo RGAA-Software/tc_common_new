@@ -294,6 +294,16 @@ namespace tc
         // Note: Use .path() for path concatenation with std::filesystem::path operators.
     };
 
+#if defined(__cpp_char8_t)
+    inline const char* U8S(const char8_t* s) {
+        return reinterpret_cast<const char*>(s);
+    }
+#else
+    inline const char* U8S(const char* s) {
+        return s;
+    }
+#endif
+
 }
 
 #endif //TC_APPLICATION_STRINGEXT_H

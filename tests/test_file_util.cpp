@@ -10,7 +10,6 @@
 
 using namespace tc;
 
-static std::string U8S(const char8_t* s) { return reinterpret_cast<const char*>(s); }
 
 static std::string PathToUTF8(const std::filesystem::path& p) {
     auto u8 = p.u8string();

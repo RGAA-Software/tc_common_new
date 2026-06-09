@@ -193,7 +193,6 @@ TEST_F(FileTest, ChinesePath) {
     EXPECT_TRUE(File::Exists(path));
 }
 
-static std::string U8S(const char8_t* s) { return reinterpret_cast<const char*>(s); }
 
 TEST_F(FileTest, ChinesePathReadWrite) {
     auto path = TempPath(U8S(u8"中文读写测试.txt"));
