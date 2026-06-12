@@ -1,14 +1,6 @@
 #include "data.h"
 #include <cstring>
 
-#if JEMALLOC_ON
-#include "jemalloc/jemalloc.h"
-#endif
-
-#if MIMALLOC_ON
-#include <mimalloc.h>
-#endif
-
 #include "file.h"
 #include "memory_stat.h"
 #include "snowflake/snowflake.h"
@@ -17,13 +9,7 @@ namespace tc
 {
 
     Data::Data(const char* src, int64_t size) {
-#if JEMALLOC_ON
-        this->data_ = static_cast<char *>je_malloc(size);
-#elif MIMALLOC_ON
-        this->data_ = static_cast<char *>(mi_malloc(size));
-#else
-        this->data_ = static_cast<char *>malloc(size);
-#endif
+        this->data_ = static_cast<char *>(malloc(size));
         if (src) {
             memcpy(this->data_, src, size);
         }
@@ -46,13 +32,7 @@ namespace tc
 
     Data::~Data() {
         if (this->data_) {
-#if JEMALLOC_ON
-            je_free(this->data_);
-#elif MIMALLOC_ON
-            mi_free(this->data_);
-#else
             free(this->data_);
-#endif
 #if MEMORY_STST_ON
       MemoryStat::Instance()->RemoveMemInfo(id_);
 #endif

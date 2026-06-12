@@ -125,20 +125,13 @@ if (WIN32)
     if (FFTW3_ENABLED)
         target_link_libraries(tc_common_new PUBLIC FFTW3::fftw3)
     endif()
-    set(BREAKPAD_LIB_PATH ${VCPKG_ROOT}/packages/breakpad_x64-windows-static/lib)
-    target_link_libraries(tc_common_new PUBLIC ${BREAKPAD_LIB_PATH}/libbreakpad.lib ${BREAKPAD_LIB_PATH}/libbreakpad_client.lib)
+    target_link_libraries(tc_common_new PUBLIC
+        unofficial::breakpad::libbreakpad
+        unofficial::breakpad::libbreakpad_client
+    )
     # TODO: Remove Qt INTERFACE link after all dependent modules explicitly link Qt themselves
     # Qt dependencies have been fully removed from tc_common_new source.
     # All downstream targets that use Qt must link it explicitly.
-endif ()
-
-if(JEMALLOC_ENABLED)
-    target_link_libraries(tc_common_new PUBLIC jemalloc)
-    ###
-endif ()
-
-if (MIMALLOC_ENABLED)
-    target_link_libraries(tc_common_new PUBLIC $<IF:$<TARGET_EXISTS:mimalloc-static>,mimalloc-static,mimalloc>)
 endif ()
 
 if (ANDROID)
