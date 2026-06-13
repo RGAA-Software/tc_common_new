@@ -123,7 +123,7 @@ if (WIN32)
         UserEnv.lib
     )
     if (DirectXTex_ENABLED)
-        target_link_libraries(tc_common_new PUBLIC DirectXTex)
+        target_link_libraries(tc_common_new PUBLIC Microsoft::DirectXTex)
     endif()
     if (FFTW3_ENABLED)
         target_link_libraries(tc_common_new PUBLIC FFTW3::fftw3)
