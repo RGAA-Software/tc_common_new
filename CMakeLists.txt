@@ -141,7 +141,7 @@ if (ANDROID)
     target_link_libraries(tc_common_new PUBLIC ${ANDROID_OPENSSL_LIBS})
 endif ()
 
-target_link_libraries(tc_common_new PUBLIC leveldb fmt::fmt spdlog::spdlog_header_only)
+target_link_libraries(tc_common_new PUBLIC leveldb::leveldb fmt::fmt spdlog::spdlog_header_only)
 if (WIN32)
     target_link_libraries(tc_common_new PUBLIC cpr::cpr)
 endif ()
