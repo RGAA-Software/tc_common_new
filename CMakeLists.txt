@@ -16,6 +16,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #
 #endif ()
 find_package(cpr CONFIG REQUIRED)
+find_package(fmt CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 
 if (WIN32)
     if (FFTW3_ENABLED)
@@ -139,7 +141,7 @@ if (ANDROID)
     target_link_libraries(tc_common_new PUBLIC ${ANDROID_OPENSSL_LIBS})
 endif ()
 
-target_link_libraries(tc_common_new PUBLIC leveldb)
+target_link_libraries(tc_common_new PUBLIC leveldb fmt::fmt spdlog::spdlog_header_only)
 if (WIN32)
     target_link_libraries(tc_common_new PUBLIC cpr::cpr)
 endif ()
