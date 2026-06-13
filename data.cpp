@@ -3,7 +3,7 @@
 
 #include "file.h"
 #include "memory_stat.h"
-#include "snowflake/snowflake.h"
+#include "tc_common_new/snowflake_id.h"
 
 namespace tc
 {

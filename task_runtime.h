@@ -8,7 +8,7 @@
 #include <unordered_map>
 
 #include "thread.h"
-#include "snowflake/snowflake.h"
+#include "tc_common_new/snowflake_id.h"
 
 #define MAX_TASK_PER_THREAD 10000000
 
