@@ -5,7 +5,7 @@
 #ifndef TC_SERVER_STEAM_NET_RESP_H
 #define TC_SERVER_STEAM_NET_RESP_H
 
-#include "tc_3rdparty/json/json.hpp"
+#include <nlohmann/json.hpp>
 using namespace nlohmann;
 
 namespace tc
