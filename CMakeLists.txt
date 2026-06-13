@@ -18,6 +18,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(cpr CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
+find_package(miniz CONFIG REQUIRED)
 
 if (WIN32)
     if (FFTW3_ENABLED)
@@ -70,7 +71,6 @@ set(SRCS
     cpu_frequency.cpp
     gd_md5.cpp
     zip_util.cpp
-    ../tc_3rdparty/miniz/miniz.c
 )
 
 if(WIN32)
@@ -141,7 +141,7 @@ if (ANDROID)
     target_link_libraries(tc_common_new PUBLIC ${ANDROID_OPENSSL_LIBS})
 endif ()
 
-target_link_libraries(tc_common_new PUBLIC leveldb::leveldb fmt::fmt spdlog::spdlog_header_only)
+target_link_libraries(tc_common_new PUBLIC leveldb::leveldb fmt::fmt spdlog::spdlog_header_only miniz::miniz)
 if (WIN32)
     target_link_libraries(tc_common_new PUBLIC cpr::cpr)
 endif ()
