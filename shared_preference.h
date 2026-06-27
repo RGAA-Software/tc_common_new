@@ -2,6 +2,7 @@
 #define DATABASE_H
 
 #include <string>
+#include <cstdint>
 #include <functional>
 #include <mutex>
 #include <leveldb/db.h>
@@ -30,9 +31,11 @@ namespace tc
 
         bool Put(const std::string& key, const std::string& value) const;
         bool PutInt(const std::string& key, int value) const;
+        bool PutInt64(const std::string& key, int64_t value) const;
         std::string Get(const std::string& key) const;
         std::string Get(const std::string& key, const std::string& def) const;
         int GetInt(const std::string& key, int def = 0) const;
+        int64_t GetInt64(const std::string& key, int64_t def = 0) const;
         bool Remove(const std::string& key) const;
 
         void Visit(IVisitListener&& listener) const;

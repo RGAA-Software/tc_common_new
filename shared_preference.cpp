@@ -92,6 +92,15 @@ namespace tc
         return st.ok();
     }
 
+    bool SharedPreference::PutInt64(const std::string& key, int64_t value) const {
+        std::lock_guard<std::mutex> lock(mtx_);
+        if (!db_) {
+            return false;
+        }
+        auto st = db_->Put(leveldb::WriteOptions(), key, std::to_string(value));
+        return st.ok();
+    }
+
     std::string SharedPreference::Get(const std::string& key) const {
         std::lock_guard<std::mutex> lock(mtx_);
         if (!db_) {
@@ -125,6 +134,20 @@ namespace tc
         auto status = db_->Get(leveldb::ReadOptions(), key, &value);
         if (status.ok()) {
             return std::atoi(value.c_str());
+        } else {
+            return def;
+        }
+    }
+
+    int64_t SharedPreference::GetInt64(const std::string& key, int64_t def) const {
+        std::lock_guard<std::mutex> lock(mtx_);
+        if (!db_) {
+            return def;
+        }
+        std::string value;
+        auto status = db_->Get(leveldb::ReadOptions(), key, &value);
+        if (status.ok()) {
+            return std::atoll(value.c_str());
         } else {
             return def;
         }
