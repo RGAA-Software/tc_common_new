@@ -62,7 +62,9 @@ namespace tc
         this->port_ = port;
         this->path = path;
         this->ssl_ = ssl;
-        this->verify_ssl_ = ssl;
+        // CMS servers use self-signed certificates; disable peer verification
+        // so HTTPS requests don't fail on certificate validation.
+        this->verify_ssl_ = false;
         this->timeout_ms_ = timeout_ms;
     }
 
