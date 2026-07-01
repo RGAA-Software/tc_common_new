@@ -57,6 +57,10 @@ set(SRCS
     file_util.cpp
     dump_helper.cpp
     folder_util.cpp
+    clipboard/clipboard_echo.cpp
+    clipboard/clipboard_file_builder.cpp
+    clipboard/clipboard_platform.cpp
+    clipboard/stub/clipboard_platform_stub.cpp
     num_formatter.cpp
     monitors.cpp
     key_helper.cpp
@@ -85,6 +89,7 @@ if(WIN32)
         qrcode/qrcodegen.hpp
         win32/dxgi_mon_detector.cpp
         win32/process_cmdline.cpp
+        clipboard/win/clipboard_platform_win.cpp
         hardware.cpp
         ip_util.cpp
         auto_start.cpp
@@ -120,7 +125,8 @@ if (WIN32)
         DXGI D3D11 OpenSSL::SSL OpenSSL::Crypto
         Shlwapi.lib Wtsapi32.lib shell32.lib
         iphlpapi.lib advapi32.lib comsuppw.lib
-        UserEnv.lib
+        UserEnv.lib winmm.lib
+        ole32.lib
     )
     if (DirectXTex_ENABLED)
         target_link_libraries(tc_common_new PUBLIC Microsoft::DirectXTex)
