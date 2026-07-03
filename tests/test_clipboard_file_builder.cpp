@@ -99,14 +99,40 @@ TEST_F(ClipboardFileBuilderTest, DirectoryExpandsRecursively) {
     for (const auto& e : entries.value()) {
         if (e.file_name_ == "top.txt") {
             found_top = true;
+            EXPECT_EQ(NormalizeSlashes(e.ref_path_), "bundle/top.txt");
         }
         if (e.file_name_ == "inner.txt") {
             found_inner = true;
-            EXPECT_TRUE(e.ref_path_.find("nested") != std::string::npos);
+            EXPECT_EQ(NormalizeSlashes(e.ref_path_), "bundle/nested/inner.txt");
         }
     }
     EXPECT_TRUE(found_top);
     EXPECT_TRUE(found_inner);
+}
+
+TEST_F(ClipboardFileBuilderTest, MixedDirectoryAndSiblingFiles) {
+    const auto bundle = temp_dir_ / "bundle";
+    WriteFile(bundle / "nested" / "in.txt", "x");
+    const auto sibling = WriteFile(temp_dir_ / "sibling.txt", "y");
+
+    auto entries = BuildFileEntriesFromPaths({PathToUTF8(bundle), sibling});
+    ASSERT_TRUE(entries.has_value());
+    ASSERT_EQ(entries->size(), 2u);
+
+    bool found_in = false;
+    bool found_sibling = false;
+    for (const auto& e : entries.value()) {
+        if (e.file_name_ == "in.txt") {
+            found_in = true;
+            EXPECT_EQ(NormalizeSlashes(e.ref_path_), "bundle/nested/in.txt");
+        }
+        if (e.file_name_ == "sibling.txt") {
+            found_sibling = true;
+            EXPECT_EQ(e.ref_path_, "sibling.txt");
+        }
+    }
+    EXPECT_TRUE(found_in);
+    EXPECT_TRUE(found_sibling);
 }
 
 TEST_F(ClipboardFileBuilderTest, NonexistentPathReturnsNullopt) {
