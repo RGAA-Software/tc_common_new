@@ -93,6 +93,53 @@ namespace tc
         return success;
     }
 
+    bool FirewallHelper::AddPortToFirewall(const std::string& rule_name, const std::string& local_ports, int protocol, int direction) {
+        bool success = false;
+        if (!is_init) {
+            return success;
+        }
+
+        std::lock_guard<std::mutex> lock(lock_mutex);
+        hr = fw_policy2->get_Rules(&fw_rules);
+        if (SUCCEEDED(hr)) {
+            INetFwRule *fw_rule_item = nullptr;
+            std::wstring name = StringUtil::ToWString(rule_name);
+            hr = fw_rules->Item((wchar_t *) name.c_str(), &fw_rule_item);
+            if (SUCCEEDED(hr)) {
+                success = true;
+                fw_rule_item->Release();
+                fw_rules->Release();
+                return success;
+            }
+
+            hr = CoCreateInstance(__uuidof(NetFwRule), nullptr, CLSCTX_INPROC_SERVER, __uuidof(INetFwRule),
+                                  (void **) &fw_rule_item);
+
+            if (SUCCEEDED(hr)) {
+                std::wstring ports = StringUtil::ToWString(local_ports);
+                std::wstring desc = StringUtil::ToWString("GammaRay local rtc port rule");
+
+                fw_rule_item->put_Name((wchar_t *) name.c_str());
+                fw_rule_item->put_Description((wchar_t *) desc.c_str());
+                fw_rule_item->put_Action(NET_FW_ACTION_ALLOW);
+                fw_rule_item->put_Direction((NET_FW_RULE_DIRECTION)direction);
+                fw_rule_item->put_Enabled(VARIANT_TRUE);
+                fw_rule_item->put_InterfaceTypes(SysAllocString(L"All"));
+                fw_rule_item->put_Protocol(protocol);
+                fw_rule_item->put_LocalPorts((wchar_t *) ports.c_str());
+                fw_rule_item->put_Profiles(NET_FW_PROFILE2_ALL);
+                hr = fw_rules->Add(fw_rule_item);
+
+                if (SUCCEEDED(hr)) {
+                    success = true;
+                }
+            }
+            fw_rule_item->Release();
+            fw_rules->Release();
+        }
+        return success;
+    }
+
     bool FirewallHelper::RemoveProgramFromFirewall(const std::string &rule_name) {
         bool success = false;
         if (!is_init) {

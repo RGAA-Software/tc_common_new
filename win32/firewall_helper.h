@@ -35,6 +35,9 @@ namespace tc
 
         bool AddProgramToFirewall(const RulesInfo& info);
 
+        // add a port-based rule, e.g. local_ports = "60430-60490", protocol = 17(UDP) / 6(TCP), direction: 1=in or 2=out
+        bool AddPortToFirewall(const std::string& rule_name, const std::string& local_ports, int protocol, int direction = 1);
+
         bool RemoveProgramFromFirewall(const std::string &rule_name);
 
     private:
