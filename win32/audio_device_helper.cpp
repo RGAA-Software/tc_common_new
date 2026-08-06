@@ -91,6 +91,7 @@ namespace tc
 
             PropVariantClear(&varName);
             pPropertyStore->Release();
+            CoTaskMemFree(deviceId);
             pDevice->Release();
 
             audio_devices.push_back(audio_device);
@@ -101,16 +102,18 @@ namespace tc
         hr = pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pDefaultDevice);
         if (SUCCEEDED(hr)) {
             LPWSTR defaultDeviceId = nullptr;
-            pDefaultDevice->GetId(&defaultDeviceId);
-            wprintf(L"\nDefault Audio Output Device ID: %s\n", defaultDeviceId);
-            CoTaskMemFree(defaultDeviceId);
-            pDefaultDevice->Release();
-
-            for (auto& device : audio_devices) {
-                if (device.id_ == StringUtil::ToUTF8(defaultDeviceId)) {
-                    device.default_device_ = true;
+            hr = pDefaultDevice->GetId(&defaultDeviceId);
+            if (SUCCEEDED(hr) && defaultDeviceId) {
+                const auto default_id_utf8 = StringUtil::ToUTF8(defaultDeviceId);
+                wprintf(L"\nDefault Audio Output Device ID: %s\n", defaultDeviceId);
+                for (auto& device : audio_devices) {
+                    if (device.id_ == default_id_utf8) {
+                        device.default_device_ = true;
+                    }
                 }
+                CoTaskMemFree(defaultDeviceId);
             }
+            pDefaultDevice->Release();
         }
 
         pDeviceCollection->Release();
