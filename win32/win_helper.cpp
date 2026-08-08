@@ -44,6 +44,15 @@ namespace tc
             return resp;
         }
 
+        // 没有配置对应位数的 DLL 名（当前只有 64 位版 tc_graphics.dll），
+        // 32 位目标直接视为未注入，避免空串比较导致的无效全量枚举
+        if ((x86 && x86_dll_name.empty()) || (!x86 && x64_dll_name.empty())) {
+            CloseHandle(hnd_process);
+            resp.ok_ = true;
+            resp.value_ = false;
+            return resp;
+        }
+
         bool ret_val = false;
         HMODULE h_modules[1024];
         DWORD needed = sizeof(h_modules);
@@ -51,7 +60,7 @@ namespace tc
                                  &needed, x86 ? LIST_MODULES_32BIT : LIST_MODULES_64BIT)) {
             for (int i = 0; i < needed / sizeof(HMODULE); ++i) {
                 char name[MAX_PATH] = {0};
-                if (GetModuleBaseNameA(hnd_process, h_modules[i], name, sizeof(name) / sizeof(WCHAR))) {
+                if (GetModuleBaseNameA(hnd_process, h_modules[i], name, sizeof(name))) {
                     //_strlwr(name);
                     if (x86) {
                         if (::_stricmp(x86_dll_name.c_str(), name) == 0) {
