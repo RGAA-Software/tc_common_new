@@ -426,8 +426,60 @@ namespace tc
         return (bRet);
     }
 
-    bool ProcessUtil::StartProcessInCurrentUser(const std::wstring& cmdline, const std::wstring& work_dir, bool wait) {
-        DWORD dwSessionId = WTSGetActiveConsoleSessionId();
+    uint32_t ProcessUtil::StartProcessAsCurrentUser(const std::string& exe_path, const std::vector<std::string>& args) {
+        // 以控制台会话的登录用户身份启动（服务/SYSTEM 上下文下，游戏等交互程序
+        // 若直接 CreateProcess 会落在 SYSTEM profile，网络代理/用户配置都不对）。
+        // 返回 pid；拿不到控制台用户 token 时返回 0，调用方自行回退。
+        DWORD session_id = WTSGetActiveConsoleSessionId();
+        if (session_id == 0xFFFFFFFF) {
+            LOGE("StartProcessAsCurrentUser, WTSGetActiveConsoleSessionId failed");
+            return 0;
+        }
+        HANDLE user_token = NULL;
+        if (!WTSQueryUserToken(session_id, &user_token)) {
+            LOGE("StartProcessAsCurrentUser, WTSQueryUserToken failed: {}", GetLastError());
+            return 0;
+        }
+        HANDLE token_dup = NULL;
+        if (!DuplicateTokenEx(user_token, TOKEN_ALL_ACCESS, NULL, SecurityImpersonation, TokenPrimary, &token_dup)) {
+            LOGE("StartProcessAsCurrentUser, DuplicateTokenEx failed: {}", GetLastError());
+            CloseHandle(user_token);
+            return 0;
+        }
+        LPVOID env = NULL;
+        if (!CreateEnvironmentBlock(&env, token_dup, FALSE)) {
+            LOGE("StartProcessAsCurrentUser, CreateEnvironmentBlock failed: {}", GetLastError());
+            CloseHandle(token_dup);
+            CloseHandle(user_token);
+            return 0;
+        }
+
+        auto cmdline = BuildCommandLine(exe_path, args);
+        std::wstring work_dir = std::filesystem::path(StringUtil::ToWString(exe_path)).parent_path().wstring();
+        STARTUPINFOW si = { sizeof(si) };
+        si.lpDesktop = (wchar_t*)L"WinSta0\\Default";
+        si.wShowWindow = SW_SHOW;
+        si.dwFlags = STARTF_USESHOWWINDOW;
+        PROCESS_INFORMATION pi = {};
+        // 不加 CREATE_NEW_CONSOLE：GUI 游戏不需要在用户桌面闪控制台窗口
+        DWORD flags = CREATE_UNICODE_ENVIRONMENT | NORMAL_PRIORITY_CLASS;
+        BOOL ok = CreateProcessAsUserW(token_dup, NULL, cmdline.data(), NULL, NULL, FALSE,
+                                       flags, env, work_dir.c_str(), &si, &pi);
+        DWORD pid = ok ? pi.dwProcessId : 0;
+        if (!ok) {
+            LOGE("StartProcessAsCurrentUser, CreateProcessAsUser failed: {}, err: {}", exe_path, GetLastError());
+        } else {
+            LOGI("StartProcessAsCurrentUser: {} pid={} (session {})", exe_path, pid, session_id);
+            CloseHandle(pi.hProcess);
+            CloseHandle(pi.hThread);
+        }
+        DestroyEnvironmentBlock(env);
+        CloseHandle(token_dup);
+        CloseHandle(user_token);
+        return pid;
+    }
+
+    bool ProcessUtil::StartProcessInCurrentUser(const std::wstring& cmdline, const std::wstring& work_dir, bool wait) {        DWORD dwSessionId = WTSGetActiveConsoleSessionId();
         if (dwSessionId == 0xFFFFFFFF) {
             LOGE("StartProcessInCurrentUser, WTSGetActiveConsoleSessionId failed");
             return FALSE;

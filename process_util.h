@@ -28,6 +28,8 @@ namespace tc
         static bool StartProcessInSameUser(const std::wstring& cmdline, const std::wstring& work_dir, bool wait);
         // Will run in current user
         static bool StartProcessInCurrentUser(const std::wstring& cmdline, const std::wstring& work_dir, bool wait);
+        // 以控制台会话登录用户身份启动（SYSTEM/服务上下文拉起交互程序用），返回 pid，失败 0
+        static uint32_t StartProcessAsCurrentUser(const std::string& exe_path, const std::vector<std::string>& args);
         static uint32_t GetCurrentSessionId();
         static uint32_t GetProcessSessionId(uint32_t pid);
         static int GetThreadCount();
