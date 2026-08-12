@@ -75,6 +75,7 @@ set(SRCS
     cpu_frequency.cpp
     gd_md5.cpp
     zip_util.cpp
+    reedsolomon/rs.c
 )
 
 if(WIN32)

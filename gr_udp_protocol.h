@@ -8,6 +8,7 @@
 #ifndef GAMMARAY_GR_UDP_PROTOCOL_H
 #define GAMMARAY_GR_UDP_PROTOCOL_H
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <functional>
@@ -17,6 +18,7 @@
 #include <vector>
 
 #include "data.h"
+#include "gr_fec.h"
 
 namespace tc
 {
@@ -30,8 +32,14 @@ namespace tc
     //   data_shards(u16) | parity_shards(u16) | shard_index(u16) | payload_len(u16) |
     //   mon_slot(u8) | codec(u8)
     // SOF extension (only when flags & kFlagSof), right after base header:
-    //   frame_width(u16) | frame_height(u16) | mon_name_len(u8) | mon_name bytes
+    //   frame_width(u16) | frame_height(u16) | frame_size(u32) | mon_name_len(u8) | mon_name bytes
     // then payload(payload_len bytes)
+    //
+    // FEC (P2, Reed-Solomon): 每个数据 shard 的"SOF扩展+载荷"区(首包)或"载荷"区(其余包)
+    // 都视为等长 P = mtu - 24 字节的保护块(末尾不足零填充,wire 上仍只发实际字节);
+    // parity 包 = 基础头(flags=kFlagParity, shard_index = data_shards + j,
+    // payload_len = P, 无 SOF 扩展) + P 字节校验块,整包正好 mtu。
+    // 一帧一个 FEC 块,fec_block 恒 0;parity_shards 填实际值(0 = 无 FEC)。
     //
     // Ctrl packet (pkt_type=3): subtype(u8) + body
     //   kCtrlHello(1):     device_id_len(u8)+device_id | stream_id_len(u8)+stream_id
@@ -52,6 +60,7 @@ namespace tc
         static constexpr uint8_t kFlagKey = 0x1;
         static constexpr uint8_t kFlagSof = 0x2;
         static constexpr uint8_t kFlagEof = 0x4;
+        static constexpr uint8_t kFlagParity = 0x8;
 
         static constexpr uint8_t kCodecH264 = 0;
         static constexpr uint8_t kCodecH265 = 1;
@@ -105,6 +114,7 @@ namespace tc
             // SOF extension
             uint16_t frame_width_ = 0;
             uint16_t frame_height_ = 0;
+            uint32_t frame_size_ = 0;   // 编码帧原始字节数(接收端据此精确截断,去掉 FEC 零填充)
             std::string mon_name_;
             // payload view into the original packet
             const char* payload_ = nullptr;
@@ -127,14 +137,15 @@ namespace tc
             out.codec_ = (uint8_t)p[19];
             size_t off = kCommonHeaderSize + kVideoHeaderSize;
             if (out.flags_ & kFlagSof) {
-                if (size < off + 5) return false;
+                if (size < off + 9) return false;
                 const char* e = data + off;
                 out.frame_width_ = R16(e);
                 out.frame_height_ = R16(e + 2);
-                uint8_t nl = (uint8_t)e[4];
-                if (nl > kMaxMonNameLen || size < off + 5 + nl) return false;
-                out.mon_name_.assign(e + 5, nl);
-                off += 5 + nl;
+                out.frame_size_ = R32(e + 4);
+                uint8_t nl = (uint8_t)e[8];
+                if (nl > kMaxMonNameLen || size < off + 9 + nl) return false;
+                out.mon_name_.assign(e + 9, nl);
+                off += 9 + nl;
             }
             if (size != off + out.payload_len_) return false;
             out.payload_ = data + off;
@@ -153,27 +164,73 @@ namespace tc
         };
 
         // split one encoded frame into UDP packets (<= mtu each)
+        // fec_percent > 0 时按 RS(D, parity) 追加 parity 包;parity = max(1, ceil(D*fec_percent/100)),
+        // D + parity > 255 时本帧退化为无 FEC。fec_percent == 0 时行为与旧版一致(仅 SOF 扩展多 frame_size)。
         static std::vector<std::shared_ptr<Data>> ShardVideoFrame(const VideoFrameMeta& meta,
                                                                   const char* data, size_t size,
-                                                                  int mtu = kDefaultMtu) {
+                                                                  int mtu = kDefaultMtu,
+                                                                  int fec_percent = 0) {
             std::vector<std::shared_ptr<Data>> out;
             if (!data || size == 0 || meta.mon_name_.size() > kMaxMonNameLen) return out;
-            const int sof_ext = 5 + (int)meta.mon_name_.size();
+            if (size > 0xffffffff) return out;
+            const int sof_ext = 9 + (int)meta.mon_name_.size();
             const int base = kCommonHeaderSize + kVideoHeaderSize;
-            const int first_payload = mtu - base - sof_ext;
-            const int next_payload = mtu - base;
+            const int block_p = mtu - base;          // FEC 保护块大小:扩展+载荷区,所有 shard 等长
+            const int first_payload = block_p - sof_ext;
             if (first_payload <= 0) return out;
             size_t total = (size <= (size_t)first_payload)
                                ? 1
-                               : 1 + (size - first_payload + next_payload - 1) / next_payload;
+                               : 1 + (size - first_payload + block_p - 1) / block_p;
             if (total > 0xffff) return out; // frame way too large, give up
-            out.reserve(total);
 
+            // parity 数;超 RS 上限则本帧不做 FEC(parity_shards 写 0,退化为现状)
+            int parity_count = 0;
+            if (fec_percent > 0) {
+                parity_count = std::max(1, (int)((total * (size_t)fec_percent + 99) / 100));
+                if (total + parity_count > DATA_SHARDS_MAX) {
+                    parity_count = 0;
+                }
+            }
+
+            // pass 1: 逐 shard 生成 P 字节保护块(shard 0 = SOF扩展+载荷,其余 = 载荷,末尾零填充)
+            std::vector<std::string> blocks(total, std::string(block_p, '\0'));
             size_t sent = 0;
             for (size_t i = 0; i < total; i++) {
                 bool sof = (i == 0);
+                int payload_cap = sof ? first_payload : block_p;
+                int plen = (int)std::min<size_t>(payload_cap, size - sent);
+                char* blk = blocks[i].data();
+                size_t off = 0;
+                if (sof) {
+                    W16(blk, meta.frame_width_);
+                    W16(blk + 2, meta.frame_height_);
+                    W32(blk + 4, (uint32_t)size);
+                    blk[8] = (char)meta.mon_name_.size();
+                    memcpy(blk + 9, meta.mon_name_.data(), meta.mon_name_.size());
+                    off += sof_ext;
+                }
+                memcpy(blk + off, data + sent, plen);
+                sent += plen;
+            }
+
+            // pass 2: RS 编码生成 parity 块;失败则整帧退化为无 FEC
+            std::vector<std::string> parity;
+            if (parity_count > 0) {
+                parity = GrFec::Encode(blocks, parity_count);
+                if ((int)parity.size() != parity_count) {
+                    parity_count = 0;
+                    parity.clear();
+                }
+            }
+
+            // pass 3: 组包(数据包在前、parity 包随后,与 Sunshine 顺序一致);
+            // wire 上数据包只发实际字节(不含零填充),parity 包整包正好 mtu
+            out.reserve(total + parity.size());
+            sent = 0;
+            for (size_t i = 0; i < total; i++) {
+                bool sof = (i == 0);
                 bool eof = (i == total - 1);
-                int payload_cap = sof ? first_payload : next_payload;
+                int payload_cap = sof ? first_payload : block_p;
                 int plen = (int)std::min<size_t>(payload_cap, size - sent);
                 size_t pkt_size = base + (sof ? sof_ext : 0) + plen;
                 auto buf = Data::Make(nullptr, pkt_size);
@@ -184,24 +241,34 @@ namespace tc
                 W32(v + 4, meta.timestamp_ms_);
                 uint8_t flags = (meta.key_ ? kFlagKey : 0) | (sof ? kFlagSof : 0) | (eof ? kFlagEof : 0);
                 v[8] = (char)flags;
-                v[9] = 0; // fec_block, reserved for P2
+                v[9] = 0; // fec_block,一帧一块,恒 0
                 W16(v + 10, (uint16_t)total);
-                W16(v + 12, 0); // parity_shards, reserved for P2
+                W16(v + 12, (uint16_t)parity_count);
                 W16(v + 14, (uint16_t)i);
                 W16(v + 16, (uint16_t)plen);
                 v[18] = (char)meta.mon_slot_;
                 v[19] = (char)meta.codec_;
-                size_t off = base;
-                if (sof) {
-                    char* e = p + off;
-                    W16(e, meta.frame_width_);
-                    W16(e + 2, meta.frame_height_);
-                    e[4] = (char)meta.mon_name_.size();
-                    memcpy(e + 5, meta.mon_name_.data(), meta.mon_name_.size());
-                    off += sof_ext;
-                }
-                memcpy(p + off, data + sent, plen);
+                // 包体 = 保护块前缀(扩展+实际载荷),与 blocks[i] 一致
+                memcpy(p + base, blocks[i].data(), (sof ? sof_ext : 0) + plen);
                 sent += plen;
+                out.push_back(buf);
+            }
+            for (size_t j = 0; j < parity.size(); j++) {
+                auto buf = Data::Make(nullptr, base + block_p);
+                char* p = buf->DataAddr();
+                WriteCommon(p, kPktVideo);
+                char* v = p + kCommonHeaderSize;
+                W32(v, meta.frame_index_);
+                W32(v + 4, meta.timestamp_ms_);
+                v[8] = (char)(kFlagParity | (meta.key_ ? kFlagKey : 0));
+                v[9] = 0;
+                W16(v + 10, (uint16_t)total);
+                W16(v + 12, (uint16_t)parity_count);
+                W16(v + 14, (uint16_t)(total + j));
+                W16(v + 16, (uint16_t)block_p);
+                v[18] = (char)meta.mon_slot_;
+                v[19] = (char)meta.codec_;
+                memcpy(p + base, parity[j].data(), block_p);
                 out.push_back(buf);
             }
             return out;
@@ -247,6 +314,34 @@ namespace tc
             return BuildCtrlString1(kCtrlKick, reason);
         }
 
+        // kCtrlFrameStatus: frame_index(u32) | received(u16) | lost(u16),定长二进制
+        // received/lost 语义见 GrUdpFrameReassembler::on_frame_status_
+        static std::shared_ptr<Data> BuildFrameStatus(uint32_t frame_index, uint16_t received, uint16_t lost) {
+            size_t n = kCommonHeaderSize + 1 + 8;
+            auto buf = Data::Make(nullptr, n);
+            char* p = buf->DataAddr();
+            WriteCommon(p, kPktCtrl);
+            p[kCommonHeaderSize] = (char)kCtrlFrameStatus;
+            char* q = p + kCommonHeaderSize + 1;
+            W32(q, frame_index);
+            W16(q + 4, received);
+            W16(q + 6, lost);
+            return buf;
+        }
+
+        // ParseCtrl 不解析 kCtrlFrameStatus(非字符串体),走这个定长解析
+        static bool ParseFrameStatus(const char* data, size_t size,
+                                     uint32_t& frame_index, uint16_t& received, uint16_t& lost) {
+            if (ParseCommon(data, size) != kPktCtrl) return false;
+            if (size != kCommonHeaderSize + 1 + 8) return false;
+            if ((uint8_t)data[kCommonHeaderSize] != kCtrlFrameStatus) return false;
+            const char* q = data + kCommonHeaderSize + 1;
+            frame_index = R32(q);
+            received = R16(q + 4);
+            lost = R16(q + 6);
+            return true;
+        }
+
         // parse ctrl packet body; returns subtype(>0) or 0.
         // strings are filled for Hello(device_id,stream_id) / Heartbeat(stream_id) /
         // IdrRequest(mon_name) / Kick(reason).
@@ -286,8 +381,12 @@ namespace tc
     // ---------------- client-side frame reassembler ----------------
     //
     // Collects video shards (per mon_slot), emits complete frames.
-    // Loss policy (P1, no FEC yet): a newer frame_index for the same mon_slot
-    // declares the in-progress frame lost; after any loss, P frames are dropped
+    // FEC (P2): slot 扩到 data_shards + parity_shards,统一存 P 字节"保护块"
+    // (shard 0 = SOF扩展+载荷,其余数据块 = 载荷,parity 块 = 载荷,wire 上不足 P 的零填充);
+    // 已收 distinct 块数(数据+parity)达到 data_shards 且有数据块缺失时立刻 RS 恢复,
+    // 重组帧按 SOF 扩展里的 frame_size 精确截断(去掉零填充)。
+    // Loss policy: a newer frame_index for the same mon_slot declares the in-progress
+    // frame lost (recovery attempted first); after any loss, P frames are dropped
     // until a key frame completes (mirrors the webrtc_local convention that the
     // first delivered frame must be an IDR).
     class GrUdpFrameReassembler {
@@ -308,88 +407,154 @@ namespace tc
         std::function<void(const CompleteFrame&)> on_frame_;
         // a frame was declared lost (gap); client should request an IDR for this slot
         std::function<void(uint8_t mon_slot, uint32_t lost_frame_index)> on_frame_lost_;
+        // 帧状态反馈(每帧恰好一次,驱动 render 端动态 FEC):
+        // 完成帧 received=网络实收数据块数(FEC 恢复的不算), lost=经 FEC 恢复的数据块数;
+        // 判丢帧 received=已收数据块数, lost=缺失数据块数
+        std::function<void(uint8_t mon_slot, uint32_t frame_index, uint16_t received, uint16_t lost)> on_frame_status_;
+
+        // RS 恢复后的 sanity check(防误恢复的坏数据进解码器):
+        // mon_name_len 合法且 frame_size 在容量内(sof_ext + frame_size <= data_shards * P)。
+        // 仅「有 parity 参与的恢复」路径需要,纯数据收齐的块经过 ParseVideoShard 校验不用查
+        static bool ValidateRecoveredShard0(const std::string& b0, int data_shards, size_t p) {
+            if (b0.size() < 9) return false;
+            uint8_t nl = (uint8_t)b0[8];
+            if (nl > GrUdpProtocol::kMaxMonNameLen) return false;
+            size_t sof_ext = 9 + nl;
+            if (b0.size() < sof_ext) return false;
+            uint32_t frame_size = GrUdpProtocol::R32(b0.data() + 4);
+            // 容量:shard 0 载荷 P - sof_ext,其余 D-1 块各 P ⟺ sof_ext + frame_size <= D * P
+            return (uint64_t)sof_ext + frame_size <= (uint64_t)data_shards * p;
+        }
 
         // feed one raw UDP packet (common header included)
         void AddPacket(const char* data, size_t size) {
             GrUdpProtocol::VideoShardInfo shard;
             if (!GrUdpProtocol::ParseVideoShard(data, size, shard)) return;
-            if (shard.data_shards_ == 0 || shard.shard_index_ >= shard.data_shards_) return;
+            if (shard.data_shards_ == 0) return;
+            const bool is_parity = (shard.flags_ & GrUdpProtocol::kFlagParity) != 0;
+            if (is_parity) {
+                if (shard.parity_shards_ == 0) return;
+                if (shard.shard_index_ < shard.data_shards_ ||
+                    shard.shard_index_ >= shard.data_shards_ + shard.parity_shards_) return;
+            }
+            else if (shard.shard_index_ >= shard.data_shards_) {
+                return;
+            }
+            // 已完成/已判丢帧的迟到包(含恢复后晚到的 parity)直接丢
+            auto fit = finished_.find(shard.mon_slot_);
+            if (fit != finished_.end() && shard.frame_index_ <= fit->second) return;
 
             auto& cur = assemblies_[shard.mon_slot_];
             if (cur.active_ && shard.frame_index_ > cur.frame_index_) {
-                // newer frame arrived while current incomplete -> declare loss
-                DeclareLoss(shard.mon_slot_, cur.frame_index_);
+                // newer frame arrived while current incomplete -> try recovery, then declare loss
+                if (!TryRecoverAndEmit(shard.mon_slot_, cur)) {
+                    DeclareLoss(shard.mon_slot_, cur.frame_index_,
+                                (uint16_t)cur.net_data_received_,
+                                (uint16_t)(cur.data_shards_ - cur.net_data_received_));
+                    MarkFinished(shard.mon_slot_, cur.frame_index_);
+                }
                 cur = Assembly{};
             }
             if (cur.active_ && shard.frame_index_ < cur.frame_index_) {
                 return; // stale shard of an already-lost/completed frame
             }
             if (!cur.active_) {
-                if (!(shard.flags_ & GrUdpProtocol::kFlagSof)) {
-                    // joining mid-frame: we cannot trust earlier shards, treat as broken
-                    DeclareLoss(shard.mon_slot_, shard.frame_index_);
+                // 整帧丢失检测:finished_ 之后、本帧之前若有帧号空缺,说明中间帧所有包全丢,
+                // 「cur.active_ 时更大帧号到达」的判丢路径不会触发,必须在这里补上,
+                // 否则无限 GOP 下解码器继续吃参考链已断的 P 帧 → 花屏。
+                // 迟到乱序包已被上面的 finished_ 检查拦截,不会误判;首连(finished_ 不存在)不触发
+                if (fit != finished_.end() && shard.frame_index_ > fit->second + 1) {
+                    DeclareLoss(shard.mon_slot_, shard.frame_index_ - 1, 0, 0);
+                    MarkFinished(shard.mon_slot_, shard.frame_index_ - 1);
+                }
+                if (shard.flags_ & GrUdpProtocol::kFlagSof) {
+                    cur.active_ = true;
+                    cur.frame_index_ = shard.frame_index_;
+                    cur.timestamp_ms_ = shard.timestamp_ms_;
+                    cur.key_ = (shard.flags_ & GrUdpProtocol::kFlagKey) != 0;
+                    cur.codec_ = shard.codec_;
+                    cur.frame_width_ = shard.frame_width_;
+                    cur.frame_height_ = shard.frame_height_;
+                    cur.mon_name_ = shard.mon_name_;
+                    cur.data_shards_ = shard.data_shards_;
+                    cur.shards_.resize((size_t)shard.data_shards_ + shard.parity_shards_);
+                    cur.received_ = 0;
+                }
+                else if (shard.parity_shards_ > 0) {
+                    // FEC 帧的 SOF 丢了:先从数据/parity 包建起组装,元信息等 shard 0 恢复后取
+                    cur.active_ = true;
+                    cur.frame_index_ = shard.frame_index_;
+                    cur.timestamp_ms_ = shard.timestamp_ms_;
+                    cur.key_ = (shard.flags_ & GrUdpProtocol::kFlagKey) != 0;
+                    cur.codec_ = shard.codec_;
+                    cur.data_shards_ = shard.data_shards_;
+                    cur.shards_.resize((size_t)shard.data_shards_ + shard.parity_shards_);
+                    cur.received_ = 0;
+                }
+                else {
+                    // joining mid-frame (no FEC): we cannot trust earlier shards, treat as broken
+                    DeclareLoss(shard.mon_slot_, shard.frame_index_, 0, shard.data_shards_);
+                    MarkFinished(shard.mon_slot_, shard.frame_index_);
                     return;
                 }
-                cur.active_ = true;
-                cur.frame_index_ = shard.frame_index_;
-                cur.timestamp_ms_ = shard.timestamp_ms_;
-                cur.key_ = (shard.flags_ & GrUdpProtocol::kFlagKey) != 0;
-                cur.codec_ = shard.codec_;
-                cur.frame_width_ = shard.frame_width_;
-                cur.frame_height_ = shard.frame_height_;
-                cur.mon_name_ = shard.mon_name_;
-                cur.shards_.resize(shard.data_shards_);
-                cur.received_ = 0;
             }
             // same frame
-            if (cur.shards_.size() != shard.data_shards_) {
+            if (cur.shards_.size() != (size_t)shard.data_shards_ + shard.parity_shards_ ||
+                cur.data_shards_ != shard.data_shards_) {
                 // inconsistent shard count, frame is broken
-                DeclareLoss(shard.mon_slot_, cur.frame_index_);
+                DeclareLoss(shard.mon_slot_, cur.frame_index_,
+                            (uint16_t)cur.net_data_received_,
+                            (uint16_t)(cur.data_shards_ - cur.net_data_received_));
+                MarkFinished(shard.mon_slot_, cur.frame_index_);
                 cur = Assembly{};
                 return;
             }
             auto& slot = cur.shards_[shard.shard_index_];
             if (!slot.filled_) {
                 slot.filled_ = true;
-                slot.bytes_.assign(shard.payload_, shard.payload_len_);
+                if ((shard.flags_ & GrUdpProtocol::kFlagSof) && !is_parity) {
+                    // SOF 数据块:保护块 = SOF 扩展 + 载荷
+                    const char* ext = data + GrUdpProtocol::kCommonHeaderSize + GrUdpProtocol::kVideoHeaderSize;
+                    size_t ext_len = 9 + shard.mon_name_.size();
+                    slot.bytes_.assign(ext, ext_len + shard.payload_len_);
+                }
+                else {
+                    slot.bytes_.assign(shard.payload_, shard.payload_len_);
+                }
                 cur.received_++;
+                if (!is_parity) cur.net_data_received_++;
             }
             if (shard.flags_ & GrUdpProtocol::kFlagSof) {
                 cur.mon_name_ = shard.mon_name_;
                 cur.frame_width_ = shard.frame_width_;
                 cur.frame_height_ = shard.frame_height_;
             }
-            if (cur.received_ == cur.shards_.size()) {
-                CompleteFrame f;
-                f.mon_slot_ = shard.mon_slot_;
-                f.mon_name_ = cur.mon_name_;
-                f.frame_index_ = cur.frame_index_;
-                f.timestamp_ms_ = cur.timestamp_ms_;
-                f.key_ = cur.key_;
-                f.codec_ = cur.codec_;
-                f.frame_width_ = cur.frame_width_;
-                f.frame_height_ = cur.frame_height_;
-                size_t total = 0;
-                for (auto& s : cur.shards_) total += s.bytes_.size();
-                f.data_ = Data::Make(nullptr, total);
-                size_t off = 0;
-                for (auto& s : cur.shards_) {
-                    memcpy(f.data_->DataAddr() + off, s.bytes_.data(), s.bytes_.size());
-                    off += s.bytes_.size();
-                }
-                bool decodable = f.key_ || !need_key_[shard.mon_slot_];
-                if (f.key_) need_key_[shard.mon_slot_] = false;
+
+            int data_filled = 0;
+            for (int i = 0; i < cur.data_shards_; i++) {
+                if (cur.shards_[i].filled_) data_filled++;
+            }
+            if (data_filled == cur.data_shards_) {
+                CompleteWithStatus(shard.mon_slot_, cur);
+                MarkFinished(shard.mon_slot_, cur.frame_index_);
                 cur = Assembly{};
-                if (decodable && on_frame_) on_frame_(f);
+            }
+            else if ((int)cur.received_ >= cur.data_shards_ && cur.shards_.size() > (size_t)cur.data_shards_) {
+                // 「够用即恢复」:distinct 块数(数据+parity)够 data_shards 且有数据块缺失
+                if (TryRecoverAndEmit(shard.mon_slot_, cur)) {
+                    MarkFinished(shard.mon_slot_, cur.frame_index_);
+                }
+                else {
+                    DeclareLoss(shard.mon_slot_, cur.frame_index_,
+                                (uint16_t)cur.net_data_received_,
+                                (uint16_t)(cur.data_shards_ - cur.net_data_received_));
+                    MarkFinished(shard.mon_slot_, cur.frame_index_);
+                }
+                cur = Assembly{};
             }
         }
 
     private:
-        void DeclareLoss(uint8_t mon_slot, uint32_t frame_index) {
-            need_key_[mon_slot] = true;
-            if (on_frame_lost_) on_frame_lost_(mon_slot, frame_index);
-        }
-
         struct ShardSlot {
             bool filled_ = false;
             std::string bytes_;
@@ -403,12 +568,137 @@ namespace tc
             uint16_t frame_width_ = 0;
             uint16_t frame_height_ = 0;
             std::string mon_name_;
+            int data_shards_ = 0;           // shards_ = data + parity 个 slot
             std::vector<ShardSlot> shards_;
-            size_t received_ = 0;
+            size_t received_ = 0;           // distinct 已收块数(数据+parity)
+            int net_data_received_ = 0;     // 网络实收数据块数(不含 parity、不含 FEC 恢复)
         };
+
+        void FireStatus(uint8_t mon_slot, uint32_t frame_index, uint16_t received, uint16_t lost) {
+            if (on_frame_status_) on_frame_status_(mon_slot, frame_index, received, lost);
+        }
+
+        void DeclareLoss(uint8_t mon_slot, uint32_t frame_index, uint16_t received, uint16_t lost) {
+            need_key_[mon_slot] = true;
+            if (on_frame_lost_) on_frame_lost_(mon_slot, frame_index);
+            FireStatus(mon_slot, frame_index, received, lost);
+        }
+
+        void MarkFinished(uint8_t mon_slot, uint32_t frame_index) {
+            auto& f = finished_[mon_slot];
+            if (frame_index > f) f = frame_index;
+        }
+
+        // 完成帧:拼帧成功则触发状态(received=网络实收数据块,lost=FEC 恢复块);
+        // EmitFrame 内部判丢的异常路径不重复触发(DeclareLoss 已带状态)
+        void CompleteWithStatus(uint8_t mon_slot, Assembly& cur) {
+            if (EmitFrame(mon_slot, cur)) {
+                FireStatus(mon_slot, cur.frame_index_,
+                           (uint16_t)cur.net_data_received_,
+                           (uint16_t)(cur.data_shards_ - cur.net_data_received_));
+            }
+        }
+
+        // 够用即恢复:缺失数据块 <= 已收 parity 块时 RS 重建;成功则 CompleteWithStatus
+        bool TryRecoverAndEmit(uint8_t mon_slot, Assembly& cur) {
+            if (cur.data_shards_ <= 0 || cur.shards_.size() <= (size_t)cur.data_shards_) return false;
+            int data_filled = 0;
+            for (int i = 0; i < cur.data_shards_; i++) {
+                if (cur.shards_[i].filled_) data_filled++;
+            }
+            if (data_filled == cur.data_shards_) {
+                CompleteWithStatus(mon_slot, cur);
+                return true;
+            }
+            if ((int)cur.received_ < cur.data_shards_) return false;
+
+            // 统一补齐到 P(parity 块与满数据块都是 P,仅末尾数据块可能短)
+            size_t p = 0;
+            for (auto& s : cur.shards_) {
+                if (s.filled_ && s.bytes_.size() > p) p = s.bytes_.size();
+            }
+            if (p == 0) return false;
+            std::vector<std::string> blocks;
+            blocks.reserve(cur.shards_.size());
+            for (auto& s : cur.shards_) {
+                blocks.push_back(s.filled_ ? s.bytes_ : std::string{});
+                if (!blocks.back().empty() && blocks.back().size() < p) {
+                    blocks.back().append(p - blocks.back().size(), '\0');
+                }
+            }
+            if (!GrFec::Decode(blocks, cur.data_shards_)) return false;
+            for (size_t i = 0; i < blocks.size(); i++) {
+                if (blocks[i].empty()) return false; // 没全填回,防御
+                cur.shards_[i].filled_ = true;
+                cur.shards_[i].bytes_ = std::move(blocks[i]);
+            }
+            // sanity check 恢复出的 shard 0:校验失败按恢复失败处理(调用方判丢),坏帧不进解码器
+            if (!ValidateRecoveredShard0(cur.shards_[0].bytes_, cur.data_shards_, p)) return false;
+            CompleteWithStatus(mon_slot, cur);
+            return true;
+        }
+
+        // 拼帧:shard 0 块跳过 SOF 扩展前缀、其余取整块,拼接后按 frame_size 精确截断;
+        // shard 0 缺失被恢复时,mon_name/分辨率也从恢复块里取。
+        // 返回 true = 帧完成(已发出或按规则丢弃);false = 内部判丢(DeclareLoss 已触发,勿重复处理)
+        bool EmitFrame(uint8_t mon_slot, Assembly& cur) {
+            const std::string& b0 = cur.shards_[0].bytes_;
+            if (b0.size() < 9) {
+                DeclareLoss(mon_slot, cur.frame_index_,
+                            (uint16_t)cur.net_data_received_,
+                            (uint16_t)(cur.data_shards_ - cur.net_data_received_));
+                return false;
+            }
+            uint8_t nl = (uint8_t)b0[8];
+            size_t ext = 9 + nl;
+            if (b0.size() < ext) {
+                DeclareLoss(mon_slot, cur.frame_index_,
+                            (uint16_t)cur.net_data_received_,
+                            (uint16_t)(cur.data_shards_ - cur.net_data_received_));
+                return false;
+            }
+            CompleteFrame f;
+            f.mon_slot_ = mon_slot;
+            f.frame_index_ = cur.frame_index_;
+            f.timestamp_ms_ = cur.timestamp_ms_;
+            f.key_ = cur.key_;
+            f.codec_ = cur.codec_;
+            f.frame_width_ = GrUdpProtocol::R16(b0.data());
+            f.frame_height_ = GrUdpProtocol::R16(b0.data() + 2);
+            uint32_t frame_size = GrUdpProtocol::R32(b0.data() + 4);
+            f.mon_name_.assign(b0.data() + 9, nl);
+
+            f.data_ = Data::Make(nullptr, frame_size);
+            size_t off = 0;
+            for (int i = 0; i < cur.data_shards_ && off < frame_size; i++) {
+                const std::string& blk = cur.shards_[i].bytes_;
+                const char* src = blk.data();
+                size_t len = blk.size();
+                if (i == 0) {
+                    if (len < ext) break;
+                    src += ext;
+                    len -= ext;
+                }
+                len = std::min(len, (size_t)frame_size - off);
+                memcpy(f.data_->DataAddr() + off, src, len);
+                off += len;
+            }
+            if (off < frame_size) {
+                // 拼不满,帧实际损坏(理论上 FEC 成功后不会发生)
+                DeclareLoss(mon_slot, cur.frame_index_,
+                            (uint16_t)cur.net_data_received_,
+                            (uint16_t)(cur.data_shards_ - cur.net_data_received_));
+                return false;
+            }
+            bool decodable = f.key_ || !need_key_[mon_slot];
+            if (f.key_) need_key_[mon_slot] = false;
+            if (decodable && on_frame_) on_frame_(f);
+            return true;
+        }
 
         std::map<uint8_t, Assembly> assemblies_;
         std::map<uint8_t, bool> need_key_;
+        std::map<uint8_t, uint32_t> finished_;  // 已完成/已判丢的最大 frame_index(迟到包直接丢)
     };
 
 }
