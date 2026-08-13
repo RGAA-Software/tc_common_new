@@ -41,6 +41,10 @@ namespace tc
     // payload_len = P, 无 SOF 扩展) + P 字节校验块,整包正好 mtu。
     // 一帧一个 FEC 块,fec_block 恒 0;parity_shards 填实际值(0 = 无 FEC)。
     //
+    // Audio packet (pkt_type=2), 10B header after common:
+    //   seq(u32) | timestamp_ms(u32) | payload_len(u16) | Opus payload
+    // 50pps(20ms 一帧),客户端经 GrUdpAudioJitterBuffer 按序交付、缺口走 Opus PLC
+    //
     // Ctrl packet (pkt_type=3): subtype(u8) + body
     //   kCtrlHello(1):     device_id_len(u8)+device_id | stream_id_len(u8)+stream_id
     //   kCtrlHeartbeat(2): stream_id_len(u8)+stream_id
@@ -61,6 +65,7 @@ namespace tc
         static constexpr uint8_t kFlagSof = 0x2;
         static constexpr uint8_t kFlagEof = 0x4;
         static constexpr uint8_t kFlagParity = 0x8;
+        static constexpr uint8_t kFlagRfiRecover = 0x10;
 
         static constexpr uint8_t kCodecH264 = 0;
         static constexpr uint8_t kCodecH265 = 1;
@@ -70,6 +75,8 @@ namespace tc
         static constexpr uint8_t kCtrlIdrRequest = 3;
         static constexpr uint8_t kCtrlFrameStatus = 4;
         static constexpr uint8_t kCtrlKick = 5;
+        static constexpr uint8_t kCtrlIdrKeepalive = 6;
+        static constexpr uint8_t kCtrlRfi = 7;
 
         static constexpr int kCommonHeaderSize = 4;
         static constexpr int kVideoHeaderSize = 20;
@@ -161,6 +168,8 @@ namespace tc
             uint16_t frame_height_ = 0;
             uint8_t mon_slot_ = 0;
             std::string mon_name_;
+            // 标记该帧是 RFI 参考帧失效后的第一个可解码 P 帧
+            bool rfi_recover_ = false;
         };
 
         // split one encoded frame into UDP packets (<= mtu each)
@@ -239,7 +248,8 @@ namespace tc
                 char* v = p + kCommonHeaderSize;
                 W32(v, meta.frame_index_);
                 W32(v + 4, meta.timestamp_ms_);
-                uint8_t flags = (meta.key_ ? kFlagKey : 0) | (sof ? kFlagSof : 0) | (eof ? kFlagEof : 0);
+                uint8_t flags = (meta.key_ ? kFlagKey : 0) | (sof ? kFlagSof : 0) | (eof ? kFlagEof : 0) |
+                                (meta.rfi_recover_ ? kFlagRfiRecover : 0);
                 v[8] = (char)flags;
                 v[9] = 0; // fec_block,一帧一块,恒 0
                 W16(v + 10, (uint16_t)total);
@@ -272,6 +282,45 @@ namespace tc
                 out.push_back(buf);
             }
             return out;
+        }
+
+        // ---- audio packet ----
+        static constexpr int kAudioHeaderSize = 10; // seq(4) | timestamp_ms(4) | payload_len(2)
+
+        struct AudioPacketInfo {
+            uint32_t seq_ = 0;
+            uint32_t timestamp_ms_ = 0;
+            uint16_t payload_len_ = 0;
+            // payload view into the original packet
+            const char* payload_ = nullptr;
+        };
+
+        static std::shared_ptr<Data> BuildAudioPacket(uint32_t seq, uint32_t timestamp_ms,
+                                                      const char* payload, size_t payload_len) {
+            if (!payload || payload_len == 0 || payload_len > 0xffff) return nullptr;
+            size_t n = kCommonHeaderSize + kAudioHeaderSize + payload_len;
+            auto buf = Data::Make(nullptr, n);
+            char* p = buf->DataAddr();
+            WriteCommon(p, kPktAudio);
+            char* q = p + kCommonHeaderSize;
+            W32(q, seq);
+            W32(q + 4, timestamp_ms);
+            W16(q + 8, (uint16_t)payload_len);
+            memcpy(q + kAudioHeaderSize, payload, payload_len);
+            return buf;
+        }
+
+        // parse a full UDP packet (including common header) as an audio packet
+        static bool ParseAudioPacket(const char* data, size_t size, AudioPacketInfo& out) {
+            if (ParseCommon(data, size) != kPktAudio) return false;
+            if (size < kCommonHeaderSize + kAudioHeaderSize) return false;
+            const char* p = data + kCommonHeaderSize;
+            out.seq_ = R32(p);
+            out.timestamp_ms_ = R32(p + 4);
+            out.payload_len_ = R16(p + 8);
+            if (size != kCommonHeaderSize + kAudioHeaderSize + out.payload_len_) return false;
+            out.payload_ = p + kAudioHeaderSize;
+            return true;
         }
 
         // ---- ctrl builders ----
@@ -309,6 +358,16 @@ namespace tc
         }
         static std::shared_ptr<Data> BuildIdrRequest(const std::string& mon_name) {
             return BuildCtrlString1(kCtrlIdrRequest, mon_name);
+        }
+        // 连接初始化 / 长时间无帧时的软请求:语义与 IDR 请求相同,但 render 不计入
+        // 动态 FEC 的丢帧窗口,避免自动补关键帧把 fec 刷到上限。
+        static std::shared_ptr<Data> BuildIdrKeepalive(const std::string& mon_name) {
+            return BuildCtrlString1(kCtrlIdrKeepalive, mon_name);
+        }
+        // RFI(参考帧失效):s1 = 失效参考帧的 frame_index(字符串),s2 = mon_name(空=全屏)。
+        // 与 Moonlight 的 URGENT RFI 语义一致:render 优先让编码器跳过坏参考帧,不插 IDR。
+        static std::shared_ptr<Data> BuildRfi(uint64_t invalid_frame_index, const std::string& mon_name) {
+            return BuildCtrlString2(kCtrlRfi, std::to_string(invalid_frame_index), mon_name);
         }
         static std::shared_ptr<Data> BuildKick(const std::string& reason) {
             return BuildCtrlString1(kCtrlKick, reason);
@@ -369,8 +428,12 @@ namespace tc
                     return subtype;
                 case kCtrlHeartbeat:
                 case kCtrlIdrRequest:
+                case kCtrlIdrKeepalive:
                 case kCtrlKick:
                     if (!read_str(s1)) return 0;
+                    return subtype;
+                case kCtrlRfi:
+                    if (!read_str(s1) || !read_str(s2)) return 0;
                     return subtype;
                 default:
                     return 0;
@@ -397,6 +460,7 @@ namespace tc
             uint32_t frame_index_ = 0;
             uint32_t timestamp_ms_ = 0;
             bool key_ = false;
+            bool rfi_recover_ = false;
             uint8_t codec_ = 0;
             uint16_t frame_width_ = 0;
             uint16_t frame_height_ = 0;
@@ -411,6 +475,14 @@ namespace tc
         // 完成帧 received=网络实收数据块数(FEC 恢复的不算), lost=经 FEC 恢复的数据块数;
         // 判丢帧 received=已收数据块数, lost=缺失数据块数
         std::function<void(uint8_t mon_slot, uint32_t frame_index, uint16_t received, uint16_t lost)> on_frame_status_;
+
+        // 新连接/断线重连时清空跨连接状态。render 重启或接管后 frame_index 会回退,
+        // 不清空会把新连接的所有包当成“迟到旧包”丢到序列追上为止。
+        void Reset() {
+            assemblies_.clear();
+            need_key_.clear();
+            finished_.clear();
+        }
 
         // RS 恢复后的 sanity check(防误恢复的坏数据进解码器):
         // mon_name_len 合法且 frame_size 在容量内(sof_ext + frame_size <= data_shards * P)。
@@ -442,7 +514,18 @@ namespace tc
             }
             // 已完成/已判丢帧的迟到包(含恢复后晚到的 parity)直接丢
             auto fit = finished_.find(shard.mon_slot_);
-            if (fit != finished_.end() && shard.frame_index_ <= fit->second) return;
+            if (fit != finished_.end() && shard.frame_index_ <= fit->second) {
+                // render 编码器在重连/接管后 frame_index 可能整体回退(本次实测 836 → 63)。
+                // 新流的首包是 SOF+key,把它当成新流并清掉该 mon_slot 的旧水位,而不是继续丢包。
+                bool new_stream = (shard.flags_ & GrUdpProtocol::kFlagSof) &&
+                                  (shard.flags_ & GrUdpProtocol::kFlagKey) &&
+                                  shard.frame_index_ < fit->second;
+                if (!new_stream) return;
+                assemblies_.erase(shard.mon_slot_);
+                need_key_.erase(shard.mon_slot_);
+                finished_.erase(shard.mon_slot_);
+                fit = finished_.end();
+            }
 
             auto& cur = assemblies_[shard.mon_slot_];
             if (cur.active_ && shard.frame_index_ > cur.frame_index_) {
@@ -468,10 +551,13 @@ namespace tc
                     MarkFinished(shard.mon_slot_, shard.frame_index_ - 1);
                 }
                 if (shard.flags_ & GrUdpProtocol::kFlagSof) {
+                    cur = Assembly{};
                     cur.active_ = true;
+                    cur.meta_ready_ = true;
                     cur.frame_index_ = shard.frame_index_;
                     cur.timestamp_ms_ = shard.timestamp_ms_;
                     cur.key_ = (shard.flags_ & GrUdpProtocol::kFlagKey) != 0;
+                    cur.rfi_recover_ = (shard.flags_ & GrUdpProtocol::kFlagRfiRecover) != 0;
                     cur.codec_ = shard.codec_;
                     cur.frame_width_ = shard.frame_width_;
                     cur.frame_height_ = shard.frame_height_;
@@ -482,10 +568,13 @@ namespace tc
                 }
                 else if (shard.parity_shards_ > 0) {
                     // FEC 帧的 SOF 丢了:先从数据/parity 包建起组装,元信息等 shard 0 恢复后取
+                    cur = Assembly{};
                     cur.active_ = true;
+                    cur.meta_ready_ = false;
                     cur.frame_index_ = shard.frame_index_;
                     cur.timestamp_ms_ = shard.timestamp_ms_;
                     cur.key_ = (shard.flags_ & GrUdpProtocol::kFlagKey) != 0;
+                    cur.rfi_recover_ = (shard.flags_ & GrUdpProtocol::kFlagRfiRecover) != 0;
                     cur.codec_ = shard.codec_;
                     cur.data_shards_ = shard.data_shards_;
                     cur.shards_.resize((size_t)shard.data_shards_ + shard.parity_shards_);
@@ -525,9 +614,11 @@ namespace tc
                 if (!is_parity) cur.net_data_received_++;
             }
             if (shard.flags_ & GrUdpProtocol::kFlagSof) {
+                cur.meta_ready_ = true;
                 cur.mon_name_ = shard.mon_name_;
                 cur.frame_width_ = shard.frame_width_;
                 cur.frame_height_ = shard.frame_height_;
+                cur.rfi_recover_ = (shard.flags_ & GrUdpProtocol::kFlagRfiRecover) != 0;
             }
 
             int data_filled = 0;
@@ -561,9 +652,11 @@ namespace tc
         };
         struct Assembly {
             bool active_ = false;
+            bool meta_ready_ = false;       // shard 0(SOF)是否已确认/接收
             uint32_t frame_index_ = 0;
             uint32_t timestamp_ms_ = 0;
             bool key_ = false;
+            bool rfi_recover_ = false;
             uint8_t codec_ = 0;
             uint16_t frame_width_ = 0;
             uint16_t frame_height_ = 0;
@@ -690,8 +783,8 @@ namespace tc
                             (uint16_t)(cur.data_shards_ - cur.net_data_received_));
                 return false;
             }
-            bool decodable = f.key_ || !need_key_[mon_slot];
-            if (f.key_) need_key_[mon_slot] = false;
+            bool decodable = f.key_ || cur.rfi_recover_ || !need_key_[mon_slot];
+            if (f.key_ || cur.rfi_recover_) need_key_[mon_slot] = false;
             if (decodable && on_frame_) on_frame_(f);
             return true;
         }
@@ -699,6 +792,94 @@ namespace tc
         std::map<uint8_t, Assembly> assemblies_;
         std::map<uint8_t, bool> need_key_;
         std::map<uint8_t, uint32_t> finished_;  // 已完成/已判丢的最大 frame_index(迟到包直接丢)
+    };
+
+    // ---------------- client-side audio jitter buffer ----------------
+    //
+    // 音频 50pps(20ms 一帧),按 seq 重排序交付;缺失 seq 等最新缓冲包领先超过 2 帧
+    // (60ms)后通过 on_lost_ 上报,由上层喂 Opus PLC(DecodeDummy)补 20ms。
+    // 无序号回绕处理(50pps 下 u32 约 2.7 年才绕一圈,回绕/对端重启走大幅回退重置)。
+    //
+    // 两条真机踩过的坑:
+    // 1. 判丢必须看"最新"缓冲包(rbegin)而不是最老(begin):最老的包可能因乱序
+    //    恰好只领先 expected_ 1~2 帧,看它会漏判;看最新的才能稳定触发 60ms 容忍窗口
+    // 2. 缓冲满时绝不能淘汰"最老"(最接近 expected_)的包:expected_ 落后 3 帧以上后,
+    //    每来一包删一个最老、判丢只爬 1 格,追赶速度=到达速度,expected_ 永远追不上,
+    //    进入永久判丢死循环(日志 50/s 刷盘,接收线程被拖垮,视频跟着卡死)
+    class GrUdpAudioJitterBuffer {
+    public:
+        static constexpr int kMaxBuffered = 16;        // 缓冲上限(320ms),满时丢弃超前的新包
+        static constexpr int kMaxConsecutiveLost = 5;  // 单次 Drain 最多连续判丢数
+        static constexpr uint32_t kResyncThreshold = 6000; // seq 大幅回退(对端重启/回绕)判为新流
+
+        // 按序到达的音频帧:seq | timestamp_ms | Opus payload
+        std::function<void(uint32_t seq, uint32_t timestamp_ms, const char* payload, size_t len)> on_frame_;
+        // 判定丢失的 seq(等够 60ms 仍未到),每个丢失 seq 恰好报一次
+        std::function<void(uint32_t seq)> on_lost_;
+
+        void Reset() {
+            packets_.clear();
+            inited_ = false;
+            expected_ = 0;
+        }
+
+        void AddPacket(uint32_t seq, uint32_t timestamp_ms, const char* payload, size_t len) {
+            if (!payload || len == 0) return;
+            if (!inited_) {
+                // 中途加入不补历史:从首个到达包开始按序交付
+                inited_ = true;
+                expected_ = seq;
+            }
+            // 对端重启 seq 归零重来(或 u32 回绕):大幅回退视为新流,重置重新对齐
+            if (seq < expected_ && expected_ - seq > kResyncThreshold) {
+                packets_.clear();
+                expected_ = seq;
+            }
+            if (seq < expected_) return; // 迟到/重复包
+            // 缓冲满且新包比所有缓冲都新:丢新包,保住最接近 expected_ 的老包让它追上来;
+            // 被丢的新包之后会被诚实判丢,走 PLC
+            if ((int)packets_.size() >= kMaxBuffered && seq > packets_.rbegin()->first) {
+                return;
+            }
+            packets_[seq] = Packet{timestamp_ms, std::string(payload, len)};
+            // 窗口内乱序插入导致的溢出:淘汰最新
+            while ((int)packets_.size() > kMaxBuffered) {
+                packets_.erase(std::prev(packets_.end()));
+            }
+            Drain();
+        }
+
+    private:
+        struct Packet {
+            uint32_t ts_;
+            std::string data_;
+        };
+
+        void Drain() {
+            int lost = 0;
+            for (;;) {
+                auto it = packets_.find(expected_);
+                if (it != packets_.end()) {
+                    if (on_frame_) on_frame_(expected_, it->second.ts_, it->second.data_.data(), it->second.data_.size());
+                    packets_.erase(it);
+                    expected_++;
+                    continue;
+                }
+                if (packets_.empty()) break;
+                // 最新缓冲包比 expected_ 领先超过 2 帧(60ms)→ expected_ 判丢
+                if (packets_.rbegin()->first > expected_ + 2 && lost < kMaxConsecutiveLost) {
+                    if (on_lost_) on_lost_(expected_);
+                    expected_++;
+                    lost++;
+                    continue;
+                }
+                break;
+            }
+        }
+
+        std::map<uint32_t, Packet> packets_;
+        bool inited_ = false;
+        uint32_t expected_ = 0;
     };
 
 }

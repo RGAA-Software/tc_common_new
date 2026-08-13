@@ -122,6 +122,52 @@ TEST(GrUdpProtocol, ReassembleOutOfOrder) {
     EXPECT_EQ(std::memcmp(frames[0].data_->CStr(), frame.data(), frame.size()), 0);
 }
 
+TEST(GrUdpProtocol, ReassembleLateSofKeepsPreSofCounters) {
+    // 回归:UDP 乱序下 SOF 包可能晚于部分数据/parity 包到达。旧实现收到 SOF 时把
+    // received_ 清 0,导致 SOF 前已收到的块不再计入 distinct 块数;即使 parity 足够
+    // 恢复,也会在下一帧到来时被误判丢帧,画面卡顿。正确行为是 SOF 只补元信息,
+    // 不清空已经收到的数据/parity 计数。
+    auto frame = MakeFrameBytes(20000);
+    auto meta = MakeMeta(20, false);
+    auto pkts = GrUdpProtocol::ShardVideoFrame(meta, frame.data(), frame.size(),
+                                               GrUdpProtocol::kDefaultMtu, 20);
+    ASSERT_GT(pkts.size(), 2u);
+
+    GrUdpProtocol::VideoShardInfo info0;
+    ASSERT_TRUE(GrUdpProtocol::ParseVideoShard(pkts[0]->CStr(), pkts[0]->Size(), info0));
+    const int data_shards = info0.data_shards_;
+    const int parity_shards = info0.parity_shards_;
+    ASSERT_GE(data_shards, 4);
+    ASSERT_GE(parity_shards, 1);
+    ASSERT_EQ((int)pkts.size(), data_shards + parity_shards);
+
+    GrUdpFrameReassembler reasm;
+    std::vector<GrUdpFrameReassembler::CompleteFrame> frames;
+    reasm.on_frame_ = [&](const GrUdpFrameReassembler::CompleteFrame& f) {
+        frames.push_back(f);
+    };
+    reasm.on_frame_lost_ = [](uint8_t, uint32_t) {
+        FAIL() << "enough parity exists; late SOF must not cause frame loss";
+    };
+
+    // 先到:一个数据块(非 SOF)+ 一个 parity 块;随后 SOF 才到。
+    reasm.AddPacket(pkts[1]->CStr(), pkts[1]->Size());
+    reasm.AddPacket(pkts[data_shards]->CStr(), pkts[data_shards]->Size());
+    reasm.AddPacket(pkts[0]->CStr(), pkts[0]->Size());
+
+    // 补齐除 shard 2 外的所有数据块:数据块少 1 个,但已有 1 个 parity,足够 RS 恢复。
+    for (int i = 2; i < data_shards; i++) {
+        if (i == 2) {
+            continue;
+        }
+        reasm.AddPacket(pkts[i]->CStr(), pkts[i]->Size());
+    }
+
+    ASSERT_EQ(frames.size(), 1u);
+    ASSERT_EQ(frames[0].data_->Size(), frame.size());
+    EXPECT_EQ(std::memcmp(frames[0].data_->CStr(), frame.data(), frame.size()), 0);
+}
+
 TEST(GrUdpProtocol, LossDeclaresAndDropsPUntilKey) {
     auto frame_n = MakeFrameBytes(8000);
     auto meta_n = MakeMeta(10, false);
@@ -580,4 +626,152 @@ TEST(GrUdpProtocol, ValidateRecoveredShard0Check) {
 
     // 块太短
     EXPECT_FALSE(GrUdpFrameReassembler::ValidateRecoveredShard0(std::string(5, '\0'), d, p));
+}
+
+// ---------------- 音频包 + jitter buffer (P2) ----------------
+
+TEST(GrUdpProtocol, AudioPacketRoundtrip) {
+    auto payload = MakeFrameBytes(240); // 一帧 Opus 大约这个量级
+    auto pkt = GrUdpProtocol::BuildAudioPacket(1234, 567890, payload.data(), payload.size());
+    ASSERT_TRUE(pkt != nullptr);
+    EXPECT_EQ(pkt->Size(), (size_t)(GrUdpProtocol::kCommonHeaderSize + GrUdpProtocol::kAudioHeaderSize + payload.size()));
+
+    GrUdpProtocol::AudioPacketInfo info;
+    ASSERT_TRUE(GrUdpProtocol::ParseAudioPacket(pkt->CStr(), pkt->Size(), info));
+    EXPECT_EQ(info.seq_, 1234u);
+    EXPECT_EQ(info.timestamp_ms_, 567890u);
+    ASSERT_EQ(info.payload_len_, 240u);
+    EXPECT_EQ(std::memcmp(info.payload_, payload.data(), 240), 0);
+
+    // 截断/错类型/空载荷都拒绝
+    EXPECT_FALSE(GrUdpProtocol::ParseAudioPacket(pkt->CStr(), pkt->Size() - 1, info));
+    auto hb = GrUdpProtocol::BuildHeartbeat("s");
+    EXPECT_FALSE(GrUdpProtocol::ParseAudioPacket(hb->CStr(), hb->Size(), info));
+    EXPECT_TRUE(GrUdpProtocol::BuildAudioPacket(1, 1, nullptr, 10) == nullptr);
+    EXPECT_TRUE(GrUdpProtocol::BuildAudioPacket(1, 1, payload.data(), 0) == nullptr);
+}
+
+TEST(GrUdpProtocol, AudioJitterInOrder) {
+    GrUdpAudioJitterBuffer jb;
+    std::vector<uint32_t> delivered;
+    jb.on_frame_ = [&](uint32_t seq, uint32_t ts, const char* payload, size_t len) {
+        EXPECT_EQ(ts, seq * 20);
+        EXPECT_EQ(len, 100u);
+        delivered.push_back(seq);
+    };
+    jb.on_lost_ = [](uint32_t) { FAIL() << "unexpected loss"; };
+
+    auto payload = MakeFrameBytes(100);
+    for (uint32_t s = 0; s < 5; s++) jb.AddPacket(s, s * 20, payload.data(), payload.size());
+    EXPECT_EQ(delivered, (std::vector<uint32_t>{0, 1, 2, 3, 4}));
+}
+
+TEST(GrUdpProtocol, AudioJitterOutOfOrder) {
+    GrUdpAudioJitterBuffer jb;
+    std::vector<uint32_t> delivered;
+    jb.on_frame_ = [&](uint32_t seq, uint32_t, const char*, size_t) { delivered.push_back(seq); };
+    jb.on_lost_ = [](uint32_t) { FAIL() << "unexpected loss"; };
+
+    auto payload = MakeFrameBytes(100);
+    for (uint32_t s : {0u, 2u, 1u, 4u, 3u}) jb.AddPacket(s, s * 20, payload.data(), payload.size());
+    EXPECT_EQ(delivered, (std::vector<uint32_t>{0, 1, 2, 3, 4}));
+}
+
+TEST(GrUdpProtocol, AudioJitterGapTriggersLostThenContinues) {
+    GrUdpAudioJitterBuffer jb;
+    std::vector<uint32_t> delivered, lost;
+    jb.on_frame_ = [&](uint32_t seq, uint32_t, const char*, size_t) { delivered.push_back(seq); };
+    jb.on_lost_ = [&](uint32_t seq) { lost.push_back(seq); };
+
+    auto payload = MakeFrameBytes(100);
+    jb.AddPacket(0, 0, payload.data(), payload.size());
+    // seq 1 缺失:最老缓冲包领先 expected_ 超过 2 帧时判丢
+    jb.AddPacket(4, 80, payload.data(), payload.size());
+    EXPECT_EQ(lost, (std::vector<uint32_t>{1u}));
+    // 缺口之后的包补上仍能按序交付
+    jb.AddPacket(2, 40, payload.data(), payload.size());
+    jb.AddPacket(3, 60, payload.data(), payload.size());
+    EXPECT_EQ(delivered, (std::vector<uint32_t>{0, 2, 3, 4}));
+    // 迟到的 seq 1 直接丢弃,不重复判丢
+    jb.AddPacket(1, 20, payload.data(), payload.size());
+    EXPECT_EQ(lost.size(), 1u);
+    EXPECT_EQ(delivered.size(), 4u);
+}
+
+TEST(GrUdpProtocol, AudioJitterJoinMidStream) {
+    GrUdpAudioJitterBuffer jb;
+    std::vector<uint32_t> delivered;
+    jb.on_frame_ = [&](uint32_t seq, uint32_t, const char*, size_t) { delivered.push_back(seq); };
+    jb.on_lost_ = [](uint32_t) { FAIL() << "mid-stream join must not backfill history"; };
+
+    auto payload = MakeFrameBytes(100);
+    // 首包 seq 100:中途加入不补历史,立即从 100 开始交付
+    jb.AddPacket(100, 2000, payload.data(), payload.size());
+    jb.AddPacket(101, 2020, payload.data(), payload.size());
+    EXPECT_EQ(delivered, (std::vector<uint32_t>{100, 101}));
+}
+
+TEST(GrUdpProtocol, AudioJitterPermanentGapHeals) {
+    // 单个 seq 永久缺失:判丢看最新缓冲包,等够 3 帧窗口后立即收口并继续按序交付
+    GrUdpAudioJitterBuffer jb;
+    std::vector<uint32_t> delivered, lost;
+    jb.on_frame_ = [&](uint32_t seq, uint32_t, const char*, size_t) { delivered.push_back(seq); };
+    jb.on_lost_ = [&](uint32_t seq) { lost.push_back(seq); };
+
+    auto payload = MakeFrameBytes(100);
+    jb.AddPacket(0, 0, payload.data(), payload.size());
+    // seq 1 永远不到:灌 2..21,seq 4 到达时(领先 expected_ 3 帧)判丢 1 并立即追平
+    for (uint32_t s = 2; s <= 21; s++) jb.AddPacket(s, s * 20, payload.data(), payload.size());
+    EXPECT_EQ(lost, (std::vector<uint32_t>{1u}));
+    std::vector<uint32_t> expect{0u};
+    for (uint32_t s = 2; s <= 21; s++) expect.push_back(s);
+    EXPECT_EQ(delivered, expect);
+    // 迟到的 seq 1 直接丢弃,不重复判丢
+    jb.AddPacket(1, 20, payload.data(), payload.size());
+    EXPECT_EQ(lost.size(), 1u);
+}
+
+TEST(GrUdpProtocol, AudioJitterBurstBehindNeverSpirals) {
+    // 回归:接收线程 stall 后 expected_ 落后、突发包一次性涌入。
+    // 旧实现(判丢看最老 + 淘汰最老)在此进入永久判丢死循环(真机 2026-08-13 踩过:
+    // 每个包判丢一次、日志 50/s 刷盘、接收线程被拖垮、视频跟着卡死);
+    // 新实现必须快速追平,1..60 每个 seq 要么恰好交付一次,要么恰好判丢一次
+    GrUdpAudioJitterBuffer jb;
+    std::vector<uint32_t> delivered, lost;
+    jb.on_frame_ = [&](uint32_t seq, uint32_t, const char*, size_t) { delivered.push_back(seq); };
+    jb.on_lost_ = [&](uint32_t seq) { lost.push_back(seq); };
+
+    auto payload = MakeFrameBytes(100);
+    jb.AddPacket(0, 0, payload.data(), payload.size());
+    // 突发:1/2 丢失,3..60 一次性涌入
+    for (uint32_t s = 3; s <= 60; s++) jb.AddPacket(s, s * 20, payload.data(), payload.size());
+    EXPECT_EQ(delivered.front(), 0u);
+    EXPECT_EQ(delivered.back(), 60u);
+    EXPECT_GE(delivered.size(), 50u);
+    for (size_t i = 1; i < delivered.size(); i++) {
+        EXPECT_GT(delivered[i], delivered[i - 1]); // 严格递增,无重复
+    }
+    std::vector<char> seen(61, 0);
+    for (auto s : delivered) seen[s] = 1;
+    for (auto s : lost) {
+        EXPECT_EQ(seen[s], 0) << "seq " << s << " both delivered and lost";
+        seen[s] = 1;
+    }
+    for (uint32_t s = 1; s <= 60; s++) {
+        EXPECT_EQ(seen[s], 1) << "seq " << s << " neither delivered nor lost";
+    }
+}
+
+TEST(GrUdpProtocol, AudioJitterResyncOnPeerRestart) {
+    // 对端重启 seq 归零重来:大幅回退视为新流,重置后从新 seq 继续交付
+    GrUdpAudioJitterBuffer jb;
+    std::vector<uint32_t> delivered;
+    jb.on_frame_ = [&](uint32_t seq, uint32_t, const char*, size_t) { delivered.push_back(seq); };
+    jb.on_lost_ = [](uint32_t) {};
+
+    auto payload = MakeFrameBytes(100);
+    for (uint32_t s = 10000; s < 10005; s++) jb.AddPacket(s, s * 20, payload.data(), payload.size());
+    // 对端重启,seq 从 0 重新开始
+    for (uint32_t s = 0; s < 3; s++) jb.AddPacket(s, s * 20, payload.data(), payload.size());
+    EXPECT_EQ(delivered, (std::vector<uint32_t>{10000u, 10001u, 10002u, 10003u, 10004u, 0u, 1u, 2u}));
 }

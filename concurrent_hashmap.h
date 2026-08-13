@@ -59,6 +59,19 @@ namespace tc
             return std::nullopt;
         }
 
+        // 仅当 key 存在且当前值与 predicate 匹配时才移除。
+        // 用于 endpoint 字符串复用等场景,避免旧的异步断开回调把新会话误删。
+        std::optional<V> RemoveIf(const K& k, std::function<bool(const V&)>&& predicate) {
+            std::lock_guard<std::mutex> lock(mtx_);
+            auto it = inner_.find(k);
+            if (it != inner_.end() && predicate(it->second)) {
+                auto v = it->second;
+                inner_.erase(it);
+                return v;
+            }
+            return std::nullopt;
+        }
+
         bool HasKey(const K& k) {
             std::lock_guard<std::mutex> lock(mtx_);
             return inner_.find(k) != inner_.end();
