@@ -34,6 +34,8 @@ namespace tc
         static uint32_t GetProcessSessionId(uint32_t pid);
         static int GetThreadCount();
         static void SetProcessInHighLevel();
+        // 混合架构 CPU(8P+8E):把进程亲和性钉到大核(P-core),避免延迟敏感线程被调度到小核
+        static void PinToPerformanceCores();
         static int GetPidByExeName(const std::string& exe_name);
         // By explorer.exe
         static HANDLE DupAdminToken();

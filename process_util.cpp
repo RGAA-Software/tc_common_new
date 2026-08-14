@@ -586,6 +586,74 @@ namespace tc
 #endif
     }
 
+    void ProcessUtil::PinToPerformanceCores() {
+#ifdef WIN32
+        // 混合架构 CPU(如 i7-13700KF 的 8P+8E):把进程亲和性钉到大核(P-core),
+        // 避免采集/编码等延迟敏感线程被调度到小核(E-core)而增加延迟。
+        // 通过 GetLogicalProcessorInformationEx 枚举物理核,取 EfficiencyClass 最大的
+        // 那一组(性能核),构建亲和掩码后 SetProcessAffinityMask。单类 CPU 时等价于不限制。
+        DWORD byteLength = 0;
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX buffer = nullptr;
+        for (;;) {
+            if (GetLogicalProcessorInformationEx(RelationProcessorCore, buffer, &byteLength)) {
+                break;
+            }
+            DWORD err = GetLastError();
+            if (err != ERROR_INSUFFICIENT_BUFFER) {
+                LOGE("GetLogicalProcessorInformationEx failed, err: {}", err);
+                if (buffer) { free(buffer); }
+                return;
+            }
+            if (buffer) { free(buffer); }
+            buffer = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)malloc(byteLength);
+            if (!buffer) {
+                return;
+            }
+        }
+
+        // 找最大的 EfficiencyClass(性能核)。注意:实测 i7-13700KF 上小核 EfficiencyClass 更小,
+        // 大核更大,所以取最大值;单类 CPU 所有核同值,等价于不限制。
+        BYTE max_class = 0;
+        {
+            auto* p = buffer;
+            auto* end = (BYTE*)buffer + byteLength;
+            while ((BYTE*)p < end) {
+                if (p->Relationship == RelationProcessorCore && p->Processor.EfficiencyClass > max_class) {
+                    max_class = p->Processor.EfficiencyClass;
+                }
+                p = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)((BYTE*)p + p->Size);
+            }
+        }
+
+        // 收集所有属于性能核的逻辑处理器,构建亲和掩码(仅 group 0)
+        DWORD_PTR mask = 0;
+        {
+            auto* p = buffer;
+            auto* end = (BYTE*)buffer + byteLength;
+            while ((BYTE*)p < end) {
+                if (p->Relationship == RelationProcessorCore && p->Processor.EfficiencyClass == max_class) {
+                    for (WORD g = 0; g < p->Processor.GroupCount; ++g) {
+                        if (p->Processor.GroupMask[g].Group == 0) {
+                            mask |= p->Processor.GroupMask[g].Mask;
+                        }
+                    }
+                }
+                p = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)((BYTE*)p + p->Size);
+            }
+        }
+        free(buffer);
+
+        if (mask == 0) {
+            return;
+        }
+        if (SetProcessAffinityMask(GetCurrentProcess(), mask)) {
+            LOGI("Pin process to performance cores, affinity mask: 0x{:x}", (uint64_t)mask);
+        } else {
+            LOGE("SetProcessAffinityMask failed, err: {}", GetLastError());
+        }
+#endif
+    }
+
     bool ProcessUtil::RunAsAdminWithShell(const std::wstring& exePath, const std::wstring& parameters)
     {
         SHELLEXECUTEINFO sei = { sizeof(sei) };
